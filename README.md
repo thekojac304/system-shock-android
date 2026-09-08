@@ -1,125 +1,70 @@
-# System Shock - Android
+# System Shock — Android
 
-An unofficial native Android/ARM64 adaptation of [Shockolate](https://github.com/Interrupt/systemshock), developed with the Retroid Pocket 5 as the validated reference device.
+An unofficial Android/ARM64 port of System Shock, based on [Shockolate](https://github.com/Interrupt/systemshock). The Retroid Pocket 5 is the tested reference device.
 
-The stable project goal is preservation and access: run the original System Shock experience on Android without remastering or replacing the game's content.
+**Version 1.0.0 is available.** Bring compatible game data from your own copy of System Shock. The APK does not include it.
 
-**Stable release:** [v1.0.0](https://github.com/raposomiguel50/system-shock-android/releases/tag/v1.0.0)  
-**Direct APK:** [SystemShock-Android-v1.0.0-arm64-v8a.apk](https://github.com/raposomiguel50/system-shock-android/releases/download/v1.0.0/SystemShock-Android-v1.0.0-arm64-v8a.apk)  
-**Project website:** [Miguel's Game Dev Lab - System Shock Android](https://raposomiguel50.github.io/projects/system-shock-android/)  
-**Reproduction guide:** [Build it yourself](https://raposomiguel50.github.io/projects/system-shock-android/reproduce/)  
-**Engineering knowledge base:** [Problems, decisions, standards and lessons](https://raposomiguel50.github.io/projects/system-shock-android/knowledge/)  
-**Preservation scope:** [docs/PRESERVATION_SCOPE.md](docs/PRESERVATION_SCOPE.md)  
-**Release gate:** [docs/V1_RELEASE_GATE.md](docs/V1_RELEASE_GATE.md)  
-**Development method:** [docs/DEVELOPMENT_METHOD.md](docs/DEVELOPMENT_METHOD.md)  
-**ModDB:** [System Shock - Android](https://www.moddb.com/mods/system-shock-android)
+[Download the APK](https://github.com/raposomiguel50/system-shock-android/releases/download/v1.0.0/SystemShock-Android-v1.0.0-arm64-v8a.apk) · [Release notes](https://github.com/raposomiguel50/system-shock-android/releases/tag/v1.0.0) · [Project website](https://raposomiguel50.github.io/projects/system-shock-android/)
 
-This repository and its APK **do not contain System Shock commercial game data**. Users provide compatible data from a legally obtained copy separately.
+## What does the port provide?
 
-## Stable v1.0.0 status
+**Handheld controls.** Use the right stick to look around. Press View/Select to switch it to a fine cursor for the original mouse-driven interface.
 
-- Release state: **stable preservation release**
-- Version: **1.0.0** (`versionCode 10000`)
-- Architecture: **Android / ARM64 (`arm64-v8a`)**
-- Stable package: **`io.github.raposomiguel50.systemshock`**
-- Historical pre-release package: **`com.rp5np.systemshock`**
-- Application label: **System Shock - Android**
-- Stable presentation: **1024x768 4:3, no non-uniform stretching**
-- Reference hardware: **Retroid Pocket 5**
-- Complete start-to-finish reference-device playthrough: **accepted**
-- First-run Android game-data importer: **validated**
-- Commercial game data included: **No**
+**Touch and text entry.** Touch can also control the pointer. Android's on-screen keyboard handles text fields.
 
-### Verified release identity
+**Original-style presentation.** The game runs at 1024×768 in 4:3 without stretching. Version 1.0.0 keeps the original graphics, fonts, sound and gameplay content.
 
-- Source commit: [`d40e02b00e5e59b956b18fdd2a13a41672090b2c`](https://github.com/raposomiguel50/system-shock-android/commit/d40e02b00e5e59b956b18fdd2a13a41672090b2c)
-- APK SHA-256: `a6dcb7f76374dd7d4f7e39f0ecc08446f2956a33bda7655d699d5ba639b8526f`
-- Signing certificate SHA-256: `806d9cb061de67aa6953cdac573bd917da6aa17625964c2898d23e226bd5323b`
-- Release tag: [`v1.0.0`](https://github.com/raposomiguel50/system-shock-android/releases/tag/v1.0.0)
+**Game-data import.** Select your compatible `res` folder on first launch. The importer copies the files into private app storage before starting the game.
 
-The stable package intentionally differs from the historical pre-release package. This removes any dependency on the old pre-release signing key and allows both applications to coexist. Future stable releases must keep the v1 stable package and signing identity.
+[Full controls](docs/CONTROLS.md) · [Preservation scope](docs/PRESERVATION_SCOPE.md)
 
-## Preservation definition
+## Install and play
 
-Stable v1.0 is intentionally **not a remaster**. The original game content and original-style presentation remain authoritative.
+You need Android 13 or later, an ARM64 device and compatible game data. The controls are designed for a physical controller; touch is an optional pointer.
 
-The stable release does **not** add:
+1. Download and install the v1.0.0 APK linked above.
+2. Place your compatible System Shock `res` folder on the device.
+3. Open **System Shock — Android** and choose **Select res folder**.
+4. Select the folder containing both `data` and `sound`, then approve access.
 
-- widescreen/Hor+;
-- HD replacement graphics;
-- truecolor conversion;
-- remastered fonts;
-- replacement music or sound effects;
-- gameplay rebalance;
-- new maps, story content or other gameplay changes.
+The game starts when the import finishes. You do not need ADB or developer tools.
 
-Android-specific work is limited to what is required for practical access and reliable operation.
+Keep the original game-data copy separately. Uninstalling the app may remove its private storage.
 
-## Implemented Android adaptations
+[Installation guide](docs/INSTALL.md) · [Compatible game data](docs/GAME_DATA.md)
 
-- Native Android/ARM64 build rather than desktop emulation.
-- 1024x768 4:3 no-stretch presentation.
-- Retroid Pocket 5 controller integration using SDL GameController semantics.
-- Right-stick camera look by default.
-- View/Select toggle for fine cursor mode used by the original mouse-oriented interface.
-- Optional touchscreen pointer input.
-- Android IME text entry for keyboard-oriented fields.
-- SDL_mixer/ADLMIDI audio path with Android timing/platform fixes.
-- First-run Storage Access Framework importer for a compatible `res` folder containing `data` and `sound`.
-- Staged import and rollback so incomplete copies are not activated as live game data.
-- Signed non-debuggable release path with semantic APK verification.
+## Compatibility
 
-## Install and first run
+The Retroid Pocket 5 has an accepted complete playthrough and first-run importer test. Other Android 13+ ARM64 devices still need their own compatibility reports.
 
-1. Download and install `SystemShock-Android-v1.0.0-arm64-v8a.apk` from the [v1.0.0 release](https://github.com/raposomiguel50/system-shock-android/releases/tag/v1.0.0).
-2. Make your legally obtained compatible System Shock `res` folder available on the Android device.
-3. Launch **System Shock - Android**.
-4. Choose **Select res folder**.
-5. Select the `res` directory containing both `data` and `sound`.
-6. Approve access. The app imports the files into private app storage and launches the game.
+[Device compatibility](docs/COMPATIBILITY.md) · [Report a test or problem](https://github.com/raposomiguel50/system-shock-android/issues/new/choose)
 
-Normal users do not need ADB or developer tools. See [docs/INSTALL.md](docs/INSTALL.md) and [docs/GAME_DATA.md](docs/GAME_DATA.md).
+## Learn from the work
 
-## Compatibility boundary
+The engineering notes cover controller input, text entry, audio timing and Android integration. They also retain rejected experiments and their outcomes.
 
-The Retroid Pocket 5 is the validated reference target and has an accepted complete playthrough. Other Android 13+ ARM64 devices may work, but are not presented as validated until independently tested. See [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md).
+[Engineering knowledge](docs/KNOWLEDGE_BASE.md) · [Architecture](docs/ARCHITECTURE.md) · [Development history](docs/DEVELOPMENT_HISTORY.md)
 
-## Reproduce the build
+## Build it yourself
 
-1. Read [docs/BUILD.md](docs/BUILD.md).
-2. Run `scripts/bootstrap-deps.ps1` to obtain the pinned public dependencies.
-3. Run `scripts/qa-gate.ps1` for the isolated QA build and verifier.
-4. For an independently signed build, configure the release-signing variables described in [docs/RELEASE.md](docs/RELEASE.md) and run `scripts/release-gate.ps1`.
-5. Read [docs/GAME_DATA.md](docs/GAME_DATA.md) for the commercial-data boundary and importer behavior.
+The Windows/PowerShell 7 guide lists the toolchain and pinned dependencies. Use the QA build for testing and your own signing key for independent release builds.
 
-The official v1.0.0 APK was produced from the exact source commit recorded above and passed the project's final machine release gate. The release also publishes its `.sha256`, JSON manifest and final-gate report.
+[Build guide](docs/BUILD.md) · [Signing and release process](docs/RELEASE.md) · [Release checks](docs/V1_RELEASE_GATE.md)
 
-## Development attribution and AI assistance
+## Version and file identity
 
-This project is human-directed and AI-assisted. I define the goals, target platforms, preservation boundary, constraints, feature priorities, interaction model, acceptance criteria and final decisions. Hardware interpretation, physical testing and final approval remain under my control.
+Stable v1.0.0 uses package `io.github.raposomiguel50.systemshock`, version code `10000` and the `arm64-v8a` architecture.
 
-ChatGPT is used extensively for calculations, code drafting/modification, refactoring, debugging support, PowerShell/build automation, repetitive repository work, technical analysis, documentation, reproducibility work and release engineering. AI-generated output is reviewed against the intended design and tested where applicable.
+The historical pre-release uses `com.rp5np.systemshock`. It is a separate installation, with separate app storage and signing identity.
 
-See [docs/DEVELOPMENT_METHOD.md](docs/DEVELOPMENT_METHOD.md).
+The official release includes the APK checksum, JSON manifest and final test report. Exact source and certificate identifiers are in [Source and release integrity](docs/INTEGRITY.md).
 
-## Feedback and contributions
+## Credits and contributions
 
-Use the repository's structured [issue forms](https://github.com/raposomiguel50/system-shock-android/issues/new/choose) for bugs, Android compatibility reports, documentation corrections and preservation/access suggestions. Pull requests are welcome where they respect the preservation boundary.
+The port builds on Shockolate. [Credits and technical sources](docs/REFERENCES.md) identify the upstream projects and dependencies.
 
-Do not attach proprietary System Shock data, private information or credentials to public issues.
+I set the goals, make project decisions and test the reference hardware. ChatGPT assists with programming, analysis, automation and documentation.
 
-See [CONTRIBUTING.md](CONTRIBUTING.md).
+[Development method](docs/DEVELOPMENT_METHOD.md) · [Contribute](CONTRIBUTING.md) · [External coverage](docs/PRESS.md) · [ModDB](https://www.moddb.com/mods/system-shock-android)
 
-## Knowledge base and history
-
-The project documents successful changes, failed experiments, root causes, operational concerns, validation evidence and reusable engineering rules. Start with the public [Engineering Knowledge Base](https://raposomiguel50.github.io/projects/system-shock-android/knowledge/) or [docs/KNOWLEDGE_BASE.md](docs/KNOWLEDGE_BASE.md).
-
-Historical Hor+, HD and font experiments remain documented as engineering history without being promoted into the stable preservation baseline.
-
-## Press
-
-Independent coverage is recorded in [docs/PRESS.md](docs/PRESS.md). The first recorded article is GenerationAmiga's 21 August 2026 feature, “System Shock Android port brings the 1994 classic to handhelds”.
-
-## License
-
-The source-port code is distributed under the GNU General Public License v3.0 or later, consistent with upstream Shockolate. See [LICENSE](LICENSE), [COPYING.txt](COPYING.txt) and [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+The source-port code uses the repository's [GPL-3.0-or-later licence](LICENSE). See [third-party notices](THIRD_PARTY_NOTICES.md) for dependency attribution.
