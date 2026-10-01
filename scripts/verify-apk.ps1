@@ -178,15 +178,21 @@ else {
     }
     elseif ($DebuggableLines.Count -eq 1) {
         $DebuggableText = $DebuggableLines[0].ToString()
-        if ($DebuggableText -match '\(type\s+0x12\)0xffffffff(?:\s|$)') {
-            $IsDebuggable = $true
-        }
-        elseif ($DebuggableText -match '\(type\s+0x12\)0x0(?:\s|$)') {
-            $IsDebuggable = $false
-        }
-        else {
-            throw "Unable to parse AAPT2 debuggable boolean: $DebuggableText"
-        }
+if (
+    $DebuggableText -match '\(type\s+0x12\)0xffffffff(?:\s|$)' -or
+    $DebuggableText -match '=true(?:\s|$)'
+) {
+    $IsDebuggable = $true
+}
+elseif (
+    $DebuggableText -match '\(type\s+0x12\)0x0(?:\s|$)' -or
+    $DebuggableText -match '=false(?:\s|$)'
+) {
+    $IsDebuggable = $false
+}
+else {
+    throw "Unable to parse AAPT2 debuggable boolean: $DebuggableText"
+}
     }
     else {
         throw "Unexpected number of debuggable attributes in compiled manifest: $($DebuggableLines.Count)"
