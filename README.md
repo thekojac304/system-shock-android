@@ -89,8 +89,10 @@ Everything else (the engine, game logic, original graphics and sound, the import
 ## Source
 
 This repository is the public home of the Touch Edition. `main` holds the complete source of 1.1.0-beta.2; tag
-`v1.1.0-beta.2` is the exact source of the released APK. It is a curated snapshot: development happens in a private
-repository, and only reviewed release sources are published here. The upstream port's history (`0d71a89` and
+`v1.1.0-beta.2` is the exact source of the released APK. It is a curated snapshot of the release line; the full
+development history (with device identifiers and local paths redacted) is public at
+[system-shock-android-dev](https://github.com/thekojac304/system-shock-android-dev). This repository is the official
+download location. The upstream port's history (`0d71a89` and
 earlier) is kept underneath. The `touch-controls` branch and the `touch-baseline` tag mark where the touch work
 started from upstream v1.0.0.
 
