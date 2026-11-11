@@ -55,6 +55,10 @@ static char sbcopy[] = "Spaceball Interface Copyright 1994 Spaceball Technologie
 #include "gr2ss.h"
 #include "grenades.h"
 #include "invent.h"
+#include "mfdint.h"
+#include "mfdext.h"
+#include "mfdgump.h"
+#include "sideicon.h"
 #include "leanmetr.h"
 #include "MacTune.h"
 #include "mainloop.h"
@@ -74,6 +78,10 @@ static char sbcopy[] = "Spaceball Interface Copyright 1994 Spaceball Technologie
 #include "tools.h"
 #include "weapons.h"
 #include "mouselook.h"
+#ifdef __ANDROID__
+#include "touch_shock_bridge.h"
+#include "touch_cursor_target.h"
+#endif
 
 #ifdef __ANDROID__
 #include "hkeyfunc.h"
@@ -81,6 +89,153 @@ static char sbcopy[] = "Spaceball Interface Copyright 1994 Spaceball Technologie
 #include "wares.h"
 
 extern uchar reload_weapon_hotkey(ushort keycode, uint32_t context, intptr_t data);
+extern uchar show_all_actives;
+extern short inv_last_page;
+
+static void touch_radial_label(char out[24], const char *name, int id) {
+    if (!name || !*name) { snprintf(out,24,"SLOT %d",id+1); return; }
+    int i=0;
+    for (; name[i] && i<23; ++i) {
+        char c=name[i];
+        out[i]=(c>='a' && c<='z') ? (char)(c-'a'+'A') : c;
+    }
+    out[i]=0;
+}
+
+static weapon_slot *touch_ammo_weapon(int *slot, int *gun, int *subclass) {
+    int active=player_struct.actives[ACTIVE_WEAPON];
+    if (active<0 || active>=NUM_WEAPON_SLOTS) return NULL;
+    weapon_slot *ws=&player_struct.weapons[active];
+    if (ws->type>=num_subclasses[CLASS_GUN] ||
+        ws->subtype>=num_types(CLASS_GUN,ws->type) ||
+        is_energy_weapon(ws->type) || is_handtohand_weapon(ws->type)) return NULL;
+    int triple=MAKETRIP(CLASS_GUN,ws->type,ws->subtype), index=CPTRIP(triple);
+    if (index<0 || index>=NUM_GUN) return NULL;
+    int ammo=GunProps[index].useable_ammo_type;
+    int sc=AMMOTYPE_SUBCLASS(ammo);
+    if (!AMMOTYPE_TYPE(ammo) || sc<0 || sc>=num_subclasses[CLASS_AMMO] ||
+        ws->ammo_type>=num_types(CLASS_AMMO,sc) ||
+        !(AMMOTYPE_TYPE(ammo)&(1u<<ws->ammo_type))) return NULL;
+    int current=CPTRIP(MAKETRIP(CLASS_AMMO,sc,ws->ammo_type));
+    int clip=AmmoProps[current].cartridge_size;
+    unsigned returned=(unsigned)player_struct.partial_clip[current]+ws->ammo;
+    if (clip<=0 || returned>255 ||
+        player_struct.cartridges[current]+returned/(unsigned)clip>255) return NULL;
+    *slot=active; *gun=index; *subclass=sc;
+    return ws;
+}
+
+/* New touch reload button uses the game's same-ammo reload hotkey. Keyboard
+   and controller ammo-cycle semantics stay on their existing handlers. */
+static void touch_game_radial_short_ammo(void) {
+    int slot,gun,sc;
+    if (touch_ammo_weapon(&slot,&gun,&sc)) reload_weapon_hotkey(0,DEMO_CONTEXT,0);
+}
+
+static int touch_ammo_snapshot(TouchRadialEntry entries[TOUCH_RADIAL_MAX_ENTRIES]) {
+    int slot,gun,sc;
+    weapon_slot *ws=touch_ammo_weapon(&slot,&gun,&sc);
+    if (!ws) return 0;
+    TouchRadialEntry *reload=&entries[0];
+    *reload=(TouchRadialEntry){0};
+    reload->id=TOUCH_AMMO_RELOAD_ID(slot,gun);
+    strcpy(reload->label,"RELOAD");
+    reload->available=ws->ammo>0;
+    reload->count=ws->ammo;
+    int count=1;
+    unsigned compatible=AMMOTYPE_TYPE(GunProps[gun].useable_ammo_type);
+    for (int type=0;type<3 && type<num_types(CLASS_AMMO,sc);++type) {
+        if (!(compatible&(1u<<type))) continue;
+        int triple=MAKETRIP(CLASS_AMMO,sc,type), ammo=CPTRIP(triple);
+        if (ammo<0 || ammo>=NUM_AMMO_TYPES) continue;
+        unsigned reserve=(unsigned)player_struct.cartridges[ammo]*AmmoProps[ammo].cartridge_size+
+                         player_struct.partial_clip[ammo];
+        unsigned loaded=ws->ammo_type==type ? ws->ammo : 0;
+        if (!reserve && !loaded) continue;
+        reload->available=true;
+        TouchRadialEntry *e=&entries[count++];
+        *e=(TouchRadialEntry){0};
+        e->id=TOUCH_AMMO_TYPE_ID(slot,gun,type);
+        e->available=true; e->current=ws->ammo_type==type;
+        e->count=reserve+loaded;
+        char name[64]={0};
+        get_object_short_name(triple,name,sizeof(name));
+        touch_radial_label(e->label,name,type);
+    }
+    return count;
+}
+
+static bool touch_ammo_select(int id) {
+    int slot,gun,sc;
+    weapon_slot *ws=touch_ammo_weapon(&slot,&gun,&sc);
+    if (!ws) return false;
+    TouchRadialEntry fresh[TOUCH_RADIAL_MAX_ENTRIES]={{0}};
+    int count=touch_ammo_snapshot(fresh), choice=-1;
+    for (int i=0;i<count;++i) if (fresh[i].id==id && fresh[i].available) choice=i;
+    if (choice<0) return false; /* stale gun, slot or depleted reserve */
+    if (id==TOUCH_AMMO_RELOAD_ID(slot,gun)) return reload_weapon_hotkey(0,DEMO_CONTEXT,0)!=FALSE;
+    int type=id-TOUCH_AMMO_CONTEXT(slot,gun)-1;
+    if (type<0 || type>=3) return false;
+    /* Same operations as the native weapon MFD; all quantities stay owned by
+       the native unload/reload functions. Never call both hotkey and MFD. */
+    unload_current_weapon();
+    mfd_notify_func(MFD_WEAPON_FUNC,MFD_WEAPON_SLOT,FALSE,MFD_ACTIVE,TRUE);
+    return change_ammo_type((ubyte)type)!=FALSE;
+}
+
+int touch_game_radial_snapshot(TouchRadialCategory category,
+                               TouchRadialEntry entries[TOUCH_RADIAL_MAX_ENTRIES]) {
+    int count=0,limit=category==TOUCH_RADIAL_WEAPON ? NUM_WEAPON_SLOTS :
+                      category==TOUCH_RADIAL_CONSUMABLE ? NUM_DRUGZ : NUM_GRENADEZ;
+    if (!entries || category<0 || category>=TOUCH_RADIAL_CATEGORY_COUNT) return 0;
+    if (category==TOUCH_RADIAL_AMMO) return touch_ammo_snapshot(entries);
+    for (int i=0;i<limit && count<TOUCH_RADIAL_MAX_ENTRIES;++i) {
+        unsigned quantity=category==TOUCH_RADIAL_WEAPON ?
+            (player_struct.weapons[i].type!=EMPTY_WEAPON_SLOT) :
+            category==TOUCH_RADIAL_CONSUMABLE ? player_struct.drugs[i] : player_struct.grenades[i];
+        if (!quantity) continue; /* Unowned/zero-count items are hidden. */
+        TouchRadialEntry *e=&entries[count++];
+        char name[64]={0};
+        e->id=i; e->available=true; e->count=quantity;
+        if (category==TOUCH_RADIAL_WEAPON) {
+            e->current=player_struct.actives[ACTIVE_WEAPON]==i;
+            get_weapon_name(player_struct.weapons[i].type,player_struct.weapons[i].subtype,name);
+        } else if (category==TOUCH_RADIAL_CONSUMABLE) {
+            e->current=player_struct.actives[ACTIVE_DRUG]==i;
+            get_drug_name(i,name);
+        } else {
+            e->current=player_struct.actives[ACTIVE_GRENADE]==i;
+            get_grenade_name(i,name);
+        }
+        touch_radial_label(e->label,name,i);
+    }
+    return count;
+}
+
+bool touch_game_radial_select(TouchRadialCategory category, int id) {
+    if (category==TOUCH_RADIAL_AMMO) return touch_ammo_select(id);
+    if (category==TOUCH_RADIAL_WEAPON)
+        return touch_select_weapon_slot(id)!=FALSE;
+    if (category==TOUCH_RADIAL_CONSUMABLE) {
+        if (id<0 || id>=NUM_DRUGZ || !player_struct.drugs[id]) return false;
+        show_all_actives=TRUE;
+        inv_last_page=-1;
+        chg_set_flg(INVENTORY_UPDATE);
+        player_struct.actives[ACTIVE_DRUG]=id;
+        set_inventory_mfd(MFD_INV_DRUG,id,TRUE);
+        return true;
+    }
+    if (category==TOUCH_RADIAL_EXPLOSIVE) {
+        if (id<0 || id>=NUM_GRENADEZ || !player_struct.grenades[id]) return false;
+        show_all_actives=TRUE;
+        inv_last_page=-1;
+        chg_set_flg(INVENTORY_UPDATE);
+        player_struct.actives[ACTIVE_GRENADE]=id;
+        set_inventory_mfd(MFD_INV_GRENADE,id,TRUE);
+        return true;
+    }
+    return false;
+}
 #endif
 
 #ifdef NOT_YET // KLC - for VR headsets
@@ -358,11 +513,17 @@ uchar citadel_check_input(void) {
 }
 
 void input_chk(void) {
+#ifdef __ANDROID__
+    touch_bridge_sync();
+#endif
     setup_motion_polling();
     view3d_got_event = FALSE;
     uiPoll();
     if (!view3d_got_event)
         poll_mouse();
+#ifdef __ANDROID__
+    touch_bridge_after_input();
+#endif
 
     // KLC - not needed on MAC   kb_flush_bios();
     // KLC - not needed on MAC   mouse_set_velocity(0,0);
@@ -395,6 +556,9 @@ void input_chk(void) {
           joystick_chk();
     */
     process_motion_keys();
+#ifdef __ANDROID__
+    touch_bridge_merge_movement();
+#endif
     handle_keyboard_fatigue();
 }
 
@@ -1153,6 +1317,9 @@ static void rp5np_controller_game_action(rp5np_controller_action action, void *u
     (void)userdata;
 
     switch (action) {
+    case RP5NP_CONTROLLER_ACTION_TOUCH_AMMO:
+        touch_game_radial_short_ammo();
+        break;
     case RP5NP_CONTROLLER_ACTION_CROUCH_TOGGLE:
         if (player_struct.posture == POSTURE_STOOP || player_struct.posture == POSTURE_PRONE)
             player_set_posture(POSTURE_STAND);
@@ -3353,6 +3520,50 @@ uchar toggle_profile(ushort keycode, uint32_t context, intptr_t data) {
 // ---------
 // EXTERNALS
 // ---------
+
+/* The MFD gump's original callback uses a double-click then release to pick
+   up an item. Inventory rows with a use handler likewise use LDOUBLE. */
+#ifdef __ANDROID__
+extern MFD mfd[NUM_MFDS];
+static bool touch_ui_object_region(const LGRegion *region, int x, int y) {
+    if (input_cursor_mode == INPUT_OBJECT_CURSOR) return false;
+    for (int i = 0; i < NUM_MFDS; ++i) {
+        LGRegion *mfd_region = full_game_3d ? &mfd[i].reg2 : &mfd[i].reg;
+        if (region == mfd_region &&
+            mfd_get_func(i, player_struct.mfd_current_slots[i]) == MFD_GUMP_FUNC)
+            return touch_gump_item_at(&mfd[i], x, y);
+    }
+    LGRegion *inventory = full_game_3d ? inventory_region_full : inventory_region_game;
+    return region == inventory && touch_inventory_object_at(x, y);
+}
+
+TouchCursorTarget touch_cursor_target_at(int x, int y) {
+    extern uchar wrapper_panel_on, olh_overlay_on;
+    /* Setup makes its full-screen root the current view too; it is a menu,
+       not a world target requiring the gameplay double-click sequence. */
+    if ((_current_loop != GAME_LOOP && _current_loop != FULLSCREEN_LOOP &&
+         _current_loop != SVGA_LOOP) || (_change_flag & GL_CHG_LOOP) ||
+        wrapper_panel_on || olh_overlay_on || game_paused)
+        return TOUCH_TARGET_UI_CONTROL;
+    short ux = (short)x, uy = (short)y;
+    ss_mouse_convert(&ux, &uy, TRUE);
+    TouchCursorTarget target = touch_classify_view_region(_current_view, ux, uy,
+        touch_side_icon_at, touch_ui_object_region);
+    if (target != TOUCH_TARGET_NONE) return target;
+    /* In normal mode the MFDs and inventory are siblings of the small view. */
+    LGRegion *root = full_game_3d ? fullroot_region : root_region;
+    if (!touch_region_contains(root, ux, uy)) return TOUCH_TARGET_NONE;
+    for (int i = 0; i < NUM_MFDS; ++i) {
+        LGRegion *region = full_game_3d ? &mfd[i].reg2 : &mfd[i].reg;
+        if (touch_region_contains(region, ux, uy) && touch_ui_object_region(region, ux, uy))
+            return TOUCH_TARGET_UI_OBJECT;
+    }
+    LGRegion *inventory = full_game_3d ? inventory_region_full : inventory_region_game;
+    if (touch_region_contains(inventory, ux, uy) &&
+        touch_ui_object_region(inventory, ux, uy)) return TOUCH_TARGET_UI_OBJECT;
+    return TOUCH_TARGET_UI_CONTROL;
+}
+#endif
 
 void install_motion_mouse_handler(LGRegion *r, frc *fr) {
     int cid;

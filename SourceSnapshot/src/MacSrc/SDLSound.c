@@ -7,6 +7,9 @@ static snd_digi_parms digi_parms_by_channel[SND_MAX_SAMPLES];
 
 #include <SDL_mixer.h>
 #include <SDL_log.h>
+#ifdef RP5NP_AUDIO_DIAGNOSTICS
+#include "audio_trace.h"
+#endif
 
 static Mix_Chunk *samples_by_channel[SND_MAX_SAMPLES];
 
@@ -30,6 +33,9 @@ void rp5np_aux_audio_resume(void) { Mix_PauseAudio(0); }
    streams are mixed into the already-composed game music + SFX buffer here. */
 static void rp5np_external_stream_postmix(void *userdata, Uint8 *stream, int len) {
     SDL_AudioStream *active_stream = *(SDL_AudioStream **)userdata;
+#ifdef RP5NP_AUDIO_DIAGNOSTICS
+    rp5np_audio_diag_aux(active_stream ? SDL_AudioStreamAvailable(active_stream) : 0);
+#endif
     if (active_stream == NULL || len <= 0)
         return;
 
@@ -104,6 +110,10 @@ int snd_start_digital(void) {
     Mix_SetPostMix(rp5np_external_stream_postmix, (void *)&cutscene_audiostream);
     Mix_VolumeMusic(MIX_MAX_VOLUME);
 
+#ifdef RP5NP_AUDIO_DIAGNOSTICS
+    rp5np_audio_diag_start();
+#endif
+
     InitReadXMI();
     atexit(Mix_CloseAudio);
     return OK;
@@ -152,7 +162,14 @@ int snd_sample_play(int snd_ref, int len, uchar *smp, struct snd_digi_parms *dpr
 
     // Play one of the VOC format sounds
 
+#ifdef RP5NP_AUDIO_DIAGNOSTICS
+    unsigned long long trace_load_start = audio_trace_us();
+    AUDIO_TRACE("sample_request ref=%d bytes=%d", snd_ref, len);
+#endif
     Mix_Chunk *sample = Mix_LoadWAV_RW(SDL_RWFromConstMem(smp, len), 1);
+#ifdef RP5NP_AUDIO_DIAGNOSTICS
+    AUDIO_TRACE("sample_loaded ref=%d chunk=%p load_us=%llu", snd_ref, (void *)sample, audio_trace_us() - trace_load_start);
+#endif
     if (sample == NULL) {
         DEBUG("%s: Failed to load sample", __FUNCTION__);
         return ERR_NOEFFECT;
@@ -160,6 +177,10 @@ int snd_sample_play(int snd_ref, int len, uchar *smp, struct snd_digi_parms *dpr
 
     int loops = dprm->loops > 0 ? dprm->loops - 1 : -1;
     int channel = Mix_PlayChannel(-1, sample, loops);
+#ifdef RP5NP_AUDIO_DIAGNOSTICS
+    AUDIO_TRACE("play_return ref=%d chunk=%p channel=%d playing=%d paused=%d music_paused=%d",
+                snd_ref, (void *)sample, channel, Mix_Playing(-1), Mix_Paused(-1), Mix_PausedMusic());
+#endif
     if (channel < 0) {
         DEBUG("%s: Failed to play sample", __FUNCTION__);
 #ifdef __ANDROID__

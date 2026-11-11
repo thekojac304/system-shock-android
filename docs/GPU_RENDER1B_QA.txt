@@ -1,0 +1,689 @@
+GPU-RENDER1B -- LIVE MEDICAL GLES3 WORLD PROOF
+2026-10-03
+
+DELIVERY / GATE
+
+Implemented a QA-only GLES3 world backend in the same APK as Original, VIS1
+Conservative and VIS1B Horror. Actual clipped engine polygons and sprites are
+submitted as ordered triangles using original indexed texture pixels. RGB light
+is evaluated after palette lookup. This is not a shader over a software world
+image. The software world is also rendered, once, as a complete fallback.
+
+Medical A/B are running on the connected phone. Movement, the gold control,
+opening the supply door, selecting supplies, acquiring the lead pipe, weapon
+composition and runtime comparisons were exercised. No broad parity work or
+GPU-RENDER2 was started. Closeout records the milestone locally; no push.
+
+GPU-RENDER1B has passed the project's visual continuation gate.
+This does NOT mean full renderer parity is complete.
+
+GPU-RENDER1B CLOSEOUT STATUS (2026-10-03)
+
+PASSED -- bounded Medical proof, with evidence type stated below:
+- Live Medical GLES3 world rendering using actual engine geometry.
+- Original indexed textures; RGB lighting after palette lookup.
+- Simultaneous warm/cold lighting; smooth local-light falloff.
+- Emissive fixture preservation; original materials under colored light.
+- Medical controls / picking; door OPEN; pickups / lead pipe.
+- HUD / weapon / touch composition; runtime renderer mode switching.
+- Basic background/resume recovery (OBSERVED; three additional closeout cycles).
+- Overall GPU Medical visual direction: PASS by user hardware observation.
+- Truecolor RGB lighting concept: PASS by user hardware observation.
+- Original-material-under-colored-light goal: PASS by user observation.
+- Servbot enemy lighting/readability: qualitative PASS by user observation.
+- User approves continuing the GPU renderer direction in a future session.
+
+INJECTED FAILURE TEST -- passed in earlier final-build evidence:
+- ES3-unavailable, invalid shader and FBO rejection fall back safely.
+- Controlled GL resource deletion/reconstruction restores the retained view.
+These are not actual low-ES hardware or genuine driver context-loss tests.
+
+SOURCE-REVIEWED:
+- Special-view / unsupported-path guards and whole-view software fallback.
+- No renderer-switch saved-game write or save-format change; gamma retained.
+- GPU code remains QA-only; Original software and VIS1/VIS1B remain available.
+Source review is not comprehensive hardware parity certification.
+
+OBSERVED:
+- One normal servbot was lured into the GPU-rendered Medical area during ordinary
+  gameplay. The user saw visible local GPU light/color changes on the enemy.
+- This was not an artificially spawned or moved test. No video capture exists.
+- This is a qualitative hardware observation, not automated pixel evidence.
+- It establishes visually acceptable sprite/enemy lighting only in the bounded
+  Medical proof. It does not establish broad enemy-species parity.
+- Screen wake eventually recovered; immediate wake/lock latency is unverified.
+
+PENDING / UNVERIFIED -- not blocking the visual continuation decision:
+- Supply door CLOSE animation (normal-input closeout attempt still inconclusive).
+- Genuine OS/EGL context-loss recovery and actual low-capability/non-ES3 startup.
+- Broad enemy-species, transparency/effect and special-view parity.
+- Full-game performance, full-game cache behavior and whole-game coverage.
+
+See sections 27-29 for closeout checks, exact artifact provenance and handoff.
+Sections 1-26 retain the implementation history; earlier gamma-28 observations
+are not new closeout measurements. User acceptance is the supplied closeout
+request; no recording or new servbot screenshot is claimed.
+
+QA APK (arm64-v8a, QA package, version 1.0.0-qa / 10000):
+  C:\Dev\system-shock-android\dist\gpu-render1b\SystemShock-GPU-RENDER1B-qa-arm64-v8a.apk
+SHA256:
+  409bfd807e0eab3884e60d6e8cea35977d0971147d9650d9eed8930429480d3b
+Installed package: io.github.raposomiguel50.systemshock.qa
+Build: scripts/build.ps1 -Variant qa -SkipGitCleanCheck
+Verification: scripts/verify-apk.ps1 -Variant qa -Apk <above path>
+Both passed, including 16-KiB native ELF and ZIP alignment. The APK contains no
+replacement art; the existing imported original game resources remain required.
+
+Historical evidence root for implementation sections 1-26:
+  C:\Dev\system-shock-android\dist\gpu-render1b\
+Images are original device screencap PNGs, not edited, cropped or recolored.
+
+1. BASELINE AND DIRTY TREE
+
+HEAD: fa57a8b04af804e9698e585722dc83ee90273f2c
+Authority: docs/GPU_RENDER1_FEASIBILITY.txt, HORROR_VISUAL_FEASIBILITY.txt,
+HORROR_VIS1_QA.txt and HORROR_VIS1B_QA.txt.
+
+Existing modifications at entry: SourceSnapshot/CMakeLists.txt; GameSrc/frmain.c,
+frterr.c, gameobj.c, init.c, musicai.c, textmaps.c, wrapper.c; MacSrc/ExternalMusic.c,
+ExternalMusic.h, Prefs.c, Prefs.h, Shock.c; scripts/install-qa-soundtrack.py,
+test-audio2.py; tests/audio/external_music_smoke.c and external_music_test.c.
+Existing untracked VIS/profile sources, audio/VIS/feasibility reports, VIS device
+and evidence scripts, test-gpu-render1.py, tests/rendering, tests/visuals and
+tests/audio/dynamic_music_test.c were preserved. They are not all this task's work.
+
+Evidence baseline-status.txt was captured after creating the new GpuWorld files,
+so those two entries in it are GPU1B additions, not pre-existing work. Exact
+pre-edit copies of every existing file touched by this task are in source-before/.
+GPU_RENDER1B-only.patch records the text delta against those copies, excluding
+new files. New backend files are GpuWorld.c and GpuWorld.h. Do not use a wholesale
+git checkout/reset to revert this work: some integration files already contained
+the user's AUDIO/VIS changes. No audio implementation was edited by GPU1B.
+
+2. EXACT IMPLEMENTATION FILES / BOUNDARIES
+
+New: SourceSnapshot/src/MacSrc/GpuWorld.c and GpuWorld.h.
+  Backend capture, indexed cache, shaders, lights, state bridge, lifecycle,
+  composition and private QA failure switches. Non-GPU builds get no-op macros.
+AndroidProject/app/jni/CMakeLists.txt:
+  RP5NP_QA_TOOLS adds backend, GLESv3/EGL and RP5NP_GPU_WORLD to main, GAME_LIB,
+  3D_LIB and INPUT_LIB. Stable non-QA Android targets do not compile the backend.
+SourceSnapshot/src/GameSrc/frmain.c:
+  fr_rend wraps the existing traversal with gpu_world_begin/end; end is
+  before fr_send_view, where original overlays/copy behavior remains.
+SourceSnapshot/src/GameSrc/gameobj.c:
+  show_obj establishes object id/lighting metadata, then calls show_obj_original.
+SourceSnapshot/src/GameSrc/horror_visuals.c:
+  horror_visuals_begin_view excludes GPU mode from indexed remapping;
+  horror_visuals_set_mode accepts QA mode 3 and invalidates retained GPU state.
+SourceSnapshot/src/GameSrc/wrapper.c:
+  visuals_button_draw/toggle add the fourth QA mode and retain fresh-view redraw.
+SourceSnapshot/src/GameSrc/star.c:
+  star_empty rejects sky/stars for whole-view fallback.
+SourceSnapshot/src/Libraries/3D/Source/tmap.c:
+  draw_tmap_common emits already clipped/projected vertices before raster.
+SourceSnapshot/src/Libraries/3D/Source/polygon.c:
+  draw_poly_common captures flat polygons; g3_draw_point/draw_line_common reject.
+SourceSnapshot/src/Libraries/3D/Source/Bitmap.c:
+  g3_bitmap_common captures the existing sprite quad before rasterization/blending.
+SourceSnapshot/src/Libraries/INPUT/Source/sdl_events.c:
+  existing event pump forwards SDL reset/foreground events.
+SourceSnapshot/src/MacSrc/Prefs.c:
+  ReadPrefs/SavePrefs support world-visuals = gpu-prototype in QA.
+SourceSnapshot/src/MacSrc/Shock.c:
+  SDL initialization requests ES3 before window/context creation, retries ES2
+  presentation on startup failure; SetSDLPalette supplies canonical palette;
+  SDLDraw composes GPU world, software overlays and existing touch, then presents.
+New report: docs/GPU_RENDER1B_QA.txt.
+
+3. GLES / SDL INTEGRATION
+
+One Android Surface, one SDL window and SDL-managed ES context. No second Java
+surface/context or framework. SDL's GLES2 renderer runs in the requested ES3
+context. Window/presenter failure retries an ES2 software-world presenter; backend
+capability checks then reject GPU mode. Real low-capability startup was not tested
+on this ES3.2 phone; private ES3-unavailable injection tests backend rejection.
+
+Hardware logs: EGL 1.5 Android META-EGL; OpenGL ES 3.2 V@0842.19.13;
+GLSL OpenGL ES GLSL ES 3.20; vendor Qualcomm; renderer Adreno (TM) 840.
+GLSL source is #version 300 es. Vertex and fragment compile=1, program link=1.
+FBO completeness = 0x8cd5, GL error=0; color attachment queried as 8/8/8/8;
+depth/stencil allocation GL_DEPTH24_STENCIL8. These are logged on reconstruction.
+
+The coarse pass bridge flushes SDL before native commands and saves/restores
+program, VAO, array buffer, active texture unit, units 0/1 texture bindings,
+draw/read FBOs, renderbuffer, viewport/scissor, unpack alignment/row length/skips,
+pixel-unpack buffer, blend/depth/stencil/scissor/cull enables, color/depth write
+masks and clear color. Attribute pointers and EBO are isolated in a private VAO.
+Blend equations/functions, stencil functions and sampler objects are not changed.
+No glGet per polygon, MakeCurrent per draw, glFinish, or runtime pixel readback.
+
+4. BACKEND INTERFACE
+
+gpu_world_begin, gpu_world_face, gpu_world_sprite, gpu_world_polygon,
+gpu_world_object/object_end, gpu_world_reject, gpu_world_end, gpu_world_compose,
+gpu_world_palette, gpu_world_event, gpu_world_mode_changed.
+
+begin snapshots the primary camera, inverse transform, exact view dimensions,
+region signature and lights. Common primitive hooks copy projected vertices,
+UVs, original scalar darkness and owned texture content in submission order.
+end submits only a complete supported view. compose runs inside the existing SDL
+presentation function; the existing software UI and touch code finish the frame.
+
+5. WORLD FBO / COMPOSITION
+
+SDL_TEXTUREACCESS_TARGET ABGR8888 supplies the RGBA8 color target, with a GLES
+D24S8 attachment. Depth testing remains OFF; drawing remains painter ordered.
+No global sorting and no adjacent batching in this first implementation.
+
+Framed 1024x768 screen: world 857x414 at (89,92). Fullscreen: world 1024x768 at
+(0,0). Exact software projected X/Y and homogeneous depth drive triangle clip
+positions. Y is inverted for SDL render-target texture row convention.
+
+After successful submission the completed software WORLD is backed up and only
+its canvas is replaced by index 255. fr_send_view adds the original overlays.
+SDLDraw gives that index temporary alpha zero during the UI upload, restores the
+palette immediately, blends UI over the GPU world, draws touch, then presents
+once. Failed capture leaves the complete software world in place. Failed paused
+reconstruction restores the software backup beneath existing UI coverage.
+
+6. TERRAIN
+
+The existing engine still selects/traverses tiles and computes clipping, UV
+orientation, texture locks/flips, slopes, floors/ceilings, walls and heights.
+All textured convex faces reaching the common mapper become triangle fans.
+The Medical ramp and door-adjacent geometry use these actual runtime vertices;
+there is no independent map mesh or scene graph. Nearest integer texture fetch
+preserves original texels; perspective interpolation differs slightly from the
+old software mapper at edges, so this is not pixel-identical rasterization.
+
+7. OBJECTS / ORDER
+
+Every supported object uses the existing representation path and ordering, with
+no GPU-side visibility or selection. Captured types: flat/textured polygon model,
+bitmap/multiview/critter sprite quad, normal door/panel geometry, ordinary
+bridge/pillar/catwalk/CRT/security-control/barricade common primitives. Their
+general parity is NOT claimed beyond observed Medical paths.
+
+Actual runtime inventory in logs includes:
+  176 gold control: representation 8, class 9, (26.0273,22.4023,0.277344)
+  5 supply door: representation 8, class 10, (26.5,21.9961,0.25), frames 0/7
+  327 other door: representation 8, class 10, (26.5,24,0.25)
+  699 / 718 Medical panels: representation 8, class 7
+  133 bitmap item: representation 2, class 4
+  supply objects 231,471,665,190,254,95,2: representation 2, classes 8/5/0/4
+  413 model: representation 1, class 7; 431 panel: representation 8, class 7
+  98 critter: representation 4, class 14, outside the immediate suite.
+Traversal logging of 98 is NOT a tested live enemy encounter or visibility proof.
+
+Sprites keep the engine's projected anchors. Their lighting uses the anchor's
+world position uniformly over the sprite. No independent billboard placement.
+Doorway/supplies/panels stayed aligned during observed movement and turning;
+no obvious through-wall or painter-order failure was seen on the captured route.
+
+8. WHOLE-VIEW FALLBACK / UNSUPPORTED PATHS
+
+Original mode never begins GPU world capture or submission. Shared SDL
+presentation/context and palette bookkeeping remain common infrastructure.
+GPU visible views are bounded to level 1, the 17 medical-healing-suite-v1 tiles,
+and the existing type/height/wall/floor/ceiling signature. Outside/incompatible
+geometry is explicitly software; world/simulation data is never rewritten.
+
+Software-only views: pickup ID rendering, hack/security camera flags, sensaround,
+palette/special/solid/no-render/overlay/current-view flags, cyberspace/other levels,
+cutscene palette, alternate CLUT vision, sight/LSD drugs, and DoubleSize detail.
+Picking is expected and not spam-counted as a rendering failure. Other rejected
+views log a reason; repeating reasons are rate limited, counts remain cumulative.
+
+Reject entire view on voxel, invisible critter, translucent polygon, unsupported
+special representation, non-original CLUT, TLUC8 bitmap, unsupported bitmap type,
+gouraud/colored-effect polygon, world points/lines/stars, allocation failure,
+unsupported dimensions, command/cache limits or failed GL submission. Object
+inventory logs associate id, representation, class and position with capture.
+There is no paste-over of unsupported objects into a completed GPU world.
+Special-view guards are source reviewed, not exhaustively visited on hardware.
+
+9. INDEXED ART / PALETTE / TRANSPARENCY
+
+Original FLAT8 pixels or owned decoded RSD8 pixels upload to GL_R8UI. A separate
+256x1 GL_RGBA8 palette receives canonical SetSDLPalette data before display gamma.
+Integer texelFetch samples the nearest index; indices are never interpolated.
+UV repeat is explicit with fract. Cutout discard(index==0) happens ONLY when the
+source bitmap has BMF_TRANS. Index zero remains opaque otherwise. TLUC8 and other
+destination-dependent effects reject the whole view instead of approximating.
+
+Palette-generation changes upload 1024 palette bytes, not static index textures.
+During final GPU timing the palette generation advanced 5602 -> 6202 -> 6802,
+while static texture uploads/bytes stayed zero. Paused retained commands also
+replay when the palette changes. This exercises the game's continuing palette
+updates; it is not a complete audit of every animated/cycling resource family.
+
+10. CACHE / LIFETIME
+
+Identity is content hash (64-bit FNV-style), dimensions and byte-for-byte equality;
+hash collisions cannot alias different pixels. No pointer-address identity.
+CPU content is owned across resource unlocks, temporary monitor/model sources,
+decoded RSD scratch reuse and GL recreation. Current animated content produces a
+different cache entry. Static matching art is shared. GL names are derived state.
+
+Limits: 512 textures, each at most 1024x1024; 4096 commands; 32768 vertices.
+No eviction yet: sustained novel dynamic images eventually cause explicit
+software fallback. This intentionally bounded Medical cache is not a general
+animation-streaming system. Buffers/metadata are retained for the process lifetime.
+
+11. LIGHTING / GAMMA
+
+CPU records feed uniforms; Medical constants are not baked into the shader.
+For canonical palette RGB P normalized to [0,1], scalar darkness D in [0,16]:
+  base = pow(P, 2.2)
+  scalar = pow(clamp(1 - D/16, 0, 1), 2)
+  illumination = ambientRGB * scalar
+               + SUM(receivingLightRGB * intensity * max(0,1-distance/radius)^2)
+  linear = base * illumination
+  emissive or original invariant index: linear = base
+  output = pow(clamp(linear,0,1), displayExponent/2.2)
+  g = clamp(prefs.gamma/100, .1, 1)
+  displayExponent = 1 / ((1 - (1-g)^2) * 2.2)
+
+This uses a simple power-law approximation, not a calibrated sRGB transfer.
+Gamma is encoded once in GPU output, with the existing display setting. Original
+scalar rows are baseline data only; local RGB contributions never go through
+SHADTABL. RGBA8 still has finite output precision and source art is still indexed.
+No normals, PBR, specular, replacement art, smoothing, bloom, AO or shadows.
+
+12. EXACT LIGHT RECORDS
+
+Coordinate convention: map X,Y; positive map height Z. Ambient (.065,.075,.085).
+Cold: X=30.0, Y=23.8, radius=4.2, RGB=(.13,.8,1.0), intensity=2.4.
+  Height source tile (30,23), ceiling offset=.35.
+  actual Z = _fr_fhgt_list[32-me_height_ceil(tile)]/65536 - .35 = 2.025.
+Warm: X=26.5, Y=20.5, radius=3.2, RGB=(1.0,.48,.015), intensity=6.0.
+  Height source tile (26,20), ceiling offset=.25; actual Z=1.25.
+Ceiling values are read from actual compatible geometry each view, not estimated
+from screenshots. Static Light records isolate position, radius, color, intensity
+and geometry anchor for a future authored profile; no full profile system exists.
+
+13. RECEIVERS / LEAKAGE
+
+Existing Medical tile membership supplies explicit receiver bits. COOL tiles
+receive cold only; WARM alcove tiles amber only; ORIGINAL landing tiles receive
+both. Outside the region receives neither local light. Object membership comes
+from its own location, including exact boundary fallback to neighboring tiles.
+The original traversal tile supplies terrain membership.
+
+When supply door 5 current_frame==0, amber spill onto non-WARM tiles is disabled.
+This is a simple runtime portal gate, not shadow casting. Partially open doors
+do not compute fractional occlusion; membership boundaries may be visible. Inside
+the shared landing, both distance-weighted contributions add continuously. The
+captured B frame proves simultaneous warm/cold regions; it is not a separate
+quantitative overlap or shadow test. No general light-through-wall correctness
+claim is made outside these authored constraints.
+
+14. EMISSIVE
+
+Material families 35/216, display/unlit object semantics, and original invariant
+palette entries 1,3..7,11..31 preserve base color independent of diffuse light.
+Blue luminous fixtures remain blue in the amber alcove. These pixels do not emit
+light automatically: the two separate CPU light records illuminate receivers.
+
+15. PICKING
+
+FR_PICKUPM views stay in the original software renderer; no ray-cast replacement.
+The complete normal software world also runs during visible GPU capture. Tiny
+gold control activation, briefcase search/log acquisition, lead-pipe selection,
+inventory transfer and original labels were exercised using normal touch input.
+The GPU uses the same projected positions. The earlier too-far pickup message
+was resolved by approaching normally; it was not counted as successful pickup.
+
+16. HUD / WEAPON / TOUCH
+
+Framed and fullscreen composition exercised. Evidence: pipe-inventory.png,
+weapon-fullscreen.png, weapon-swing.png, fullscreen-first.png and fullscreen-menu.png.
+Lead pipe remains original gray while world surfaces are lit; HUD/MFD/text and
+touch colors are unchanged. Menus, cursor and online-help labels remain original.
+An index-255 transparency sentinel follows the existing desktop compositing
+convention; an opaque UI pixel using that exact index would become a hole. No
+such defect was observed in the tested HUD/menu/weapon views; full UI parity is
+not asserted. Touch code itself was not changed.
+
+17. SELECTOR / GAME STATE
+
+Pause -> Video cycles Original -> Conservative -> VIS1B Horror -> GPU Prototype
+-> Original, inside this one QA APK. Wrapper forces a fresh primary world at the
+existing safe redraw boundary. No load, reposition, inventory or quest mutation
+is part of changing the renderer. Gamma remains 28 throughout comparisons.
+Backend init failure chooses Original in memory, logs the cause and preserves
+game state; it does not rewrite unrelated preferences. A later explicit retry
+clears the disabled state. Unsupported ordinary views keep the user's GPU choice
+but visibly use a complete software view until supported again.
+
+18. LIFECYCLE / RESTORATION
+
+All GL names can be reconstructed from CPU vertices, draw commands, original
+pixels and palette. Same-context resize deletes/recreates targets; changed
+context or SDL_RENDER_DEVICE_RESET forgets old native GL names. SDL owns its
+texture lifecycle. SDL_RENDER_TARGETS_RESET invalidates retained output.
+Foreground invalidates output; retained commands allow reconstruction even when
+paused, without advancing simulation. This fixed a real black-world bug found
+when returning to an open menu (resume-menu.png -> resume-fixed.png).
+
+Final build: background/Home then return restored the paused world and UI;
+final-background-resume.png. Screen sleep/wake was attempted: first automatic
+capture was black/portrait; subsequent wake with the game focused restored the
+correct landscape paused world (wake-state.png). Therefore basic wake recovery
+was observed, but immediate lock/unlock latency is not certified.
+
+Controlled resource deletion/reconstruction passed in framed and fullscreen
+views. final-resource-reset.png and final-complete.log record final-build replay;
+resource-reset.png/lifecycle-log.txt record fullscreen replay. These are not
+proof of real EGL_CONTEXT_LOST or a driver-delivered SDL_RENDER_DEVICE_RESET.
+No real lost-context event was observed. OS surface/context destruction remains
+an explicit hardware QA gap; the code paths are implemented, not fully certified.
+
+19. FAILURE INJECTION
+
+Private files in QA app files/ (not menu options):
+  gpu-render1b-fail-es3.txt     backend rejects capability
+  gpu-render1b-fail-shader.txt  actual invalid vertex shader compilation
+  gpu-render1b-fail-fbo.txt     rejects initialized target as simulated FBO failure
+  gpu-render1b-fail-reset.txt   deletes all GL resources on mode change for replay
+Create a file, cycle away/back to GPU, observe fallback; remove file and retry.
+Only the QA backend recognizes them. All markers removed after tests.
+
+Final build screenshots final-fallback-es3.png, final-fallback-shader.png and
+final-fallback-fbo.png show intact Original views and selector. final-recovered.png
+shows GPU restored. Logs record injected ES3 unavailable, shader compilation/link
+failure, and injected framebuffer creation failure. No crash or partial hybrid.
+FBO injection deliberately rejects a complete allocation; genuine driver OOM and
+low-capability context negotiation are not claimed by these tests.
+
+20. PERFORMANCE
+
+Final-build stationary Scene B, framed HUD, same session/camera. Each mode ran
+18 seconds; summaries use batches ending after 5 seconds of warm-up, covering
+approximately the remaining 13 seconds. Six 300-draw world batches and three
+300-present batches per mode. Raw timing.log, timing-windows.json and
+timing-summary.txt retain exact windows. Short correctness sample, not thermals.
+
+                                            Original     Horror       GPU
+  mean world draw, ms                         1.4752      1.4467      2.1848
+  largest sampled world draw, ms              3.338       4.362       7.259
+  compose/conversion/upload mean, ms          8.4560      8.3193      7.2393
+  SDL present CPU call mean, ms               .1370       .1367       .1497
+  presentation interval mean, ms             16.6647     16.6433     16.6580
+  max interval, ms                           28.114      27.603      31.074
+  intervals >20 ms per 900                       3           5          24
+
+World timing includes software picking and full rendering calls: it is NOT an
+isolated traversal or GPU-capture cost. GPU LIVE primary-view samples show
+capture WITH full software backup 4.116..4.352 ms, submission CPU .063.. .082 ms,
+24 draws / 50 triangles, zero static uploads/bytes after warm-up. Scene A's first
+capture logged 83 draws / 167 triangles, 20 uploads / 150112 index bytes. A/B
+coverage changes those counts; no global texture sorting/batching is used.
+
+The conversion/upload field starts before composition, so GPU mode includes
+composition/possible palette replay and driver scheduling, not just UI conversion.
+It is not evidence that the GPU lowered UI conversion cost. CPU capture and
+software traversal/raster are not separated. Cache capacity is explicit but live
+occupancy/dynamic-generation statistics are not separately instrumented yet.
+Palette generation and texture upload count/bytes, fallback counts and reasons,
+draws/triangles, capture and submit CPU times are logged. GPU execution time is
+UNKNOWN: no timer query result is invented. No glFinish/readback in runtime.
+
+21. SCENE A TRIPLET
+
+  C:\Dev\system-shock-android\dist\gpu-render1b\A-original.png
+  C:\Dev\system-shock-android\dist\gpu-render1b\A-horror.png
+  C:\Dev\system-shock-android\dist\gpu-render1b\A-gpu.png
+Existing fresh-start checkpoint savgam07.dat, Medical approximately
+(30.5,22.625), heading 192. No movement between modes. Final APK, gamma 28,
+framed/high-detail 1024x768. GPU keeps original panels/fixtures, darkens far wall,
+and supplies continuous cold light on surrounding materials. A is deliberately
+less saturated in its deep shadows than the indexed Horror remap.
+
+22. SCENE B TRIPLET
+
+  C:\Dev\system-shock-android\dist\gpu-render1b\B-original.png
+  C:\Dev\system-shock-android\dist\gpu-render1b\B-horror.png
+  C:\Dev\system-shock-android\dist\gpu-render1b\B-gpu.png
+New savgam03.dat checkpoint reached by walking down the ramp, activating control
+176, opening the supply door and turning toward the cool wall/alcove boundary.
+Same frozen position/facing/inventory/door state within the triplet; same gamma,
+HUD, final APK and fixed manual device brightness. brightness.txt records the
+value and restoration of the user's automatic-brightness mode afterward.
+Palette and HUD animation can differ; no game simulation between mode captures.
+Images retain the Video selector; no after-the-fact image processing. Earlier
+*-v2/v3 development images are not the acceptance triplets.
+
+B GPU shows teal Medical on the left, amber/brown alcove surfaces, original
+green flooring and blue luminous panels in the same frame. The indexed Horror
+comparison remaps those materials more aggressively. Smooth new local light
+contributions are evaluated per fragment, with no 16-row output quantization.
+Source texels, original scalar baseline and authored receiver boundaries can
+still contain visible steps; this is not a claim of universally band-free art.
+
+23. HARDWARE TEST RESULTS
+
+Samsung SM-S948U1, Android 17, Adreno 840, GLES3.2. Physical authorized QA app.
+Build/package verification PASS; scripts/test-vis1.py PASS (palette/profile
+mappings, adapter scope, legacy prefs). Windows-aware diff whitespace check PASS.
+Raw preservation test output: preservation-tests.log.
+
+PASS observed: live A/B geometry; nearest indexed art; simultaneous cold/warm
+light; ordinary controls, door OPEN animation, movement/camera, supply selection,
+briefcase/log and pipe acquisition; framed/fullscreen weapon/HUD/touch; menus;
+Original/Conservative/Horror/GPU comparison; three init-failure fallbacks/retry;
+background resume; controlled resource recreation and palette-generation updates.
+
+Stress: development builds ran 100 framed doorway and 100 fullscreen transitions;
+final build repeated 100 at open Scene B and 100 at closed-start Scene A, plus
+ordinary toggles after movement and failure injections. No crash, persistent
+black world, stale FBO, partial-world composition or accumulated state corruption
+was seen in these checks. final-stress-100.png / final-A-stress-100.png; earlier
+fullscreen-stress-before.png / fullscreen-stress-after.png. Stress uses menu
+redraws at a frozen camera; live movement was checked separately.
+
+Existing savgam00/01/02/07 files are byte-for-byte unchanged against backups.
+touch-settings.cfg unchanged. prefs.txt differs only in world-visuals:
+horror -> gpu-prototype; gamma=28 unchanged. preservation.txt has hashes/diff.
+New savgam03.dat is intentional QA convenience, not an overwritten user slot;
+its backup is final-savgam03.dat. CurrentGame.dat changes naturally during normal
+load/play/interaction tests; no assertion that that working game file stayed
+unchanged. Renderer switching does not save or mutate world state.
+
+24. REMAINING LIMITATIONS / HONEST COVERAGE
+
+- Scope is the bounded Medical proof, not whole-level/game parity. Guarded special
+  cameras, cyberspace, drugs/translucency and unsupported objects still need live
+  coverage beyond source review. A logged distant critter is not enemy QA.
+  The later user-observed servbot encounter passes only the bounded Medical
+  lighting/readability check; broad enemy-species parity remains unverified.
+- The supply door was opened normally and checked closed via the start save.
+  Attempts to close it again through the control/open aperture did not produce a
+  verified CLOSE animation; do not count door-closed.png/door-closed-switch.png
+  as successful closure despite their exploratory filenames. No artificial door
+  or enemy state mutation was used to claim success. Live closing remains a gap.
+- Real OS surface/context loss and low-ES startup need further hardware testing.
+  Screen wake recovered, but initial black portrait capture/latency remains noted.
+- Authored receiver masks and a binary closed-door gate are intentionally coarse.
+  No partial portal shadows, arbitrary occlusion or general leakage guarantee.
+- Sprite lighting is constant across each sprite; source shading/quantization
+  remains in original art. Perspective texel coverage differs from software.
+- Full software raster remains in the GPU frame for reliable fallback; cache
+  hashing/copy lookup is CPU work. More slow frames occurred in the GPU sample.
+  Bounded non-evicting animated cache is unsuitable for unlimited play.
+- No complete palette/material emissive audit, opaque index-255 UI audit, or
+  broad representation/transparency parity. No full-game performance claim.
+
+25. TWO-TO-FIVE-MINUTE USER ACCEPTANCE
+
+0:00 Launch the installed QA APK. Continue -> eighth/last row loads the existing
+     starting checkpoint. Pause -> Video. Leave gamma fixed. Cycle Original,
+     Conservative, VIS1B Horror and GPU. Inspect original panels, bed surfaces,
+     ceiling falloff and shadowed wall. Each comparison stays at the same camera.
+0:45 Return. Walk down the ramp. Toggle CURSOR and double-tap the small gold wall
+     control to open the supply alcove. Turn left and step back enough to see
+     both teal Medical and the warm doorway. Or load the new fourth row directly.
+1:30 Pause -> Video. Compare the three main modes at this exact doorway. Look
+     especially at the green original floor, blue fixture, brown wall texture,
+     warm/cold boundary and doorway silhouette. Decide whether it reads as light
+     on original materials, and whether the remaining mask boundary is acceptable.
+2:15 Return, move/turn, approach the supplies, select the pipe in CURSOR mode and
+     drop it into inventory. Check labels and gray weapon over the lit world.
+     Use the normal fullscreen HUD control if desired and repeat mode changes.
+3:00 Background/return once while paused, and inspect world plus unchanged UI.
+     Leave the renderer you prefer selected. Nothing requires reinstalling.
+Allow another minute for familiarity with classic cursor/inventory controls.
+
+26. RECOMMENDATION
+
+The live proof demonstrates the required architectural capability: actual engine
+geometry, original index textures and palette, then simultaneous RGB local light
+in a truecolor target. It offers a materially different result from VIS1B's palette
+remapping, particularly the original green floor and blue fixture under amber
+surrounding illumination. The new falloff has no 16-row local-light limitation.
+
+User visual review is now complete: the GPU lighting/material direction and a
+normal servbot encounter in Medical are accepted qualitatively. The visual
+continuation gate is PASS. The full technical checklist is NOT all passed:
+door CLOSE, real context loss, low-ES hardware and broad parity remain open.
+Original and VIS1B remain intact. GPU-RENDER2 is a future session, not work begun
+or authorized for implementation by this closeout.
+
+
+27. CLOSEOUT DEVICE CHECKS AND PRESERVATION (2026-10-03)
+
+Additional evidence root: C:\Dev\system-shock-android\dist\gpu-render1b-closeout\
+All screenshots are direct screencap bytes. No new video or servbot pixel test.
+The installed APK hash matches the closeout build exactly; no reinstall needed.
+Existing QA app saves/settings and installed APK were backed up under before/.
+
+OBSERVED / PASSED:
+- Loaded the existing fourth-slot QA Medical doorway checkpoint through the
+  normal Load Game menu. No save slot was written or door state edited.
+- Video selector: Original -> VIS1 Conservative -> VIS1B Horror -> GPU Prototype
+  -> Original. Each showed the expected world and intact menu/HUD; no obvious
+  stale composition. mode-original.png, mode-conservative.png, mode-vis1b.png,
+  mode-gpu.png, mode-original-final.png. Restored the user's entry GPU selection
+  through the same selector afterward; handoff-gpu.png. Device left paused at
+  the Medical doorway Video menu.
+- Three Home/foreground cycles in GPU mode restored the paused world and UI;
+  resume-1.png through resume-3.png. No persistent black/stale world observed.
+- One screen sleep/wake attempt: wake-initial.png is black and portrait. A later
+  wake/menu/foreground sequence restored the correct landscape world and UI;
+  wake-settled.png. Only eventual recovery observed; no immediate wake PASS.
+- device-checks.log records foreground invalidations, not SDL device/target reset
+  or EGL_CONTEXT_LOST. Genuine driver/context loss remains UNVERIFIED.
+
+PENDING: brief ordinary touch attempts at the gold supply control, including
+cursor mode, did not produce a verified door CLOSE animation. Captures remain
+open-door views (door-close-attempt-*.png and door-cursor-attempt.png). Input-mode
+selection was restored. No artificial mutation, long forced-event hunt or new
+renderer implementation was used. Historical door OPEN acceptance is unchanged.
+
+Preservation: preservation.txt records byte-identical savgam00/01/02/03/07,
+prefs.txt and touch-settings.cfg against this session's backup. Current gamma
+was already 37 at entry and remains 37; earlier sections' gamma28 belongs to the
+prior comparisons. All preferences are identical after restoring GPU mode.
+CurrentGame.dat changed as expected when normally loading slot 3 (it matches
+that checkpoint); it is not a user save slot or a renderer-switch write.
+No failure-injection marker was present at entry or left on the device.
+
+SOURCE-REVIEWED: renderer mode changes only select the visual preference,
+invalidate retained rendering and request a fresh view; no save serialization,
+map/AI light mutation, touch settings edit or gamma slider change was introduced.
+Existing AUDIO work and VIS behavior were preserved; no runtime source fixes or
+GPU-RENDER2 features were needed during closeout.
+
+28. FINAL BUILD / TEST / COMMIT PROVENANCE
+
+Build baseline HEAD: fa57a8b04af804e9698e585722dc83ee90273f2c.
+The final QA APK is from that baseline plus the existing GPU/VIS work AND the
+pre-existing local AUDIO changes. It is NOT represented as an artifact built
+from the eventual GPU-only commit alone. Exact entry file hashes and status:
+  dist/gpu-render1b-closeout/worktree-before.json
+  dist/gpu-render1b-closeout/baseline-status.txt
+No runtime source bytes changed during closeout; documentation was reconciled.
+
+Final QA APK:
+  C:\Dev\system-shock-android\dist\gpu-render1b-closeout\SystemShock-GPU-RENDER1B-closeout-qa-arm64-v8a.apk
+SHA256:
+  409bfd807e0eab3884e60d6e8cea35977d0971147d9650d9eed8930429480d3b
+Package: io.github.raposomiguel50.systemshock.qa
+Version: 1.0.0-qa / 10000; arm64-v8a; debuggable QA identity.
+This matches the earlier final GPU1B APK and the installed APK byte-for-byte.
+
+PASSED:
+- scripts/build.ps1 -Variant qa -SkipGitCleanCheck, JDK 17.0.20.101,
+  pinned SDL2/SDL2_mixer and NDK 29.0.14206865: build.log.
+  Gradle assembled successfully with native outputs up-to-date; no source change
+  required recompilation. Dirty-tree override preserves unrelated local work.
+- scripts/verify-apk.ps1 -Variant qa -Apk <final QA APK>: apk-verification.log.
+  Package/version, signature, arm64-only content, no proprietary game resources,
+  all three libraries' ELF PT_LOAD and uncompressed ZIP 16-KiB alignment pass.
+- scripts/test-gpu-render1.py: gpu-tests.log. Six synthetic pixel comparisons
+  (three resource generations, two palette states), maximum error 0; standalone
+  GLES capability only, not game lifecycle or Medical enemy pixel coverage.
+- scripts/test-vis1.py: vis-tests.log. Production profile/palette invariants,
+  1000 nested adapter scopes, exclusions, Original and preference/gamma checks.
+- scripts/lint-powershell.ps1: script-validation.log; 19 script parses pass.
+  PSScriptAnalyzer is not installed; that optional analyzer was not run.
+Existing GPU1B device failure-injection evidence is retained in sections 18-19;
+no additional world-renderer unit-test framework was introduced for closeout.
+
+Additional self-contained milestone validation: exported only staged files to
+ignored dist/g1b-src/, retaining baseline AUDIO2 instead of local AUDIO3 changes.
+A fresh QA build executed all 37 Gradle tasks and PASSED; staged-source-build.log.
+The same VIS production tests PASSED against this exported source and baseline
+audio module; staged-source-vis-tests.log. APK/package/signature and 16-KiB ELF
+and ZIP verification PASSED; staged-source-apk-verification.log.
+
+Separate commit-source QA APK (build-verified, NOT installed or device-playtested):
+  C:\Dev\system-shock-android\dist\gpu-render1b-closeout\SystemShock-GPU-RENDER1B-commit-source-qa-arm64-v8a.apk
+SHA256:
+  22e6f7b75360d68a15b6f4fbc8551fad6853110094ffdb6f375f814180ea83dd
+Same QA package/version/ABI. The main closeout/device-tested APK remains the
+409bfd80... artifact above, which preserves the user's local AUDIO work.
+Exported runtime sources match the milestone; subsequent report-only updates
+do not alter build inputs. No reliance on uncommitted AUDIO is needed to build
+or run the milestone's existing VIS tests.
+
+Scope/byte audit: scope-audit.txt confirms only these five reports changed during
+closeout. All runtime/source/helper/test bytes, including unrelated AUDIO edits,
+remain exactly as at entry. staged-whitespace.log records the Windows-aware
+staged diff check. Existing line-ending churn in earlier integration files is
+retained rather than rewriting their source during closeout. Python helper
+syntax checks pass; optional Pillow evidence scripts were not rerun (Pillow is
+not available in the shell Python). This does not affect the NDK test results.
+
+Commit scope: GPU backend, Android/3D/SDL integration, selector, required existing
+VIS1/VIS1B core and integration, visual tests/helpers and the five authoritative
+visual/GPU reports. These VIS dependencies are necessary for a self-contained
+renderer milestone and retain the earlier work unchanged. AUDIO implementation,
+audio tests/helpers and AUDIO3/AUDIO31 reports remain outside this commit.
+No APK, image, log, dist output, proprietary resource, failure marker, save file
+or device-private data belongs to the commit. Evidence remains under ignored dist/.
+Use the commit containing this report for its exact milestone hash; the local
+post-commit manifest records that hash and verifies the remaining worktree.
+
+29. NEXT SESSION HANDOFF -- GPU-RENDER2 (NOT STARTED)
+
+GPU-RENDER1B visual gate: PASS. Original software renderer retained. Truecolor
+GPU output with original indexed materials and Medical interaction is proven;
+servbot lighting/readability is accepted by the user's qualitative observation.
+Remaining bounded 1B gaps: door CLOSE animation, actual context loss, actual
+low-ES startup and immediate wake behavior. Broader parity remains unverified.
+
+Architectural limits: 17-tile Medical/signature gate; full software rendering
+still runs for fallback; painter ordering; fixed non-evicting texture/command
+budgets; uniform per-sprite lighting; coarse receiver masks/binary door light
+gate; original quantized art/scalar shading; index-255 UI sentinel; unsupported
+representations, transparency and special views use whole-view software fallback.
+No full-game performance or unlimited cache claim.
+
+Exact next milestone: GPU-RENDER2 terrain/texture parity.
+Expand from the bounded Medical proof to dependable terrain/texture parity
+across all relevant tile types and level geometry while preserving safe software
+fallback and the existing renderer-selection architecture.
+
+No GPU-RENDER2 implementation was started. No push.

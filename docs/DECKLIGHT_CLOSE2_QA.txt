@@ -1,0 +1,198 @@
+DECKLIGHT-CLOSE2 QA — Maintenance fallback / Engineering texture slot
+2026-10-04, QA application on Samsung SM-S948U1 (ADB <device serial redacted>)
+
+Starting state
+--------------
+Branch: touch-controls. Starting HEAD: 654e338e2738e397a7065f7bef7244d543f04877;
+starting tree: 6856afeb325c9eb4fd91afa5cd66c5788cd6a177. Seven of ten
+ordinary decks were FULL HYBRID. Maintenance, Engineering and Security were
+POST-ONLY. The checkout already contained unrelated AUDIO/touch work; it was
+kept outside these commits. The owned original archives, generated profiles,
+partial records, compiled binaries, screenshots, logs and APK stay untracked
+or ignored; no proprietary resource was committed.
+
+Maintenance — exact fallback and decision
+-----------------------------------------
+Reproduction: QA teleport to Maintenance, level 3, tile (34,39), camera about
+(34.5,39.5). Repeated whole-view fallback: "GPU1B whole-view SOFTWARE
+reason=unsupported object representation", first count 1 and then recurring.
+At GpuWorld.c:749 gpu_world_object rejects object 77 because its triple is
+INVISO_CRIT_TRIPLE (0x0e0007). The logged object is class 14 (critter),
+subclass 0, type 7, representation FAUBJ_CRIT=4, animation frame 1, located
+at (31.5,27.5,0.34375). The level archive gives spec ID 5 and HP 396;
+object properties specify render_type 4, flags 198. The rejection occurs before
+the common GPU sprite command is accepted, then GpuWorld.c:340 records the
+whole-view software reason. No weaker partial fallback was introduced.
+
+Its material is the posture/view/frame-selected critter bitmap Ref returned by
+get_critter_bitmap_obj_fast and ref_from_critter_data, not a static wall or
+object texture. The active frame is 1. The software path in gameobj.c decodes
+the RSD8 bitmap through gr_rsd8_convert, marks it BMT_TLUC8 under
+TRANSLUCENT_INVISOS, and calls _fr_draw_bitmap. This build does not define
+TLUC_IN_2D, so it takes that conversion branch. Indexed translucency depends
+on pixels already in the destination. This is D (destination-dependent
+translucency) and needs F (ordering/compositing architecture) to preserve the
+original appearance. An ordinary alpha sprite would be an incorrect mapping.
+Per the stop rule, no renderer support or Maintenance promotion was attempted.
+The diagnostic-only logging edit was removed; GpuWorld.c is unchanged. Its
+previous 283-light, 1,845-surface candidate still loads (previous measured
+7.326 ms), but that fact cannot override the sampled room's fallback.
+Maintenance remains POST-ONLY. Existing complete software fallback is intact;
+no stale or partially rendered GPU world was accepted in the failing view.
+
+Engineering — slot root cause and bounded fix
+---------------------------------------------
+Original level resource base 4700, tile resource 4705: tile 2109 at (61,32),
+raw 16-byte record 070c04044202360300850000ff000000. It is terrain type 7,
+a basic slope. Packed texture word 0x0336 stores wall slot 54, floor slot 0,
+ceiling slot 12. The map texture table resource 4707 has only 54 entries,
+indexed 0..53; there is no stored value or bitmap for slot 54. The loader
+previously treated every stored slot as a drawable texture and stopped with
+"Unresolved texture slot". This is a genuinely unused wall entry, not an
+alias, animation reference, sentinel with art, or missing object texture.
+The tile's MAP_FRIEND_FULL_MASK bit is set (flags byte 0x85). The original
+wall parser uses each neighbor's wall slot for external walls under that flag;
+the type-7 basic slope has no internal wall. Neighbor walls have different
+textures, so fabricating one alias would be wrong.
+
+scripts/horror_author.py now represents this one provably unused class as an
+absent wall texture: only an out-of-range WALL slot on a friend-material basic
+slope (terrain 6..17) is allowed to become null. Other missing slots still
+fail. Source generation already ignores an absent material. No map bytes,
+texture table, art, runtime wall path, receiver geometry, SurfaceId, clipping,
+portal inference or bounds changed. A focused synthetic test accepts this
+record and rejects the same slot on a non-friend slope or a different terrain
+class. The original level inventory now completes deterministically.
+
+Read-only pre-rule inventory found 203 candidates and 50 accepted sources:
+35=20, 36=19, 185=11. Engineering also repeats raw fixture families 155
+(487 candidates) and 188 (136); bright 9 and 102 are excluded non-emissive
+families. Visual review of owned texture 155 showed a small white bulb inside
+a dark brown housing. Its emissive palette-index mask [176,177,178,179,180]
+selects 204 of 16,384 pixels and excludes the housing. Existing reviewed
+188 mask is reused with a deck-only Engineering classification. Source IDs
+35/36/185 retain their prior classification; screens and industrial walls
+remain review-only, without broad new source heuristics.
+
+The reviewed Engineering material rules add fixture 155 (warm RGB
+[1.0,0.74,0.48]) and reuse 188 ([0.82,0.88,0.94]); one
+engineering_industrial archetype uses cool, low ambient [0.84,0.9,0.96]
+at 0.16 intensity. Generated sources use existing ceiling/object intensity,
+radius and per-receiver bounds. No coordinates or rooms were authored. Fog is
+disabled in the generated profile; Post Auto supplies global mood. Post FX
+remains FULL (mode 3). The final source profile has 826 candidates and 350
+accepted lights: 155=230, 188=69, 35=20, 36=19, 185=12. There are 348
+regions. IDs 9 and 102 create no light.
+
+Frozen pipeline and tests
+-------------------------
+Source generation and frozen partial receiver compilation were rerun for all
+eight accepted decks because the shared rules signature changed. Engineering
+has 2,248 effective surfaces. The frozen partial counts are full=2,112,
+partial=1,966, blocked=944, unsupported=816. Bounds remain polygons=4,
+vertices=8, lights=4, beam states=512, depth=12. Runtime compiler uses its
+unchanged tighter two-polygon maximum. HG1P level-7.bin is 243,498 bytes,
+SHA256 565e06a077517fc8814041f7b48e69a38bb5bc4103f97c31ed57b80ef6920aba.
+Source, partial and runtime signatures/checksums validate. Existing accepted
+deck light counts and receiver geometry are unchanged; binary size changes
+there only because the shared mask table gained one 256-byte row. Security
+has no compiled profile.
+
+Focused suite: 47 tests PASS with
+python -m unittest discover -s tests/visuals -p test_horror_*.py -v.
+It covers the slot rule and invalid-slot rejection, deterministic inventory,
+source IDs/mask, source generation, bounded profile compile, stale rules and
+archive rejection. QA build via scripts/build.ps1 -Variant qa -SkipGitCleanCheck
+PASS. scripts/verify-apk.ps1 -Variant qa PASS: package
+io.github.raposomiguel50.systemshock.qa, versionCode 10000,
+versionName 1.0.0-qa, signer SHA256
+6dc6baad4199aaa7637cbbe2af679156eb48731b0eacdeabc0ffaa78adcd9924.
+ELF PT_LOAD and ZIP entries meet 16-KiB alignment.
+
+Live gate and short performance smoke
+-------------------------------------
+After adb install -r succeeded, launcher activity opened via monkey. Existing
+save slot 00 loaded; QA teleport entered Engineering, level 7, tile (20,35).
+One ordinary spawn corridor and a rotated machinery/ceiling-fixture view were
+visually reviewed on device. The bulb remains bright with its housing dark;
+adjacent machinery and structural surfaces retain local contrast. No obvious
+wall leak, seam, giant room wash, transparency corruption or software fallback
+appeared in either sampled ordinary view. The test was a short smoke, not a
+deck-wide proof or thermal campaign. Engineering therefore passes this gate
+and becomes FULL HYBRID.
+
+Engineering profile loaded=1, reason=none, 350 lights, 2,248 surfaces in
+8.562 ms on the measured entry (another entry: 7.169 ms). Spawn GPU LIVE:
+48 draws, 105 triangles, 76 generated refs, max 4 refs/draw, GPU CPU submit
+0.277 ms including first upload; steady sample 48 draws, 76 refs, 0.133 ms,
+0 uploads, zero new fallbacks. Post Auto preset ENGINEERING MACHINERY, FX=3,
+CPU mean 0.019 ms and p95 0.039 ms over 300 samples. GPU execution time is
+not measured, so these are CPU submission figures; visible frames stayed
+stable during the brief smoke.
+
+Regression: QA teleports loaded existing profiles with reason=none and no
+new whole-view fallback: Medical level 1, 265 lights, load 7.745 ms;
+Executive level 6, 179 lights, 9.192 ms; Flight Deck level 5, 253 lights,
+9.482 ms; Bridge level 9, 75 lights, 2.430 ms. Bridge parameters were not
+retuned. Security was not changed or tested for promotion.
+
+Final ordinary-deck classification
+----------------------------------
+Medical       FULL HYBRID
+Research      FULL HYBRID
+Reactor       FULL HYBRID
+Maintenance   POST-ONLY
+Storage       FULL HYBRID
+Flight Deck   FULL HYBRID
+Executive     FULL HYBRID
+Engineering   FULL HYBRID
+Security      POST-ONLY
+Bridge        FULL HYBRID
+
+Final: 8/10 FULL HYBRID. Security is not the only POST-ONLY deck. No receiver
+work was required. Further renderer or inference engineering is not justified
+for this closeout: Maintenance needs destination-dependent transparency and
+ordering work, while Security has the accepted weak frozen coverage. Leave
+the current Enhanced architecture as GPU GENERATED + bounded local lighting
+on eight accepted decks, Post Auto for global mood, and complete whole-view
+software fallback where support is absent.
+
+APK, phone handoff and commits
+------------------------------
+Final QA APK:
+dist/decklight-close2/SystemShock-DECKLIGHT-CLOSE2-qa-arm64-v8a.apk
+SHA256 8bdbb838e65767bc093048a02c551541766064f4aeb1dbe34d77dd4946e14103.
+It was installed automatically on the authorized connected phone (adb
+install -r: Success), launched, and left in an Engineering machinery view with
+GPU GENERATED, Post Auto, FX FULL, and MODE/POST controls visible. All eight
+save slot hashes, prefs.txt and touch-settings.cfg match their pre-install
+hashes after QA. No save was overwritten.
+
+Exact scoped committed files: SourceSnapshot/src/MacSrc/GpuGenerated.c,
+GpuGenerated.h; profiles/horror-author1/profile.schema.json, rules.json;
+scripts/horror_author.py, compile-horror-generated.py, build.ps1 (only its two
+Engineering asset-list lines); tests/visuals/test_horror_author.py,
+test_horror_decklights.py, test_horror_generated.py; and this QA report.
+Implementation commits: 739e059a561bf685083b1c7b79f818a72c387d83 and
+63c1f982fb86959d388cc9e716eab46c532a1567. This document is committed
+separately so its implementation hashes remain exact. Nothing was pushed.
+
+Central questions
+-----------------
+1. Maintenance fallback: object 77, class 14/0/7, FAUBJ_CRIT=4,
+   INVISO_CRIT_TRIPLE, RSD8 frame 1 converted to BMT_TLUC8.
+2. Bounded renderer support? No; destination-dependent translucency and
+   painter ordering require broader renderer architecture.
+3. Maintenance promoted? No, POST-ONLY.
+4. Engineering unresolved slot? Wall slot 54 on tile 2109 in map resource
+   4705; map texture table 4707 has only slots 0..53.
+5. Loader/resource plumbing? Yes; friend-material basic slope never draws
+   that stored wall entry, so absence is represented explicitly.
+6. Reliable inventory? Yes: 826 candidates, 350 accepted sources, signed and
+   deterministic profile compiled with frozen bounds.
+7. Engineering promoted? Yes, FULL HYBRID after two live GPU views.
+8. Receiver geometry changes? No.
+9. Final FULL HYBRID count? 8/10.
+10. Security sole POST-ONLY deck? No; Maintenance also remains POST-ONLY.
+11. Further system-level visual engineering justified now? No. Keep this
+    bounded closeout and existing fallback architecture.

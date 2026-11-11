@@ -80,6 +80,12 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "setploop.h"
 #include "cutsloop.h"
 
+#ifdef RP5NP_AUDIO_DIAGNOSTICS
+#include "transition_trace.h"
+#else
+#define TRANSITION_TRACE(stage, target) ((void)0)
+#endif
+
 #ifdef OLD_TELEPORT_BETWEEN_LEVELS
 #include <gamewrap.h>
 #include <gamerend.h>
@@ -1884,6 +1890,11 @@ errtype trap_teleport_func(int targ_x, int targ_y, int targ_z, int targlevel) {
     errtype errcode = OK;
     uchar to_cyber = FALSE;
 
+    TRANSITION_TRACE("teleport_begin", targlevel);
+#ifdef RP5NP_AUDIO_DIAGNOSTICS
+    AUDIO_TRACE("teleport_requested xyz=%d,%d,%d", targ_x, targ_y, targ_z);
+#endif
+
     if (targlevel >= 0x1000)
         targlevel = player_struct.level;
 
@@ -1905,7 +1916,9 @@ errtype trap_teleport_func(int targ_x, int targ_y, int targ_z, int targlevel) {
             targ_z = qdata_get(targ_z);
             newloc.z = targ_z;
         }
+        TRANSITION_TRACE("teleport_position_begin", targlevel);
         obj_move_to(PLAYER_OBJ, &newloc, TRUE);
+        TRANSITION_TRACE("teleport_position_end", targlevel);
         if (to_cyber) {
             recall_objloc = newloc;
             // KLC         if (music_on)
@@ -1914,6 +1927,7 @@ errtype trap_teleport_func(int targ_x, int targ_y, int targ_z, int targlevel) {
     } else {
         return (ERR_FOPEN);
     }
+    TRANSITION_TRACE("teleport_end", targlevel);
     return (OK);
 }
 

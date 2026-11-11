@@ -1,0 +1,11 @@
+#ifndef TOUCH_TARGET_TYPES_H
+#define TOUCH_TARGET_TYPES_H
+
+typedef enum {
+    TOUCH_TARGET_NONE,
+    TOUCH_TARGET_WORLD,
+    TOUCH_TARGET_UI_CONTROL,
+    TOUCH_TARGET_UI_OBJECT
+} TouchCursorTarget;
+
+#endif

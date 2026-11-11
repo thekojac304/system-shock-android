@@ -77,6 +77,20 @@ foreach ($ToolPath in @($Aapt2,$ApkSigner)) {
     }
 }
 
+$ZipAlign = Get-ChildItem -LiteralPath (Join-Path $AndroidSdk 'build-tools') -Directory |
+    Where-Object { $_.Name -match '^\d+\.\d+\.\d+$' -and [version]$_.Name -ge [version]'35.0.0' } |
+    Sort-Object { [version]$_.Name } -Descending |
+    ForEach-Object { Join-Path $_.FullName 'zipalign.exe' } |
+    Where-Object { Test-Path -LiteralPath $_ -PathType Leaf } |
+    Select-Object -First 1
+if (-not $ZipAlign) {
+    throw 'Android SDK build-tools 35.0.0 or newer are required for zipalign -P 16 verification.'
+}
+$ReadElf = Join-Path $AndroidSdk 'ndk\29.0.14206865\toolchains\llvm\prebuilt\windows-x86_64\bin\llvm-readelf.exe'
+if (-not (Test-Path -LiteralPath $ReadElf -PathType Leaf)) {
+    throw "NDK llvm-readelf not found: $ReadElf"
+}
+
 $ApkAnalyzer = Join-Path $AndroidSdk 'cmdline-tools\latest\bin\apkanalyzer.bat'
 if (-not (Test-Path -LiteralPath $ApkAnalyzer -PathType Leaf)) {
     $ApkAnalyzer = $null
@@ -86,7 +100,8 @@ Add-Type -AssemblyName System.IO.Compression.FileSystem
 $Zip = [IO.Compression.ZipFile]::OpenRead($Apk)
 try {
     $Names = @($Zip.Entries | ForEach-Object FullName)
-    foreach ($RequiredLibrary in @('lib/arm64-v8a/libmain.so','lib/arm64-v8a/libSDL2.so','lib/arm64-v8a/libSDL2_mixer.so')) {
+    $RequiredLibraries = @('lib/arm64-v8a/libmain.so','lib/arm64-v8a/libSDL2.so','lib/arm64-v8a/libSDL2_mixer.so')
+    foreach ($RequiredLibrary in $RequiredLibraries) {
         if ($Names -notcontains $RequiredLibrary) {
             throw "Required ARM64 library missing: $RequiredLibrary"
         }
@@ -101,10 +116,62 @@ try {
     if ($UnexpectedAbiEntries.Count -gt 0) {
         throw "Unexpected non-ARM64 libraries found: $($UnexpectedAbiEntries -join ', ')"
     }
+    $NativeLibraries = @($Names | Where-Object { $_ -match '^lib/arm64-v8a/[^/]+\.so$' })
 }
 finally {
     $Zip.Dispose()
 }
+
+$ZipAlignmentLines = @(& $ZipAlign -c -P 16 -v 4 $Apk 2>&1 | ForEach-Object { $_.ToString() })
+if ($LASTEXITCODE -ne 0) {
+    throw "APK 16 KB ZIP alignment failed:`n$($ZipAlignmentLines -join "`n")"
+}
+foreach ($NativeLibrary in $NativeLibraries) {
+    $LibraryZipLine = @($ZipAlignmentLines | Where-Object { $_ -match "\s$([regex]::Escape($NativeLibrary))\s+\(OK\)$" })
+    if ($LibraryZipLine.Count -ne 1) {
+        throw "Uncompressed 16 KB-aligned APK library not confirmed: $NativeLibrary"
+    }
+}
+
+$TempLibraries = Join-Path ([IO.Path]::GetTempPath()) ("systemshock-apk-elf-" + [guid]::NewGuid().ToString('N'))
+New-Item -ItemType Directory -Path $TempLibraries | Out-Null
+try {
+    $Zip = [IO.Compression.ZipFile]::OpenRead($Apk)
+    try {
+        foreach ($NativeLibrary in $NativeLibraries) {
+            $Entry = $Zip.GetEntry($NativeLibrary)
+            $TempLibrary = Join-Path $TempLibraries ([IO.Path]::GetFileName($NativeLibrary))
+            $InputStream = $Entry.Open()
+            try {
+                $OutputStream = [IO.File]::Create($TempLibrary)
+                try { $InputStream.CopyTo($OutputStream) }
+                finally { $OutputStream.Dispose() }
+            }
+            finally { $InputStream.Dispose() }
+
+            $ProgramHeaders = @(& $ReadElf -lW $TempLibrary 2>&1 | ForEach-Object { $_.ToString() })
+            if ($LASTEXITCODE -ne 0) {
+                throw "llvm-readelf failed for $NativeLibrary`: $($ProgramHeaders -join "`n")"
+            }
+            $LoadAlignments = @($ProgramHeaders | ForEach-Object {
+                if ($_ -match '^\s*LOAD\s+.*\s+(0x[0-9a-fA-F]+)\s*$') { $Matches[1] }
+            })
+            if ($LoadAlignments.Count -eq 0) {
+                throw "No PT_LOAD segments found in $NativeLibrary"
+            }
+            foreach ($Alignment in $LoadAlignments) {
+                if ([Convert]::ToInt64($Alignment.Substring(2), 16) -lt 16384) {
+                    throw "$NativeLibrary has PT_LOAD alignment $Alignment; 0x4000 or greater is required."
+                }
+            }
+            Write-Host "ELF_PT_LOAD=$NativeLibrary`: $($LoadAlignments -join ',')"
+        }
+    }
+    finally { $Zip.Dispose() }
+}
+finally { Remove-Item -LiteralPath $TempLibraries -Recurse -Force }
+Write-Host 'NATIVE_16KB_ZIP_ALIGNMENT=PASS'
+Write-Host 'NATIVE_16KB_ELF_ALIGNMENT=PASS'
 
 $BadgingLines = @(& $Aapt2 dump badging $Apk 2>&1 | ForEach-Object { $_.ToString() })
 if ($LASTEXITCODE -ne 0) {

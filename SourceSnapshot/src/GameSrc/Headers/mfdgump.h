@@ -28,5 +28,6 @@ uchar gump_pickup(byte row);
 uchar gump_get_useful(bool shifted);
 void mfd_gump_expose(MFD *mfd, ubyte control);
 uchar mfd_gump_handler(MFD *m, uiEvent *uie);
+bool touch_gump_item_at(const MFD *m, int x, int y);
 
 #endif

@@ -86,6 +86,10 @@ typedef struct _mouse_event {
 #define MOUSE_WHEELUP (1 << 10)
 #define MOUSE_WHEELDN (1 << 11)
 
+/* Android touch provenance. Bit 0 remains the legacy Shift modifier. */
+#define MOUSE_MOD_TOUCH_DRAG 0x40u
+#define MOUSE_MOD_TOUCH_TAP 0x80u
+
 // Mask of events that are allowed into the queue.
 extern ubyte mouseMask;
 

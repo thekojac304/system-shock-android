@@ -274,7 +274,13 @@ uchar sfx_volume_levels[] = {0, 0x9, 0xF};
 snd_digi_parms s_dprm;
 char secret_global_pan = SND_DEF_PAN;
 
+#ifdef RP5NP_AUDIO_DIAGNOSTICS
+#include "audio_trace.h"
+#endif
 int play_digi_fx_master(int sfx_code, int num_loops, ObjID id, ushort x, ushort y) {
+#ifdef RP5NP_AUDIO_DIAGNOSTICS
+    AUDIO_TRACE("sfx_request sfx=%d obj=%d loops=%d", sfx_code, id, num_loops);
+#endif
     Id vocRes;
     int retval, real_code = sfx_code, len;
     uchar *addr;

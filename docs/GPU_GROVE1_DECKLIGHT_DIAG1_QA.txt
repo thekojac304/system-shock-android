@@ -1,0 +1,244 @@
+GPU-GROVE1 + DECKLIGHT-DIAG1 — BOUNDED GLES SKY AND FROZEN DECK-LIGHT AUDIT
+2026-10-04
+
+VERDICT
+GPU-GROVE1: PASS for sampled ordinary Alpha, Beta, and Delta open-ceiling
+gameplay views. Gamma's Executive-profile entrance passes its quick regression.
+DECKLIGHT-DIAG1: complete diagnostic; no new deck is promoted. The first
+accepted-pipeline gate remains a missing rules archetype on seven decks and an
+unresolved map texture slot on Engineering. Diagnostic-only source/receiver
+counts reveal two promising material-review candidates, no demonstrated
+geometry-dominated deck, and one distinctly poor-coverage deck (Security).
+
+1. BASELINE AND SCOPE
+Starting branch touch-controls, HEAD 3d082352c15be369eccffd72015201dee944dbd3.
+Starting HEAD tree f6a2523225ba5c09d8df5476f10091658a41e28d.
+The starting worktree had unrelated, uncommitted AUDIO and touch changes. They
+were not staged for this phase. Accepted renderer, post, generated-light and
+authoring context is the seven documents named in the task, especially
+HORROR_HYBRID5_DECKLIGHTS1_QA.txt and GPU_RENDER2_3_4_QA.txt. The baseline
+reviewed luminous IDs remain exactly 20,35,36,82,101,144,185,215,216,217.
+Rules SHA256 before and after the diagnostic:
+271c9735003282a4f46c26b984782acbad5c6e5bbca9d5c407f4bbfdb7b789b1.
+No source class, mask, receiver geometry, profile schema, runtime validator,
+Auto preset, or generated profile asset was changed. Medical/Executive remain
+the only FULL HYBRID decks; the eight named ordinary decks remain POST-ONLY.
+
+2. GROVE SOURCE PATH AND CHANGE
+The terrain ceiling path uses textprop force_dir and the original star special
+renderer. star_poly draws the open-sky polygon as indexed 255 (reserved black)
+and star_empty accumulates its clipped depth/radius. fr_pipe_go_3 renders
+terrain and objects into the indexed software world. star_render then rotates
+the original std_vec/std_col catalogue by game time, projects with
+star_transform_point, and writes a star pixel only when gr_get_pixel at that
+position is still 0xff. Larger/anti-aliased stars use that same pixel test.
+The test is the original exact open-sky coverage and already excludes solid
+ceiling, lattice struts, walls, objects, and terrain in painter order. The
+source sky polygon also enters the existing GPU polygon capture; textured sky
+uses the existing texture path. There is no replacement skybox or background.
+
+The change removes only the unconditional sky/stars whole-view reject in
+star_empty. fr_render_stars now runs after the indexed world is complete and
+before gpu_world_end submits it; fr_send_view still handles the subsequent
+indexed UI/copy. Each software-approved star pixel is copied into a bounded
+16,384-point GPU command array with its original palette index. A 1-pixel
+GLES point pass runs after ordinary world draws on the world target, before
+world-only Post. The point shader fetches the existing palette; it does not
+invent positions, colors, star counts, lighting, or sky coverage. A pixel
+outside the view, star command overflow, shader/link/GL failure or another
+unsupported draw still fails closed to the original whole-view software path.
+The existing software world remains the exact coverage oracle; no GPU readback
+or new stencil approximation was introduced. The sky and point pass are world
+content, so HUD, weapon, and touch composition remain outside the post pass.
+
+3. PHONE GROVE EVIDENCE
+Authorized Samsung SM-S948U1, 2340x1080 landscape, QA arm64-v8a. Evidence PNGs
+are ignored under dist/gpu-grove1-decklight-diag1; they are not in Git.
+
+Alpha / level 12: alpha-post-auto.png and final-installed-handoff.png show
+stars only within the dark aperture between solid lattice members, with
+vegetation/terrain, HUD, weapon, and touch controls intact. GPU1B LIVE and
+POST1 TIMING preset=GROVE BOTANICAL fx=3 occur in that view. Off/Auto toggle
+was exercised; Auto visibly changes the world grade. PASS.
+Beta / level 13: beta-sky.png shows an open ceiling and stars between lattice
+members while its upper opaque material stays solid. GPU1B LIVE and GROVE
+BOTANICAL Post Auto occur. No sky hole, star-through-strut, ordering, HUD or
+touch defect was seen in the sampled view. PASS.
+Delta / level 11: delta-sky.png shows starry aperture, opaque lattice and
+adjacent terrain; GPU1B LIVE and GROVE BOTANICAL Post Auto occur. PASS.
+Gamma / level 6: final-build-gamma-regression.png is a brief Executive/Gamma
+entrance check on the exact final installed APK. It logged GENERATED1 profile
+level=6 loaded=1 reason=none, 179 lights, 1589 surfaces, load_ms=10.678,
+plus GPU1B LIVE and POST1 TIMING preset=EXEC DECAY fx=3. No new fallback,
+HUD or post regression was observed in the sampled interior. This is not a
+full Gamma route audit. PASS for the requested quick regression.
+
+The earlier sky/stars fallback reason was absent from the final ordinary
+Grove samples. Unrelated special-view, CLUT, infrared, cyberspace, unsupported
+translucency, menu/indexed snapshot, and software framebuffer transition
+guards remain. Those views may still use whole-view software and bypass Post.
+
+4. PERFORMANCE AND TESTS
+Short live 300-frame CPU samples on Grove sky views: software world capture
+roughly 3.1-7.3 ms, GPU submit CPU roughly 0.15-0.29 ms, Grove Auto Post CPU
+mean about 0.029-0.035 ms and p95 about 0.037-0.051 ms. GPU execution time
+and isolated star draw time are unavailable; these are not total frame times.
+No obvious hitch was seen during the short camera/teleport smoke. No thermal
+or full route campaign was run. The final installed Alpha window logged
+GPU1B LIVE with fallbacks=0 after relaunch and GROVE BOTANICAL fx=3.
+
+python -B scripts/test-gpu-grove1.py: 5/5 PASS. These source-boundary tests
+pin sky eligibility, the 0xff software mask (including solid-ceiling exclusion),
+world/star/GPU/UI order, bounded palette points, special fallbacks and world-
+only post. Phone screenshots/logs, not those static checks, establish visuals.
+python -B scripts/test-decklight-diag1.py: 4/4 PASS, including two identical
+diagnostic runs, exact frozen-rule hash, material census, candidate/accepted
+counts, receiver statuses and first-failure classifications. Final QA build
+and APK verification both PASS.
+
+5. DECKLIGHT METHOD AND LIMITS
+The accepted frozen generator was attempted first with owned ARCHIVE.DAT,
+TEXTPROP.DAT, OBJPROP.DAT and unmodified rules. On seven decks it stops at
+KeyError '<level>' because only Medical/Executive have authoring archetypes;
+Engineering stops earlier at a strict unresolved texture slot. Therefore the
+accepted partial/HG1P compiler and runtime signature validator cannot receive
+valid frozen-pipeline input on any of the eight. No compiler or runtime
+signature failure is demonstrated; they were NOT REACHED.
+
+For a bounded census only, scripts/decklight_diag1.py makes an in-memory copy
+of the Medical ambient archetype and bypasses the two-level final schema gate.
+It does not change source classes, masks, confidence, clustering, receiver
+geometry, disk rules or packaged assets. The copied archetype makes seven
+decks' existing source and partial-receiver rules measurable. These counts are
+DIAGNOSTIC, not accepted generated profiles or FULL HYBRID evidence. The
+Engineering loader error is not patched; its source/receiver counts are N/A.
+The diagnostic output, resource hashes and contact sheets live under ignored
+dist/gpu-grove1-decklight-diag1. The eight material IDs below were selected by
+visual review of owned texture contact sheets; mapped counts are face
+assignments in the level map, not independent lamps or proof of emission.
+
+6. SOURCE INVENTORY (frozen source policy in diagnostic census)
+Deck(level)      Reviewed IDs mapped     Reviewed face uses  New luminous-looking IDs(face uses)       Candidate/accepted  Object candidates
+Reactor(0)       20,35,101               256                 26:202, 99:443, 218:20                344/102             51
+Research(2)      20,101,144,217          303                 9:62, 52:399                        434/118             131
+Maintenance(3)   20,82,101               252                 188:350                             311/105             59
+Storage(4)       35,101                  264                 99:318, 102:76, 188:26             337/41              73
+Flight Deck(5)   101,185,216,217         589                 102:100, 188:194, 218:5           667/159             74
+Engineering(7)   35,36,101,185           117                 9:91, 102:112, 155:487, 188:136  N/A                 N/A
+Security(8)      101,144,185             333                 9:12, 99:15, 188:186              412/128             79
+Bridge(9)        101,185                 281                 188:48                              303/75              22
+
+Distinct luminous-looking material ID totals (reviewed + newly flagged):
+Reactor 6, Research 6, Maintenance 4, Storage 5, Flight 7, Engineering 8,
+Security 6, Bridge 3. These are deliberately narrow candidate sets, not all
+unreviewed map textures. Existing diagnostic candidate policy includes
+emissive_review/deferred and suppressed-cluster records; only local_light is
+accepted. For the seven parseable decks, accepted counts above match the
+unchanged local_light policy. Engineering's count cannot be established while
+the loader rejects its map. None of the newly flagged IDs was auto-promoted.
+
+New repeated families: 188 is a bright round spot in dark housing (940 total
+face uses); 99 a white circular fixture in dark housing (786); 155 a small
+white lamp on a brown panel (487, Engineering); 52 a large white panel with
+red border (399, Research); 102 a pale square light panel (288); 26 a small
+round white light in red housing (204); 9 mixed small colored lamps (165);
+218 a bright hex-grid fixture (25). These assignments are straightforward to
+recognize visually but require source orientation/placement review. Their
+mixed luminous/housing pixels make reviewed indexed emissive masks likely
+necessary before any actual source promotion; ID 9 especially needs a
+multi-color mask. The frozen reviewed set has no newly proven mask failure:
+the new IDs are presently UNCLASSIFIED, not accepted sources with missing
+masks. Contact sheets are diagnostic only and not committed.
+
+7. RECEIVER CENSUS (diagnostic-only in-memory archetype)
+Deck          Full  Partial  Blocked  Unsupported | unique full/partial, unsupported-only, blocked-only / enumerated | effective surfaces/tiles | unsupported reasons
+Reactor       506   488      262      426         | 589,233,102 / 942    | 573/230  | complex_tile 218, source_outside_volume 56, unsupported_source 152
+Research      856   997      232      150         | 1033,58,95 / 1200   | 1016/361 | complex_tile 4, unsupported_source 146
+Maintenance   594   533      300      660         | 537,131,51 / 766    | 535/213  | complex_tile 276, unsupported_source 384
+Storage       355   319      149      33          | 387,4,38 / 438      | 367/134  | source_outside_volume 10, unsupported_source 23
+Flight Deck   745   1237     200      585         | 970,239,74 / 1311   | 698/379  | complex_tile 264, unsupported_source 321
+Engineering   N/A   N/A      N/A      N/A         | N/A                 | N/A      | strict map loader stopped first
+Security      290   319      1316     166         | 467,42,357 / 922    | 297/137  | unsupported_source 166
+Bridge        446   486      147      167         | 512,108,64 / 707    | 495/182  | complex_tile 64, unsupported_source 103
+
+Relationship counts include zero-falloff permissions. A surface can have a
+supported relationship to one light and an unsupported one to another, so
+the three unique categories need not sum to enumerated. Effective surfaces
+have at least one supported nonzero-falloff relationship. Seven diagnostic
+partial compiles completed: over-budget relationships 0 and complexity-bound
+failures 0 in each. This does not certify an HG1P package. Supported map tile
+types 1..9 / mapped tiles: Reactor 940/940, Research 1089/1090, Maintenance
+688/688, Storage 573/575, Flight 892/897, Security 717/717, Bridge 943/966.
+Blocked relationships describe the frozen conservative visibility model; they
+are not automatically unsupported tile topology. Security's poor result is
+mostly blocked coverage, despite all mapped tile types being supported.
+
+8. FIRST FAILURE, PRIMARY BLOCKER, AND PROMOTION ESTIMATE
+Deck          Frozen FIRST failure          Secondary diagnostic and decision
+Reactor       KeyError '0' archetype         Large missing 99/26 family but 233 unsupported-only surfaces; MODERATE.
+Research      KeyError '2' archetype         52/9 repeat often; 1033/1200 surfaces have support; CHEAP CANDIDATE.
+Maintenance   KeyError '3' archetype         188 repeats, 660 unsupported relations/131 unsupported-only surfaces; MODERATE.
+Storage       KeyError '4' archetype         Only 41 accepted; 99/102/188 recur, 387/438 surfaces supported; CHEAP CANDIDATE.
+Flight Deck   KeyError '5' archetype         188/102 repeat; 239 unsupported-only surfaces and 585 unsupported relations; MODERATE.
+Engineering   ValueError unresolved slot    Tile 2109 wall slot 54 is outside map table; no reliable source/receiver census; EXPENSIVE/LEAVE POST-ONLY pending loader diagnosis.
+Security      KeyError '8' archetype         1316/2091 blocked relations and only 297/922 effective surfaces; EXPENSIVE/LEAVE POST-ONLY for coverage.
+Bridge        KeyError '9' archetype         Only 48 new ID188 uses; 495 effective surfaces, 108 unsupported-only; MODERATE.
+
+CHEAP means a relatively good next diagnostic candidate, not an immediately
+compilable profile: both still need a real archetype, source/mask review, HG1P
+compile, runtime signature validation and hardware acceptance. Easiest is
+Research: two new fixture families, 118 already accepted local lights, and
+1016 effective surfaces with very little complex-tile rejection. Storage is
+the other cheap candidate but starts from only 41 accepted lights. Hardest is
+Engineering because the strict input loader stops before even the diagnostic
+source/receiver census; among parseable decks, Security is hardest due poor
+coverage under the unchanged visibility model.
+
+QUANTITATIVE ANSWER: As definitive first failures, 7/8 are missing archetypes,
+1/8 is the Engineering loader; 0/8 have demonstrated HG1P compiler or runtime
+validation failures. Among secondary evidence, 2/8 (Research, Storage) are
+mainly material/source-recognition candidates; 4/8 (Reactor, Maintenance,
+Flight, Bridge) are mixed source and receiver/coverage work; 1/8 (Security)
+is poor coverage despite recognized sources; 1/8 (Engineering) is unresolved
+at the loader. 0/8 are proved primarily blocked by unsupported receiver
+geometry. This classification is deliberately provisional because none of
+the eight has a frozen-pipeline source profile. Expanding the reviewed
+luminous-material set looks worth testing next, starting with Research and
+Storage. No new receiver-geometry engineering is justified by this census;
+first resolve the archetype/schema gate and Engineering loader, review masks,
+then measure actual accepted profile and hardware coverage. Do not promote
+sources or relax geometry in this phase.
+
+9. FINAL ARTIFACT, INSTALL, AND PHONE
+Final QA APK: dist/gpu-grove1-decklight-diag1/
+SystemShock-GPU-GROVE1-DECKLIGHT-DIAG1-qa-arm64-v8a.apk
+SHA256 491c39383cebcb187bd1593d9ff805f92d8a6474da42f0e7a830a4fd553403d9.
+Package io.github.raposomiguel50.systemshock.qa; version 1.0.0-qa /10000;
+signer SHA256 6dc6baad4199aaa7637cbbe2af679156eb48731b0eacdeabc0ffaa78adcd9924.
+APK_VERIFY=PASS; all arm64 PT_LOAD alignments 0x4000; native ZIP 16-KiB
+alignment PASS. adb install -r: Success; launched via exported launcher.
+Before/after SHA256 lists for savgam00..07.dat, touch-settings.cfg and
+prefs.txt are identical. No save slot was overwritten. Final phone: awake in
+Alpha Grove open-ceiling normal gameplay with stars/lattice visible, GPU
+GENERATED, Post Auto GROVE BOTANICAL, FX FULL (fx=3), live MODE/POST controls,
+HUD/weapon/touch intact. Temporary QA damage guard is on to hold the view.
+
+10. FILES AND GIT
+Implementation/test/diagnostic commit:
+252215fef9ae284e4a452787e5c6ba4a4903eac3.
+It contains only:
+  SourceSnapshot/src/GameSrc/Headers/frintern.h
+  SourceSnapshot/src/GameSrc/frmain.c
+  SourceSnapshot/src/GameSrc/frsetup.c
+  SourceSnapshot/src/GameSrc/star.c
+  SourceSnapshot/src/MacSrc/GpuWorld.c
+  SourceSnapshot/src/MacSrc/GpuWorld.h
+  scripts/decklight_diag1.py
+  scripts/decklight_contact.py
+  scripts/test-gpu-grove1.py
+  scripts/test-decklight-diag1.py
+This report is a separate documentation commit; its exact hash is given in
+the final response, because a Git commit cannot contain its own hash.
+No APK, screenshot, proprietary resource, contact sheet, save, log or dist
+output was committed. Unrelated AUDIO/touch work remains untouched and
+unstaged. Nothing was pushed.

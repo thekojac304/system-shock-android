@@ -42,6 +42,7 @@ typedef struct {
     // Sound Options
     bool soBackMusic;
     bool soSoundFX;
+    int soSoundtrack; // ExternalMusic mode; default Original, never part of saves
     short soMusicVolume;
     short soSfxVolume;
     short soAudioLogVolume;
@@ -53,12 +54,17 @@ typedef struct {
     short doResolution; // 0 - High, 1 - Low
     short doDetail;     // 0 - Min, 1-Low, 2-High, 3-Max
     short doGamma;
+    int doHorrorVisuals; // 0 Original, 1 VIS1, 2 VIS1B, 3 GPU proof, 4 GPU generated.
+    int postEnabled, postChoice, postVignette, postGrain, postFxMode; // Presentation only; FX 0..3.
     bool doUseQD;
     bool doUseOpenGL;
     // 0 => unfiltered
     // 1 => bilinear
     // TODO: add trilinear, anisotropic?
     short doTextureFilter;
+#ifdef RP5NP_QA_TOOLS
+    bool qaCheats; // Separate QA application only; default OFF, not save data.
+#endif
 } ShockPrefs;
 
 //--------------------

@@ -1,0 +1,314 @@
+AUDIO2 — Full Remake Soundtrack Pack
+2026-10-02
+
+STATUS
+
+Implemented and QA APK built. Original remains the default. No music is
+bundled in the source or APK, and no soundtrack was downloaded. Existing
+touch, QA1 and audio-lifecycle work is preserved. The initial AUDIO2 pass
+did not commit or push; this batch is included in the authorized coordinated
+closeout commit, with no push.
+
+COORDINATED HARDWARE ACCEPTANCE / CLOSEOUT
+The previously reported full Remake pack hardware validation across mapped
+decks is retained, along with the detailed AUDIO2 routing/lifecycle evidence
+below. This closeout does not alter mappings, preferences, soundtrack ownership,
+fallback, QA tools or touch semantics, and does not broaden untested AUDIO2
+save/load, lifecycle or special-case coverage.
+The user reports hardware PASS for menu single taps, the AMMO radial and
+Full QA Loadout. The Maintenance elevator freeze was not reproduced on retest;
+it remains intermittent with unknown root cause, and no elevator fix is claimed.
+See QA2_COORDINATED_QA.txt and MAINTENANCE_ELEVATOR_QA.txt for acceptance,
+retained historical evidence and pending detailed checks. No AUDIO3 work was
+started during closeout.
+
+ARCHITECTURE AND CHANGED FUNCTIONS
+
+ExternalMusic.c/.h extend AUDIO1's existing playback owner. ExternalMusicPack
+contains a name and a small ExternalMusicEntry table (level, path).
+ExternalMusicMode/ModeName/Path handle mode validation and lookup without SDL.
+ExternalMusicUpdate handles selection, one decoder, deck departure, fallback,
+volume and resume. Original has no entries and makes no mixer calls unless
+it is releasing a previously active replacement. Unknown modes are Original.
+
+The current visit is identified by mode and actual player level. Changing
+either releases the previous decoder and resets the failure latch. Repeated
+updates on that visit never reopen or restart a track. A Grove-to-Grove visit
+starts the shared groves.mp3 once for the new level. This intentionally treats
+each Grove as a deck visit, even though all three use the same filename.
+
+Prefs.c: SetDefaultPrefs, LoadPrefs, SavePrefs, trim.
+Prefs.h: soSoundtrack supersedes soReplacementMedicalMusic; not savegame data.
+musicai.c: mlimbs_do_ai supplies the generic mode, actual level, gameplay
+eligibility and current music volume. Normal movement, load_game and QA1 all
+reach this same update. QA1 still calls trap_teleport_func; no QA-only music
+path or new transition hooks were added.
+
+Existing Xmi.c hooks are reused unchanged: StopTheMusic suspends replacement
+playback, StartTrack suppresses simultaneous stock MIDI, UpdateVolumeXMI
+forwards volume/ducking. No device, postmix, SFX channel or Java lifecycle
+changes were needed. The existing CMake source lists already include the module.
+
+Tests updated: tests/audio/external_music_test.c and external_music_smoke.c.
+New helpers: scripts/install-qa-soundtrack.py and scripts/test-audio2.py.
+The existing scripts/test-audio1.ps1 now runs the expanded playback regression
+source, retaining its AUDIO1 lifecycle cases and no-mixer build coverage.
+
+PREFERENCE AND MIGRATION
+
+In the existing app-private files/prefs.txt, use exactly one of:
+  soundtrack = original
+  soundtrack = remake
+
+Names are case-insensitive. Missing/empty/invalid values resolve to Original.
+Temporary compatibility: when no soundtrack key exists,
+replacement_medical_music = true (also yes or 1) selects the Remake pack.
+An explicit soundtrack key ALWAYS wins, including an invalid value, regardless
+of line order. Last duplicate soundtrack key wins, matching the parser style.
+SavePrefs writes the generic key and no longer writes the legacy boolean.
+Unrelated recognized preferences retain the existing load/save behavior.
+As before, the game's SavePrefs rewrites its known keys, not comments or
+unknown keys. The host helper preserves unrelated lines and comments.
+
+Use UTF-8 WITHOUT BOM, never UTF-16. The byte-oriented game parser remains
+unchanged in this respect. SavePrefs writes plain ASCII-compatible UTF-8.
+The installer reads UTF-8 strictly, strips a UTF-8 BOM if present, preserves
+unrelated UTF-8 text, and refuses UTF-16 rather than damaging it. trim now
+handles an empty value safely and passes unsigned bytes to ctype functions.
+
+Selection is CONFIG-BASED in AUDIO2; restart the app after editing prefs.
+UI selection is deferred. The legacy sound options use resource-backed
+labels/states and constrained button slots; touch settings would require a
+new preference/event/layout path. Existing touch layouts were left intact.
+
+LAYOUT AND EXACT INTERNAL LEVEL IDS
+
+Relative to the Android app sandbox:
+  files/music/remake/medical.mp3       Medical       level 1
+  files/music/remake/research.mp3      Research      level 2
+  files/music/remake/reactor.mp3       Reactor       level 0
+  files/music/remake/maintenance.mp3   Maintenance   level 3
+  files/music/remake/storage.mp3       Storage       level 4
+  files/music/remake/flightdeck.mp3    Flight Deck   level 5
+  files/music/remake/executive.mp3     Executive     level 6
+  files/music/remake/groves.mp3        Delta Grove   level 11
+                                     Alpha Grove   level 12
+                                     Beta Grove    level 13
+  files/music/remake/engineering.mp3   Engineering   level 7
+  files/music/remake/security.mp3      Security      level 8
+  files/music/remake/bridge.mp3        Bridge        level 9
+
+IDs checked against QA1's destination table and mfdfunc.c:level_to_floor.
+There is no main-deck mapping for level 10 or any other unlisted level.
+Cyberspace is additionally excluded by global_fullmap->cyber, regardless of ID.
+Use these lowercase filenames on Android. The game working directory is
+files/, so module paths begin music/remake/. Typical QA absolute directory:
+  /data/user/0/io.github.raposomiguel50.systemshock.qa/files/music/remake/
+Desktop uses music/remake/ next to the game's working res/ directory.
+
+SPECIAL CASES AND LIFECYCLE
+
+Stock: title/menu (titloop), intro/movie audio, endgame/credits (endloop or
+the stock credits theme), death transitions, cyberspace, all unmapped levels.
+They use existing non-gameplay/stop hooks or the cyber flag and have no pack
+entries. GAME_LOOP, FULLSCREEN_LOOP and AUTOMAP_LOOP can activate replacements
+only while music is enabled and the player is alive and outside cyberspace.
+
+Elevators are NOT separately mapped. Under Remake, a working current-deck
+track also covers its elevator/music zones, preserving AUDIO1's treatment.
+The destination level selects its track on the first eligible update even
+when the engine retains the elevator's stock theme. Stock theme loading and
+transition requests remain intact for fallback and special contexts.
+
+In-game pause retains the stock policy of continuing music. SDL Android
+background/foreground pauses/resumes the existing mixer device; AUDIO2 adds
+no second player or Java callback. StopTheMusic suspends the decoder and
+restores the synth hook for menus/death/theme reloads. Returning to eligible
+same-deck gameplay resumes that retained decoder instead of restarting it.
+Departure/mode change/shutdown frees it. A loaded same-deck save may resume
+the retained track; a new process starts at the beginning. No music position
+is written to game saves.
+
+FALLBACK AND LOGGING
+
+Missing, unreadable, decoder-load, unsupported-format, playback-start and
+unexpected-stream-stop failures return control to stock sequencing and
+restore the synth hook and its normal gain. No file is required for other
+decks to work. Failures are latched for that deck visit to avoid retry/log
+spam; leave and return, change mode, or restart after fixing a file.
+Music must be enabled and its volume above zero to hear either soundtrack.
+
+Only MP3 streams are accepted. Renaming WAV/OGG to .mp3 is not conversion.
+SDL_mixer supplies the error text; it can be imprecise (the tested garbage
+file returned "Out of memory"). The fallback still logged its deck/path and
+worked. This is graceful handling of reported decoder failures, not a claim
+that arbitrary native-decoder defects or invalid game data cannot crash.
+
+Consistent message prefix: ExternalMusic
+Events: mode, mapping, switch, start, suspend, resume, stop, fallback.
+No ordinary frame/update logs; repeated updates/failures are quiet.
+Missing-file diagnostics include SDL's "Couldn't open" and the exact path.
+SDL_Log appears under Android tag SDL/APP on the tested hardware, NOT just SDL.
+PowerShell/cmd filter:
+  adb logcat -v threadtime "SDL/APP:I" "SDL:I" "AndroidRuntime:E" "*:S"
+Or capture all output and search for ExternalMusic / QA1 teleport.
+
+INSTALL A USER-OWNED PACK
+
+From C:\Dev\system-shock-android, with Python 3.9+ and an authorized QA device:
+  python scripts/install-qa-soundtrack.py "C:\MyMusic\Remake" --soundtrack remake
+Select Original without changing any installed tracks:
+  python scripts/install-qa-soundtrack.py --soundtrack original
+Optional: --serial DEVICE_SERIAL --adb "C:\path\to\adb.exe"
+
+Save your session and stop the QA app before running the helper. It refuses
+to interrupt a running app. Launch QA once beforehand to create prefs.txt.
+The helper recognizes only the eleven filenames above (source casing is
+normalized), rejects empty/ambiguous files, and leaves unprovided/unrelated
+files alone. It verifies staged and final sizes before reporting filenames.
+It copies to a temporary private filename and renames after verification.
+Preferences are also verified byte-for-byte and backed up under
+dist/audio2/preferences/. It does not reset data or download anything.
+
+Binary safety: adb push uses the sync protocol through a uniquely named
+/data/local/tmp/systemshock-audio2-* staging file, then run-as copies it into
+private storage; the shell staging file is removed in finally. Raw exec-out
+reads prevent CR/LF alteration. On this Windows ADB build both redirected
+file stdin AND a subprocess pipe truncated MP3 at byte 0x1a. Do not reuse
+AUDIO1's historical binary-stdin instructions on this build.
+
+TEST AND BUILD RESULTS
+
+PASS: scripts/test-audio1.ps1 with local retcomm gcc/Clang 22.1.8:
+  production module, -Wall -Wextra -Werror; mixer and no-mixer builds.
+PASS: scripts/test-audio2.py --compiler <same gcc.exe>:
+  actual production LoadPrefs/SavePrefs/trim compiled in an isolated harness;
+  original/remake/invalid/empty, both legacy precedence orders, migration,
+  unrelated preferences, UTF-8, exact paths/IDs, helper preservation and
+  incomplete-transfer protection. Path/global-sync boundaries are stubbed.
+PASS: real pinned SDL 2.32.10 / SDL_mixer 2.8.1 Windows dummy-device smoke:
+  generated 0.25-second MP3 fixtures; Medical/Research/Reactor switches,
+  repeated full loops, synth callback handoff, SFX and auxiliary postmix,
+  device pause/resume and missing-file fallback. No soundtrack assets added.
+PASS: scripts/test-touch.ps1, all 11 executables including QA tools/rendering.
+PASS: scripts/test-movie.ps1 at O0 and O2.
+PASS: scripts/test-qa1-archive.py using the owned device archive: 13 spawns.
+PASS: ARM64 QA build and scripts/verify-apk.ps1: identity, debug signature,
+  embedded resource checks, 16 KB ZIP and ELF alignment.
+  Build: scripts/build.ps1 -Variant qa -SkipGitCleanCheck
+    -JavaHome 'C:/Program Files/Eclipse Adoptium/jdk-17.0.20.101-hotspot'
+  Existing compiler/Java warnings remain; no new build errors.
+PASS: whitespace check (existing CRLF convention) and preservation hashes.
+
+Evidence: dist/audio2/*-tests.log, runtime-smoke.log, build.log,
+apk-verification.log, hardware-*.log and device-*.png.
+No Linux/full desktop/native MIDI/FluidSynth build or RP5 certification claimed.
+
+REQUESTED COVERAGE (automated boundaries versus actual hardware)
+
+ 1/19 Original unchanged/ignores pack: mixer no-call assertions + device.
+ 2/3  Valid Medical/Research: deterministic mixer + real decoder + device.
+ 4/5  Medical->Research->Reactor once: counters + device log sequence.
+ 6    Repeated updates: 1000-call counters; device one-start-per-visit audit.
+ 7    Missing Medical: mixer + real decoder callback fallback.
+ 8/9  Missing Research isolated; return to working deck: mixer + device.
+10    Loaded mapped deck: actual Executive checkpoint load starts Executive.
+11    Unmapped/cyber: update-boundary tests and audited gameplay/cyber guard;
+      no actual cyberspace save traversal during this hardware pass.
+12    QA teleport: actual touch panel, all 13 destinations, correct filenames.
+13    Menu/death suspension: boundary tests + existing setup/cutscene stop
+      hooks reviewed. Hardware Quit exits the app; in-process title return
+      was not separately exercised and remains on the manual checklist.
+14/15 Pause/resume/background: counters, real device pause, actual Android
+      Home -> Recents -> same session with no additional start.
+16/17 Audiolog ducking/volume: clamped mixer gain tests + unchanged
+      UpdateVolumeXMI integration. Audible hardware checks remain below.
+18    Invalid prefs: actual production parsing tests, safe Original result.
+20    AUDIO1 Medical lifecycle retained and user-owned Medical starts on device.
+
+HARDWARE PASS AND DEVICE HANDOFF
+
+Samsung SM-S948U1, 2340x1080 landscape. Only Medical had a user-supplied MP3.
+Ten temporary generated-tone files exercised the remaining deck mappings;
+this validates routing/lifecycle, not the sound/content of an owned full OST.
+Every destination succeeded through QA1; one start per visit was asserted.
+Missing and corrupt Research each fell back, Medical still started, then
+repaired Research started on the next visit. Original with the installed pack
+produced no external start. Legacy true -> Remake was also verified on device.
+
+Before testing, original saves/preferences/keybinds/touch layout were backed
+up under dist/audio2/device-backup/. The active Executive session was saved
+in unused slot 3 (savgam02.dat; its name is blank on this device).
+After testing, all generated tracks were removed, original preferences were
+restored byte-for-byte, original slots 1/2 and keybinds/touch settings were
+verified unchanged, and slot 3 was reloaded and PAUSED with God OFF.
+The AUDIO2 QA APK remains installed. Only the original Medical MP3 remains.
+Legacy true selects Remake; Executive currently falls back because its real
+track has not been supplied. CurrentGame.dat reflects the restored checkpoint,
+as expected after a load; its pre-test copy remains in the backup.
+
+QA APK
+
+  AndroidProject/app/build/outputs/apk/qa/app-qa.apk
+  dist/audio2/SystemShock-AUDIO2-Remake-qa.apk
+Package: io.github.raposomiguel50.systemshock.qa
+Version: 1.0.0-qa / 10000; ARM64, debug signed, optional audio diagnostics OFF.
+SHA256: 95f4a3918423b36a2067d2daa7312245247b4e19d1b02411b2361631688b5b68
+
+EXACT REMAINING LISTENING / RP5 HARDWARE CHECKLIST
+
+1. Back up/save the current session. Install QA with adb install -r; no clear
+   data/uninstall. Supply the eleven owned MP3 filenames using the helper.
+   Select soundtrack = remake; enable qa_cheats = true; restart QA.
+2. Load a safe save/new game. Tap SET > QA TOOLS, enable GOD MODE for hazards.
+3. Teleport in this order, reopening SET > QA TOOLS after each transition:
+   Medical -> Research -> Reactor -> Maintenance -> Storage -> Flight Deck
+   -> Executive -> Alpha Grove -> Beta Grove -> Delta Grove -> Engineering
+   -> Security -> Bridge -> Medical.
+   At EACH destination listen for the expected track; check the logged level
+   and filename, one start, no previous external track or concurrent MIDI.
+   All three Groves must use groves.mp3. Beta requires God ON.
+4. Stay on a deck, walk across music zones, use its elevator normally and
+   confirm no same-deck restart. Cross to another deck normally and back.
+5. Save/stop QA and temporarily rename research.mp3 to research.mp3.disabled
+   using run-as. Restart, visit Research: stock music must be audible.
+   Return to Medical: its replacement must work. Restore the filename,
+   leave/revisit Research: the replacement must work again.
+6. Save on two different mapped decks; load both and confirm the correct
+   track. Load a cyberspace/special save and confirm stock music. Return to
+   a mapped deck. Test death/resurrection and any in-process title return.
+7. Pause/resume and automap. Home -> Recents -> same game repeatedly. Test
+   screen lock/unlock and longer background periods. Listen for no duplicate
+   music, permanent silence or growing latency. Do not relaunch the launcher
+   as a substitute for foregrounding the existing task.
+8. Play and stop an audiolog: replacement music should duck then recover;
+   speech and weapon/door/UI effects remain audible. Change music volume,
+   including mute/unmute, while checking independent SFX/speech volume.
+9. Listen through a complete MP3 ending: it loops to the beginning. Authored
+   endings/encoder padding can produce a non-seamless restart; expected here.
+10. Select Original, restart and repeat Medical/Research with files installed:
+    normal stock music, no external starts. Finally reload the pre-test save
+    and turn God OFF. Do not overwrite existing user saves during QA.
+
+LIMITS AND NEXT MILESTONES
+
+Full MP3 looping only (-1): official OST tracks may have authored endings,
+so their restart is not seamless. No loop points, intro+loop segments,
+crossfades, gapless edits or layered tracks were implemented. Missing files
+are retried on a new visit, not polled live. MP3 opening/indexing latency
+depends on supplied files. Existing audio-lifecycle investigation is not
+claimed fixed. Hardware listening and a complete long-session pass remain.
+
+AUDIO3 can add exploration/combat variants or loop metadata to pack entries
+without rewriting deck lookup/preferences/lifecycle ownership. The existing
+WALKING_SCORE/PERIL_SCORE/COMBAT_SCORE and combat/peril hooks are future inputs;
+stock sequencing is skipped during replacement playback, so AUDIO3 must
+explicitly maintain/consume intensity signals. An SS2/Custom pack can add a
+registry entry and mapping table; neither is exposed by AUDIO2. True crossfade
+or dual-layer playback will require a deliberate multi-stream mixer backend:
+SDL_mixer's single music slot cannot supply that just by adding metadata.
+
+Exact final git status --short: dist/audio2/git-status.txt.
+Pre-existing versus AUDIO2 file hash comparison: dist/audio2/preservation.txt.
+The paths above describe the initial AUDIO2 pass before coordinated closeout.
+Included in the coordinated batch commit; no push.

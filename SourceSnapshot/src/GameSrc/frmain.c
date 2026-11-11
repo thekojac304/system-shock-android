@@ -1,3 +1,4 @@
+#include "GpuWorld.h"
 /*
 
 Copyright (C) 2015-2018 Night Dive Studios, LLC.
@@ -57,6 +58,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "frparams.h"
 #include "frflags.h"
 #include "gr2ss.h"
+#include "horror_visuals.h"
 
 int fr_pipe_go_2(void);
 int fr_pipe_go_3(void);
@@ -67,9 +69,12 @@ int fr_pipe_go_3(void);
 //}
 
 int fr_rend(frc *view) {
+    uint64_t visual_start=horror_visuals_clock();
     fr_prepare_view(view); /* init _fr, load flags, so on */
     if (!fr_start_view())
         return -1; /* broken broken - but what to really return */
+    int gpu_previous=gpu_world_begin();
+    HorrorScope visual_previous=horror_visuals_begin_view();
     ss_safe_set_cliprect(0, 0, 640, 480);
     if (_fr_curflags & (FR_NORENDR_MASK | FR_SOLIDFR_MASK)) /* dont really render, call a game thing */
     {
@@ -123,6 +128,10 @@ int fr_rend(frc *view) {
     }
 
     // printf(" fr_pipe_end\n");
+    fr_render_stars(); /* Star pixels use the completed indexed world as their mask. */
+    gpu_world_end(gpu_previous);
+    horror_visuals_end_view(visual_previous);
+    horror_visuals_measure(visual_start);
     fr_send_view(); /* send it, whether it came from 3d or special */
     if ((_fr->flags & FR_CURVIEW_MASK) == FR_CURVIEW_STRT)
         _frp.time.last_frame_cnt++;

@@ -6,12 +6,12 @@ Use a Git clone for this build path. The helper scripts check Git metadata and t
 
 - Git and PowerShell 7
 - JDK 17
-- Android SDK Platform 34 and Build Tools 34.0.0
+- Android SDK Platform 34 and Build Tools 34.0.0, plus Build Tools 35.0.0 or newer for 16 KB APK alignment verification
 - Android NDK `29.0.14206865`
 - CMake 3.22.1 from the Android SDK
 - Android platform-tools for device installation and testing only
 
-The included wrapper uses Gradle 8.1.1 with Android Gradle Plugin 8.1.1.
+The included wrapper uses Gradle 8.7 with Android Gradle Plugin 8.5.1.
 
 ## 1. Check out the source
 
@@ -55,7 +55,7 @@ pwsh -File .\scripts\build.ps1 -Variant qa
 pwsh -File .\scripts\verify-apk.ps1 -Variant qa
 ```
 
-Verification checks package, version, label, SDK levels, ARM64 libraries, signing and obvious embedded commercial resources. Device testing remains a separate step.
+Verification checks package, version, label, SDK levels, ARM64 libraries, signing, obvious embedded commercial resources, 16 KB ELF load-segment alignment, and 16 KB APK alignment of uncompressed native libraries. Device testing remains a separate step.
 
 ## 4. Test on the device
 

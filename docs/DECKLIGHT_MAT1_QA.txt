@@ -1,0 +1,251 @@
+DECKLIGHT-MAT1 — BOUNDED GENERATED-LIGHT MATERIAL PROMOTION
+2026-10-04
+
+VERDICT
+Research and Storage: FULL HYBRID. Reactor, Flight Deck, and Bridge also
+promoted. Maintenance remains POST-ONLY: its generated profile loaded, but a
+sampled room repeatedly forced whole-view software rendering for an unsupported
+object representation. Medical and Executive remain FULL HYBRID. Engineering
+and Security remain POST-ONLY and were not authored or packaged in this phase.
+New station count: 7/10 FULL HYBRID, 3/10 POST-ONLY.
+
+1. BASELINE, SCOPE, AND METHOD
+Branch: touch-controls. Starting HEAD for this phase:
+8c2514f2a1e0d8dc04d56fddf14f742a2fcf5cdb
+Starting tree: eeb9901097acc37ef150d5966b154866f82f3aa4
+The prior DECKLIGHT-DIAG1 document records the earlier diagnostic starting
+commit 3d082352c15be369eccffd72015201dee944dbd3 and tree
+f6a2523225ba5c09d8df5476f10091658a41e28d.
+
+Authoritative background: GPU_GROVE1_DECKLIGHT_DIAG1_QA.txt and the six
+HORROR_* documents named in the task. Existing unrelated AUDIO and touch work
+was present in the worktree. It was not staged or committed here.
+
+Only material classification, reviewed palette masks, deck archetypes, source
+generation eligibility, bounded asset packaging, the accepted-profile registry,
+and focused tests changed. AUTHOR1E receiver geometry, SurfaceId, clipping,
+door policy, light transport, renderer, and Post Auto presets were not changed.
+Generation used the user's owned ignored archives. Diagnostic JSON, contact
+sheets, screenshots, logs, and APK remain ignored under dist/; no proprietary
+resource bytes were committed.
+
+2. RESEARCH FIRST — INVENTORY, REVIEW, COMPILE, LIVE GATE
+Existing recognized sources: texture IDs 20, 101, 144, 217. The new repeated
+ceiling fixture is ID 52 (335 raw ceiling and 64 floor mappings; 145
+accepted generated sources after clustering and source eligibility). It is a
+white panel inside a red/dark frame. ID 9 (62 raw mapped uses) is a bright mixed
+control panel, explicitly non-emissive; it is not a room lamp. Three accepted
+object-derived sources remain in the Research profile; no one-off coordinates
+were authored. Unknown/unclassified candidates stay review-only.
+
+ID 52: emissive + casts local light on eligible ceilings; RGB
+[0.78,0.90,1.00]. Existing conservative ceiling defaults apply: intensity
+1.5, radius 2.5, no new offset. Its reviewed original palette-index mask is
+[176,177,178,179]. Audit on the exact owned TEXTURE.RES: 9,744 selected of
+16,384 pixels; sampled center fully selected, sampled top edge unselected;
+5,815 housing pixels remain dark. Floor uses are review-only. No brightness
+threshold or art replacement was used. ID 9 is non-emissive bright.
+
+Research archetype research_sterile adds restrained cool-neutral ambient
+[0.82,0.96,1.00] at the existing 0.16 intensity, with Post Auto authoritative
+for whole-deck mood. Source generation: 262 lights (145 from ID 52), 224
+regions. Frozen partial receiver: 2,177 effective surfaces. Runtime profile:
+267,635 bytes; exact baseline and rules signatures verified. No malformed or
+unresolved refs, no bound relaxation, no receiver change.
+
+Samsung SM-S948U1 live: profile loaded in 9.284 ms; representative room and
+ceiling views showed local cool-white fixtures, dark recesses, preserved red
+housing, no obvious wall leak, receiver seam, or room-wide wash. Sampled scene:
+33 draws/56 generated references, max 3 per draw; GPU submit about 0.126–0.140
+ms and Post CPU about 0.017–0.028 ms. Post Auto stayed active. Classification:
+FULL HYBRID. Ignored evidence: dist/decklight-mat1/research-room1.png.
+
+3. STORAGE SECOND — INVENTORY, REVIEW, COMPILE, LIVE GATE
+Existing recognized IDs 35 and 101 supplied only a thin source set. The new
+repeated ceiling bulb ID 99 has 318 raw mapped ceiling uses and 144 accepted
+generated sources. ID 102 (76 raw mapped uses) is a pale structural/reflective
+panel and is explicitly non-emissive. Other bright bays and art remain
+review-only. No object-derived sources were needed.
+
+ID 99: emissive + casts local light on eligible ceilings; RGB
+[0.78,0.86,1.00], existing intensity 1.5/radius 2.5. Reviewed mask [208]
+selects 589/16,384 original indexed pixels, centered on the small bulb;
+13,714 housing pixels remain unselected. This retains sparse fixture emphasis
+and negative space. Storage archetype storage_warehouse uses ambient
+[0.84,0.92,1.00] at 0.16; Post Auto remains the deck grade.
+
+Source generation: 173 lights, 149 regions. Frozen partial receiver: 920
+effective surfaces. Runtime profile: 128,317 bytes; signatures and bounds pass.
+Live: profile loaded in 3.768 ms. Warehouse entry had visible cold local bulbs,
+dark housing and usable shadowed bays without a pitch-black result, obvious
+leak, seam, or wash. Sample: 129 draws/96 refs, max 2; GPU submit about
+0.137–0.148 ms, Post CPU about 0.014–0.016 ms, zero sampled fallbacks.
+Classification: FULL HYBRID. Evidence: dist/decklight-mat1/storage-entry.png.
+
+4. MODERATE DECKS, IN THE REQUESTED ORDER
+Reactor: ID 26 is a small white bulb in a red housing (188 raw ceiling uses in
+diagnostic; 79 accepted sources). ID 99 is already reviewed and contributes 197
+sources. ID 218 white hex-grid art is rejected as non-emissive bright. ID 26
+RGB [1.00,0.54,0.30], mask [176,177,178,179,180,213], 481/16,384 selected
+pixels with 11,174 housing pixels unselected. reactor_industrial archetype
+keeps neutral/dark shadows. 366 lights, 1,455 effective surfaces, 194,436-byte
+profile. Live load 9.498 ms; sample 12 draws/15 refs, max 3. The red room
+wash visible in the sampled view also appeared in neutral GPU proof and was not
+caused by this generated profile. Local lighting remained contained, with no
+obvious leak or regression. FULL HYBRID. Evidence: reactor-depth.png and
+reactor-proof.png under ignored dist/decklight-mat1/.
+
+Maintenance: ID 188 is a spot pattern in dark housing (350 raw ceiling uses),
+classified luminous only on Maintenance and Flight Deck so Medical's source
+count stays unchanged. RGB [0.82,0.88,0.94], mask [214,215,216,217,218,219];
+5,227/16,384 pixels selected, 10,796 housing pixels unselected. The authored
+diagnostic candidate compiled to 283 lights, 1,845 effective surfaces, about
+209 KiB and loaded on device in 7.326 ms. A sampled utility room then repeatedly
+reported GPU1B whole-view SOFTWARE reason=unsupported object representation.
+Under the fixed renderer gate, this is not a clean full-hybrid result. No
+renderer/receiver workaround was attempted. No level-3 asset or accepted
+runtime registry entry ships. POST-ONLY. The ID 188 authoring candidate is
+retained for diagnosis; its mask row is zero on packaged decks without that
+deck-specific luminous classification. Evidence: maintenance-live.png and
+maintenance-generated2.png under ignored dist/decklight-mat1/.
+
+Flight Deck: ID 188 supplies 92 accepted spot sources from 194 raw ceiling
+uses; existing IDs 185, 216, 217, 101, and 99 also contribute. IDs 102 and
+218 remain non-emissive structural/art exclusions. flight_metallic archetype
+uses cool neutral ambient [0.82,0.90,1.00] at 0.16. 253 lights, 1,324
+effective surfaces, 178,464-byte profile. Live load 5.737 ms initially and
+7.744 ms from the final installed APK. A long room and ceiling view showed
+separate bright spot faces with dark housings, preserved depth and blue-panel
+art, no obvious leak/seam or wash. Samples: 251 draws/86 refs/max 3, then 178
+draws/59 refs/max 2; final Post Auto FLIGHT METALLIC fx=3 and GPU path active.
+FULL HYBRID. Evidence: flight-look.png, flight-ceiling.png, and
+final-flight-handoff.png under ignored dist/decklight-mat1/.
+
+Bridge: ID 188 had 48 raw ceiling mappings but produced no eligible source under the frozen
+authoring rules, so its deck-specific luminous override was removed. Existing
+IDs 185 and 101 provide 58 and 17 sources. bridge_command archetype is
+controlled cool-neutral [0.82,0.90,1.00] at 0.16; Post Auto BRIDGE ENDGAME
+remains authoritative. 75 lights, 495 effective surfaces, 80,665-byte profile.
+The final APK loaded it in 3.279 ms and remained on GLES with Post Auto fx=3.
+Sampled entry: 71 draws/2 refs/max 1; dark endgame room remained restrained,
+with no obvious leak/seam, glowing housing, or fallback. This is the weakest
+new promotion by sampled reference density and should receive a later targeted
+fixture-room review. FULL HYBRID for this bounded gate. Evidence: bridge-entry.png
+and bridge-turn.png under ignored dist/decklight-mat1/.
+
+5. MATERIAL AND MASK INVENTORY
+Four new luminous material families were reviewed and authored: 52 (Research),
+99 (Storage/Reactor), 26 (Reactor), and 188 (Maintenance diagnostic/Flight).
+Four new reviewed source-index masks were added:
+  26  [176,177,178,179,180,213]
+  52  [176,177,178,179]
+  99  [208]
+  188 [214,215,216,217,218,219]
+All are original palette-index membership, not RGB/brightness thresholding.
+Existing masks are unchanged. New non-emissive bright exclusions: 9, 102, 218.
+The masks preserve cycling compatibility and dark housings. The common
+conservative ceiling source defaults stay intensity 1.5/radius 2.5; no new
+per-room source placements or offsets were introduced. Per-deck masks serialize
+as zero rows when the family is not luminous on that deck.
+
+6. FINAL COMPILED PROFILE CENSUS
+Deck          Level  Lights  Effective surfaces  Regions  Bytes    Package
+Reactor       0      366     1455                165      194436   YES
+Medical       1      265     1653                434      210434   YES
+Research      2      262     2177                224      267635   YES
+Maintenance   3      283     1845                181      ~209K    NO
+Storage       4      173      920                149      128317   YES
+Flight Deck   5      253     1324                222      178464   YES
+Executive     6      179     1589                225      196406   YES
+Bridge        9       75      495                168       80665   YES
+Engineering 7 and Security 8 have no generated-light assets. Accepted package
+levels are exactly 0,1,2,4,5,6,9. The compiler removes stale unaccepted
+level-*.bin files before packaging. All accepted profiles have <=4 receiver
+lights, <=2 partial polygons, <=8 planes, valid baseline/rules signatures and
+CRC, and are under the existing 1 MiB loader bound.
+
+7. PERFORMANCE AND FALLBACK SMOKE
+Live generated frames on the five new promotions had active references and
+max 1–3 lights/draw; there was no sampled generated-path fallback on Research,
+Storage, Reactor, Flight Deck, or Bridge. Representative GPU CPU submission
+was about 0.13–0.17 ms in steady sampled rooms (Flight entry reached 0.69 ms
+on first material upload); Post CPU was about 0.013–0.031 ms. These are short
+device samples, not a controlled neutral-vs-generated delta or GPU execution
+time measurement. No obvious frame instability appeared; no thermal campaign
+was run. Maintenance's software fallback is the explicit exception.
+
+The final installed APK transitioned Bridge -> Security -> Flight Deck.
+Security used neutral GPU plus SECURITY SEVERE Post Auto fx=3, with no level-8
+profile or stale Bridge generated frame; Flight loaded its own level-5 profile.
+Compiler tests reject changed rules and stale archive baselines. The frozen
+runtime loader also validates version, level, baseline, rules signature, CRC,
+size, and bounds before accepting a profile; missing/unlisted decks get the
+existing neutral GPU path. No modified/broken APK was installed for a separate
+runtime corruption test.
+
+8. STATION CLASSIFICATION
+Medical       FULL HYBRID    (prior accepted)
+Research      FULL HYBRID    (new)
+Reactor       FULL HYBRID    (new)
+Maintenance   POST-ONLY      (software fallback in sampled room)
+Storage       FULL HYBRID    (new)
+Flight Deck   FULL HYBRID    (new)
+Executive     FULL HYBRID    (prior accepted)
+Engineering   POST-ONLY      (untouched; unresolved texture slot)
+Security      POST-ONLY      (untouched; poor frozen-model coverage)
+Bridge        FULL HYBRID    (new; sparse sampled local refs)
+
+Material expansion was worthwhile: the two cheap candidates and three of four
+moderate candidates promoted without receiver engineering. The frozen receiver
+pipeline was sufficient for the five accepted decks. No receiver/inference
+research is justified by this pass alone. Next phase should first diagnose
+Maintenance's unsupported-object renderer fallback and Engineering's unresolved
+texture slot; Security needs a separate coverage review. Bridge deserves a
+targeted fixture-room visual follow-up before any broader art claim.
+
+9. BUILD, TEST, APK, INSTALL, AND PHONE HANDOFF
+Final focused visual/generated suite: 46 tests passed. QA build: PASS.
+verify-apk.ps1 -Variant qa: PASS; package
+io.github.raposomiguel50.systemshock.qa, versionCode 10000,
+versionName 1.0.0-qa, expected signer SHA256
+6dc6baad4199aaa7637cbbe2af679156eb48731b0eacdeabc0ffaa78adcd9924.
+ZIP alignment and arm64-v8a native ELF PT_LOAD 16-KiB alignment: PASS.
+Final ignored APK:
+dist/decklight-mat1/SystemShock-DECKLIGHT-MAT1-qa-arm64-v8a.apk
+SHA256: 7b8885b89595e73d250021633568773fcb748e54ad80930abfb26a322657f58a
+Its hash equals the verified build output. Automatic adb install -r: Success
+on authorized Samsung SM-S948U1, serial <device serial redacted>; launch: Success.
+
+Before/after SHA256 comparisons were identical for all eight savgam00..07.dat
+slots, prefs.txt, and touch-settings.cfg. CurrentGame.dat was captured before
+and after but is excluded from identity claims because QA deck teleport changes
+the live session. The phone was left screen on/unlocked in normal Flight Deck
+gameplay, MODE/POST controls visible, GPU GENERATED active, Post Auto FLIGHT
+METALLIC fx=3 (FX FULL). Final sampled frame: 178 draws/59 refs, max 2.
+
+10. CHANGED FILES, COMMITS, AND PUSH STATE
+Implementation commit d569887396b8326e0183a12c01545490eebb8ef1:
+  SourceSnapshot/src/MacSrc/GpuGenerated.c
+  SourceSnapshot/src/MacSrc/GpuGenerated.h
+  profiles/horror-author1/profile.schema.json
+  profiles/horror-author1/rules.json
+  scripts/build.ps1 (only generated-profile input hunk staged)
+  scripts/compile-horror-generated.py
+  scripts/horror_author.py
+  tests/visuals/test_horror_decklights.py
+  tests/visuals/test_horror_generated.py
+This report: docs/DECKLIGHT_MAT1_QA.txt (report commit hash in final response).
+No APK, screenshot, save, log, dist output, or unrelated AUDIO/touch change was
+committed. Nothing was pushed.
+
+11. CENTRAL ANSWERS
+Research FULL HYBRID: yes. Storage FULL HYBRID: yes. Moderate decks attempted:
+Reactor, Maintenance, Flight Deck, Bridge, in order. Promoted: Reactor, Flight
+Deck, Bridge. Failed: Maintenance, because a live sampled room repeatedly
+fell back to software for unsupported object representation. New luminous
+families: 4. New reviewed masks: 4. Receiver geometry changes required: no.
+Frozen receiver sufficient for accepted decks: yes. More material expansion:
+worth targeted review, not a broad sweep. Receiver/inference research now
+justified: no. FULL HYBRID total: 7/10 ordinary decks. Best new deck for
+handoff: Flight Deck. Weakest remaining POST-ONLY diagnostic: Engineering,
+where the texture-slot loader prevents reliable source counts.

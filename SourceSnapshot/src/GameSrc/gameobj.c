@@ -1,3 +1,4 @@
+#include "GpuWorld.h"
 /*
 
 Copyright (C) 2015-2018 Night Dive Studios, LLC.
@@ -70,6 +71,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #endif
 
 #include "OpenGL.h"
+#include "horror_visuals.h"
 
 #define VOXEL_PIX_DIST_BASE (fix_make(0, 0x1000))
 #define VOXEL_PIX_DIST_DELTA (fix_make(0, 0x6000))
@@ -688,7 +690,7 @@ short compute_3drep(Obj *cobj, ObjID cobjid, int obj_type) {
 
 #define DESTROYED_SCREEN_ANIM_BASE 0x1B
 
-void show_obj(ObjID cobjid) {
+static void show_obj_original(ObjID cobjid) {
     short objtrip;
     short o3drep;
     int model_num = 0;
@@ -1244,4 +1246,37 @@ void show_obj(ObjID cobjid) {
                 draw_ice();
         break;
     }
+}
+
+/* Keep every original early return inside this scope, including translucent
+ * critters, screens and missing resources. Objects resolve their own location,
+ * never the terrain traversal tile or main camera's position. */
+void show_obj(ObjID cobjid) {
+    if (gpu_world_active()) {
+        int flags=ObjProps[OPNUM(cobjid)].flags;
+        int lit=(flags & LIGHT_TYPE)<=(1<<LIGHT_TYPE_SHF) ||
+            ((flags & LIGHT_TYPE)==(3<<LIGHT_TYPE_SHF) && !(objs[cobjid].info.inst_flags & UNLIT_FLAG));
+        gpu_world_object(cobjid,ObjProps[OPNUM(cobjid)].render_type,lit && !obj_is_display(ID2TRIP(cobjid)));
+        show_obj_original(cobjid);
+        gpu_world_object_end();
+        return;
+    }
+    if (!horror_visuals_active()) { show_obj_original(cobjid); return; }
+    Obj *o=&objs[cobjid];
+    int flags=ObjProps[OPNUM(cobjid)].flags;
+    int type=ObjProps[OPNUM(cobjid)].render_type;
+    int lit=(flags & LIGHT_TYPE)<=(1<<LIGHT_TYPE_SHF) ||
+        ((flags & LIGHT_TYPE)==(3<<LIGHT_TYPE_SHF) && !(o->info.inst_flags & UNLIT_FLAG));
+    int exempt=!lit || obj_is_display(ID2TRIP(cobjid)) || type==FAUBJ_TL_POLY ||
+        type==FAUBJ_VOX || ID2TRIP(cobjid)==INVISO_CRIT_TRIPLE;
+    int x=o->loc.x>>8,y=o->loc.y>>8;
+    /* Wall-mounted screens/controls exactly on a tile edge belong to the
+     * occupied side. No radius search that could pull a later room into scope. */
+    if (!hv_region_tile(x,y)) {
+        if (!(o->loc.y & 255) && hv_region_tile(x,y-1)) --y;
+        else if (!(o->loc.x & 255) && hv_region_tile(x-1,y)) --x;
+    }
+    HorrorScope scope=horror_visuals_bind(x,y,HV_OBJECT,-1,exempt);
+    show_obj_original(cobjid);
+    horror_visuals_restore(scope);
 }

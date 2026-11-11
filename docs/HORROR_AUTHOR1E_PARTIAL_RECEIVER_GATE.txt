@@ -1,0 +1,381 @@
+HORROR-AUTHOR1E / PARTIAL RECEIVER AND DOOR APERTURE GEOMETRY GATE
+2026-10-04
+
+VERDICT
+Complete offline gate: FAIL. GLES gate: FAIL / NOT ENTERED.
+Static partial-receiver subgate: PASS within the tested geometry subset.
+Door local bitmap silhouette audit: PASS; animated portal receiver gate: FAIL.
+GPU GENERATED does not exist. No renderer, APK, device view, save or preference
+was changed. This phase stops before GLES and before broader authoring.
+
+Medical materially recovers: 1/17 -> 11/17 held-out tiles, with 28 distinct
+surfaces having both an admitted region and nonzero generated-light falloff.
+Executive retains all six chandelier sources, each with effective receivers.
+The door candidate does NOT complete coherent animated crossing permissions.
+The successful static work is committed; the failed door gate is explicit.
+
+1. STARTING COMMIT / TREE
+Starting HEAD: 09c21b1596d6c43d412ea134cd112e42d53d48ee.
+Existing modified AUDIO files: musicai.c, ExternalMusic.c/.h,
+install-qa-soundtrack.py, test-audio2.py, external_music_smoke.c and
+external_music_test.c. Existing untracked AUDIO reports, test-audio3.ps1 and
+dynamic_music_test.c were preserved and excluded from both phase commits.
+
+The ten reports named in the task are the authority. GPU-RENDER2/3/4 acceptance,
+normal GLES rendering and whole-view software fallback remain unchanged.
+AUTHOR1B source inference, clustering and energy budgets, AUTHOR1C masks and
+portal records, and AUTHOR1D SurfaceIds are reused without modification.
+
+2. INPUTS / BLIND HOLDOUT
+The compiler reads existing dist/horror-author1d/generated/level-{1,6}.generated.json
+and the owned dist/audio2/owned-ARCHIVE.DAT. It verifies the archive baseline
+signature before using raw solid-neighbor geometry keys. No source positions,
+colors, intensities, radii, regions, material rules or receiver tile proposals
+are changed. No new levels are generated. Existing tests are retained.
+
+The compiler never reads horror_profile.c, proof lights, warm/cold labels or
+the 17-tile manual reference. Only test-horror-partial.py reads that reference,
+AFTER compilation, for review. No Healing Suite exception or hand authoring.
+
+Owned OBJART2.RES and OBJART3.RES were copied read-only from the connected QA
+app to ignored dist/horror-author1e. Their SHA256 values are:
+  OBJART2 6671e481fd7d55f09c0e648c15cfa2ecaea2dbdb73216969462514cf7eec9123
+  OBJART3 3c11ff6d54d0df69628c737b490c1c4eacafc796250cc75f49e7da4f48533342
+No proprietary bytes, generated profile, image or save enters Git.
+
+3. PARTIAL-FACE FAILURE TAXONOMY
+AUTHOR1D's axis-aligned whole-face prism rejected clear narrow sight cones as
+well as genuinely hidden face fragments. It also excluded all slopes, walls,
+diagonals and entire door cells. This was safe but very wasteful.
+
+Each new diagnostic relationship records SurfaceId, light ID, face type,
+full/blocked/partial/unsupported permission, a nine-point visible sample
+pattern, first blocking cell/edge and reason, traversed beam apertures,
+face-local polygon(s), planar-boundary/safe-split status and portal references.
+V/B/- mean visible/blocked/outside polygon; iteration is U outer, V inner.
+Samples explain the geometry; they do NOT grant receiver permission.
+
+These statuses describe the supported conservative model. In particular,
+blocked by an excluded door cell is not proof that the actual rendered door
+occludes the entire cell. Unsupported source/complex geometry is recorded
+separately. Step-wall strips and exotic wall topology are not enumerated as
+certified draws. They retain neutral rendering and are outside this census.
+
+Final compiled relationship census (includes zero-falloff permissions):
+                       Medical                     Executive
+Face                  full partial blocked unsupported  full partial blocked unsupported
+Floor                  562   769     151     228         496   652     105     139
+Ceiling                476   529     477     228         416   532     305     139
+Ordinary wall          449   494     246     171         471   409     152      42
+Diagonal wall           10    29       2       5          10    26       5       2
+TOTAL                 1497  1821     876     632        1393  1619     567     322
+
+Recurring partial patterns, Medical / Executive:
+  Height-only edge cutoff                         574 / 328
+  Solid-corner cutoff                             110 / 60
+  Diagonal cutoff                                  37 / 28
+  Mixed height/solid                               25 / 14
+  Mixed diagonal/height                             9 / 0
+  Closed-cell conservative door boundary           47 / 54
+  Mixed door/height                                 3 / 11
+  Complex-cell boundary (alone or height-mixed)       0 / 7
+  All samples clear / sub-sample or numeric boundary 1016 / 1117
+The last group includes clear faces conservatively retained as partial because
+floating clipping rounds a boundary inward. It is not 2133 additional proven
+physical occluders. Full-face classification never epsilon-expands permission.
+
+Concrete reusable patterns:
+  Medical SurfaceId [1,10,23,1,0,0,1,16810497,0], light
+  L1:T1418:ceiling:36: VVBVVBVVB. Edge 1418->1482 has a height obstruction;
+  the safe local rectangle ends at V=0.5434582608695627. One planar cutoff.
+
+  Medical [1,12,30,1,0,0,1,16810497,0], L1:T1869:ceiling:36:
+  VVVVVBVBB. Solid cell 1933 blocks the direct corner crossing from 1869;
+  the clear route is 1869->1868->1932. A triangular receiver is sufficient.
+
+  Medical sloped floor [1,20,23,1,0,0,7,50499847,0],
+  L1:T1429:ceiling:216: VVVVVBVBB. Diagonal cell 1493 clips the face;
+  route 1429->1428->1492 yields a triangular local receiver on the slope.
+
+  Executive slope [6,6,40,1,0,0,9,33712649,0],
+  L6:T2628:ceiling:82: VVVVVBVVB. Solid cell 2630 cuts a slanted line;
+  the safe polygon is a trapezoid, not a whole-tile rectangle.
+
+Some corner configurations require a union of two convex polygons. Convexifying
+their union indiscriminately fills the hidden notch. An actual Medical T2097 /
+source T2034 counterexample exposed six bad admitted probes during development.
+An epsilon in the convex-hull turn test incorrectly removed an extreme vertex
+with nearly tied X coordinates. That was fixed and the precise counterexample
+is now a regression test. None of those failures survives in the final audit.
+
+4. REPRESENTATION CHOSEN
+Offline beam clipping through convex terrain cells, followed by face-local
+convex polygon records. The source must lie strictly inside a supported volume.
+Each shared aperture is clipped against both cells and the preceding beam.
+The source/aperture cone and forward plane constrain subsequent cells. A straight
+segment is monotone in each horizontal coordinate, preventing cyclic paths.
+Convexity ensures the segment between entry and exit stays inside each cell.
+The final intersection with the receiving face is the permitted region.
+
+Supports ordinary flat floors/ceilings, simple slopes 6..9 with all four mirror
+modes, diagonal tiles 2..5 and their internal wall, and ordinary external walls
+against a fully closed neighboring edge. Raw solid-neighbor geometry keys come
+from the signature-checked archive; they are not fabricated as zero.
+Floor/ceiling IDs reuse AUTHOR1D. Wall face/subface IDs follow frterr.c's emitted
+indices; supported full external walls use subface 0. Identity remains unrelated
+to draw order, buffer offsets, camera or texture UV orientation.
+
+Use map-local X/Y for floor/ceiling masks and horizontal-axis/Z for wall masks.
+Store axes and origin with the diagnostic record. Full faces need no mask;
+blocked/unsupported faces receive no generated light. Partial polygons shrink
+inward by 0.00002 map units after union. No runtime ray tracing or shadow system.
+This remains an offline diagnostic format, not a ready-to-load GLES profile.
+
+5. BOUNDS AND RUNTIME COST MODEL
+Hard limits: 4 polygons per light/SurfaceId, 8 vertices/planes per polygon,
+4 local lights per draw. Thus at most 16 partial polygons / 128 half-plane
+tests per draw's fragment, with early rejection. Actual maximum here is two
+polygons per relationship, Medical 7 vertices and Executive 6. Full flags incur
+only the existing radial-light calculation. Offline traversal is capped at
+512 beam states and depth 12; state/polygon overflow disables the relationship
+or source. Depth truncation omits further receivers. No unbounded runtime work.
+
+Chosen future application: fragment test of interpolated face-local coordinates.
+It requires zero extra draws, preserves the captured SurfaceId, and avoids
+retessellating the existing clipped draw stream. Splitting draws would require
+new triangle emission and additional draws for each light-mask combination.
+The fragment option is simpler here. Highp interpolation, packed-plane precision,
+seams and actual Android cost still need a runtime gate. Bounded is demonstrated;
+cheap enough on the target device is NOT measured or certified.
+
+6. DOOR ANIMATION GEOMETRY MODEL
+Inspected gameobj.c, objsim.c/Headers/objsim.h, objuse.c, doorparm.h,
+citres.c, resformat.c and the actual RSD decoder contract.
+Door art resource = 2400 + class-local subtype index; current_frame selects
+the resource subframe. The object center/orientation is fixed. Each frame's
+bitmap width/height determines local half-extents w/128 and h/128 at the active
+scale=0 path. UV (0,0) is the upper-left corner. Palette index zero is cut out
+when BMF_TRANS is active. Frame zero with RENDER_BLOCK disables transparency.
+The model always blocks generated crossing at frame zero, conservatively.
+gameobj.c also snaps XY raw fractions 0xff00 to the next integer tile edge;
+the old collision-plane location is not always the rendered-plane location.
+
+Opening plays resource frames forwards; closing plays them backwards. There is
+no continuous geometric translation between bitmap frames. Paired halves have
+independent objects/frames, with use_door coordinating their animations. Medical
+182/183 and 240/241 occupy adjacent half-panels, not the same centered panel.
+
+Decoded all 24 door resources used by these two profiles: 124 frames, including
+17 animated resources. No frame dimension changes occur in these sequences.
+Blocking silhouette changes stepwise through transparent art. The Python RSD
+reader follows the engine's literal/run/skip/long-op/pad behavior, with strict
+bounds; synthetic command tests cover both short and long forms.
+
+Candidate representation: largest all-transparent axis-aligned rectangle per
+frame, inset by one texel. Every intersected texel was checked: 101854 checks,
+zero opaque texels admitted. This validates local bitmap rectangles only.
+
+7. DOOR GATE FAILURE / PORTAL LOGIC
+The candidate is insufficient for coherent animated propagation. Twenty-one
+consecutive-frame rectangle transitions lose some previously admitted area.
+Resource 2404 frame 1->2 loses 100% overlap; 2408 loses 75% at 1->2; paired-half
+resources 2431/2432 lose about 58.82% at 3->4. A largest rectangle can relocate
+even when the intended aperture is growing. It would move light abruptly.
+No invented frame>=3 threshold repairs this; that threshold is physics policy.
+
+Furthermore, world-space projection through the snapped render plane, terrain
+aperture intersection, and combined paired-half silhouettes are not certified
+by this implementation. Local valid rectangles do not prove a valid cross-portal
+receiver mask. The complete door gate therefore FAILS. The door CLI deliberately
+returns a failure exit status after writing its evidence. This is not a PASS
+based only on source inspection or transparent pixel counts.
+
+Static receiver compilation retains AUTHOR1D's opaque door-cell fallback for
+every state, including open. Portal references on nearby affected records are
+conservative invalidation dependencies, NOT permission to cross. Reference tests
+show missing/closed paired halves reject and a frame change invalidates only
+dependent records. There is no engine callback or runtime receiver cache yet.
+No opening/closing receiver variants are emitted, and no level rebuild per
+frame is implemented. A future fix needs coherent bounded frame masks and their
+actual world-space/paired projection before it can replace this fallback.
+
+8. MEDICAL OFFLINE BEFORE / AFTER
+Unchanged input proposal: 265 lights; 780/1184 receiver tiles.
+AUTHOR1D: 1183 accepted floor/ceiling relationships, 770 distinct surfaces,
+404 tiles; effectively 1/17 held-out tiles.
+AUTHOR1E: 3318 full-or-partial geometric permissions across the supported face
+types. Of those, effective nonzero falloff reaches 1653 distinct surfaces and
+638 proposed tiles. Geometry alone covers 1759 surfaces / 653 tiles; those
+larger numbers must not be presented as effective light coverage.
+
+Blind holdout: 11/17 tiles, 28 effective surfaces among 41 represented candidate
+surfaces. Geometrically there are 19 full, 13 partial, 12 blocked and 23 unsupported
+relationships in the holdout, across multiple generated sources. Tile IDs are
+1306,1371,1372,1435,1436,1437,1499,1500,1501,1563,1564.
+The six remaining reference tiles are not manually filled. This is material
+recovery of disconnected useful receiving regions, not a claim of a pleasing
+or bright enough horror image. No exact 14/17 requirement was imposed.
+
+9. EXECUTIVE OFFLINE BEFORE / AFTER
+Unchanged input proposal: 179 lights; 693/1227 receiver tiles; 113 repeated-fixture
+cluster suppressions. No Executive-specific rule was added.
+AUTHOR1D: 1265 full relationships, 809 distinct surfaces, 411 tiles.
+AUTHOR1E: 3012 full-or-partial geometric permissions; effective nonzero falloff
+on 1589 distinct surfaces / 595 tiles. Geometry-only is 1641 surfaces / 600 tiles.
+Chandelier objects 62,63,69,70,180,181 remain, with respectively 17,19,18,17,15,15
+effective surface relationships. Four-light and original energy budgets persist.
+313/506 originally dark tiles have no effective generated receiver; no ambient
+lift was introduced. This supports structural transfer and bounded spill, not
+visual certification of darkness or intensity balance.
+
+10. OFFLINE GATE / VERIFICATION
+Stable SurfaceId tests: PASS, inherited and rerun; no renderer ID code changed.
+Focused test suite: 34 PASS (21 prior plus 13 new). It covers full/blocked faces,
+partial floor/ceiling/wall, diagonal/slope, all basic slope mirrors, U-shaped and
+corner occlusion, clip stability, near-tied hull regression, complexity fallback,
+falloff coverage, deterministic compilation, RSD decoding, bitmap aperture extent,
+paired-state rejection and portal dependency invalidation. Paired-state unit
+tests are not a claim that real paired world-space geometry is certified.
+
+Independent grid-interval audit uses face-table edge heights and diagonal
+halfspaces, rather than compiler beam planes. It checks both ends of each
+segment's cell interval. Final result: 219573 Medical and 196426 Executive
+admitted probes, zero known hidden-fragment failures. Probes include centers,
+edge interiors and points near polygon vertices. The continuous geometric
+argument is the convex-cell chain; the finite audit is a regression check,
+not universal proof for all unsupported or dynamic geometry.
+
+Byte-identical recompilation PASS for both levels, with final diagnostic SHA256:
+  Medical   c6bfeba28461e69835ce8b7ede2fd025f2bc5e2da701a243b87e72f028ab6d89
+  Executive be1404a8a46c739d6b18c343325b76ceb792882a0fe676875c0b3cc66a3432ad
+Source fixture/region inference tests were reused; no broad renderer campaign
+or material review was repeated. Complete offline gate FAIL because the door
+aperture/receiver condition remains unsatisfied. Partial-receiver subgate PASS.
+
+11. GLES GATE
+FAIL / NOT ENTERED under the mandatory offline stop rule. No runtime loader,
+generated shader, profile signature handling in GLES or dynamic receiver
+invalidation was introduced. Diagnostic JSON never enters the render hot path.
+
+12. GPU GENERATED MODE
+Does not exist. Original, VIS1B, GPU proof and preservation/fallback behavior
+are unchanged. No new QA selector or debug overlay was added.
+
+13. MEDICAL VISUAL REVIEW
+Not entered. No matched A/B captures or claims about seams, materials, shadow
+depth, hard rectangles, emissive appearance or horror quality.
+
+14. EXECUTIVE VISUAL REVIEW
+Not entered. No chandelier/depth-rich live scene review or aesthetic verdict.
+
+15. DOOR LIVE PROPAGATION
+Not entered. Closed -> opening -> open -> closing -> closed generated-light
+behavior is NOT certified. No open spill or stale-light result exists.
+
+16. EMISSIVE MASK RUNTIME RESULT
+AUTHOR1C's reviewed masks 20,35,36,82,101,144,185,215,216,217 are unchanged.
+They remain unintegrated into GLES. No whole-texture glow was added. Palette
+cycling and luminous pixels versus housing have no new live validation.
+An emissive runtime application test is not claimed for a nonexistent path.
+
+17. PERFORMANCE SMOKE
+Full / partial permissions: Medical 1497 / 1821; Executive 1393 / 1619.
+Partial polygons: Medical 1900, Executive 1641. Average / maximum vertices:
+Medical 3.976 / 7; Executive 3.980 / 6. At most two polygons per relationship
+in actual data, versus the four-polygon cap. At most four lights per surface.
+Many numeric-boundary partial records could be optimized after a precision
+proof; they are deliberately not promoted using an area epsilon.
+Repeated CLI compilation, including detailed diagnostics and archive read:
+Medical ~4.62 seconds; Executive ~3.40 seconds on this Windows host.
+Verbose JSON sizes ~6.39 MB / 5.08 MB are diagnostic cost, not runtime format.
+Extra draws: zero added, runtime not entered. Medical/Executive fixed-scene
+frame deltas and active live lights/draw: N/A. Gameplay regression: no new
+runtime code to measure; no device performance PASS is claimed.
+
+18. REMAINING UNSUPPORTED GEOMETRY / RISKS
+Types 10..50, two-subface complex slopes, multi-strip external step walls,
+special walls, nonzero-parameter nominally flat tiles, ambiguous doors and
+all animated door crossing remain generated-light-disabled. Unsupported
+sources and any over-budget case fail closed. Normal GPU geometry is untouched.
+Occlusion by arbitrary movable objects is outside the terrain model; this is
+not dynamic shadowing. Live terrain mutation along an intermediate beam must
+invalidate affected receivers before any runtime loader is safe. Baseline
+archive matching and receiver SurfaceId alone are insufficient for that event.
+Live draw correspondence, packed floating-point precision and mask seams still
+need validation. The offline floating-point audit does not certify GLES highp.
+
+19. AUTOMATION ESTIMATE / COST-BENEFIT
+After both offline results, retain roughly 50-60% automatic / 40-50% manual
+ordinary-area setup, VERY LOW confidence. Do not increase it because the code
+is reusable or because 11/17 tiles now have nonzero falloff. That ratio is not
+a measured station-wide work percentage. No generated visual review exists.
+
+Partial geometry is no longer a reason to abandon all automation: obvious
+fixture inference plus compact terrain receivers works materially better.
+Further broad inference engineering is not justified now. Completing automated
+door propagation still needs a coherent frame representation, actual paired
+projection, runtime state invalidation, packing/shader work and visual QA.
+
+For production progress, favor a hybrid: generated obvious fixtures, explicit
+level/hero-room overrides, per-level color grading and contrast curves, carefully
+placed manual haze/fog and a limited set of hand-authored local lights. Manual
+overrides still require safe receiver constraints; post-processing alone does
+not solve wall leakage. The accepted GLES backend gives a useful foundation
+for this lower-engineering-cost visual workflow. No such authoring is performed
+in AUTHOR1E, and no full-station work is authorized by this report.
+
+20. CENTRAL ANSWERS / NEXT PHASE
+1. Safe partially visible faces? Yes, offline for the admitted static subset;
+   visible polygons light while known hidden fragments are excluded.
+2. Bounded/cheap? Bounded yes; runtime cheapness remains unmeasured.
+3. Medical recovery? Yes, 11/17 and 28 effective surfaces; no known surviving
+   hidden-fragment case in the bounded audit. Live usefulness remains unknown.
+4. Executive transfer? Yes structurally, all six chandeliers; visuals unknown.
+5. Animated door aperture gating credible? Local silhouettes are understood;
+   complete coherent cross-portal/paired gating is NOT yet credible.
+6. Emissive masks in GLES? No, runtime gate not entered.
+7. GPU GENERATED? No.
+8. Does it look worthwhile? No generated live image exists to answer that.
+9. Realistic automation? Retain 50-60% / 40-50%, very low confidence.
+10. Continue or pivot? Retain useful fixture/static receiver automation, favor
+    hybrid visual authoring over broader inference. If generated runtime is
+    still the priority, the only next engineering phase should be a door-only
+    aperture/paired-projection closeout, followed by this same offline gate.
+    Do not begin GLES on this failed gate, full-station authoring or GPU-RENDER6.
+
+21. EXACT FILES / COMMIT
+Implementation commit: 97f09acd93a108e4ce9f89260c87e10ce129b6f4.
+Its exact files:
+  scripts/horror_partial.py
+  scripts/horror_door_aperture.py
+  scripts/test-horror-partial.py
+  tests/visuals/test_horror_partial.py
+This report is committed separately:
+  docs/HORROR_AUTHOR1E_PARTIAL_RECEIVER_GATE.txt
+The implementation hash above identifies the tested reusable work; a report
+cannot embed the hash of its own containing commit. The report commit is in
+the final task response and git log for this path.
+
+22. REPRODUCTION / NO-PUSH STATE
+Set PYTHONPATH=scripts and PYTHONDONTWRITEBYTECODE=1, then:
+  python -m unittest discover -s tests/visuals -p "test_horror*.py" -v
+For L=1 and L=6:
+  python scripts/horror_partial.py
+    --profile dist/horror-author1d/generated/level-L.generated.json
+    --archive dist/audio2/owned-ARCHIVE.DAT
+    --output dist/horror-author1e/level-L.partial.json
+  python scripts/test-horror-partial.py
+    --profiles dist/horror-author1d/generated --compiled dist/horror-author1e
+Door audit (expected failed gate / exit 2):
+  python scripts/horror_door_aperture.py
+    --profiles dist/horror-author1d/generated/level-1.generated.json
+               dist/horror-author1d/generated/level-6.generated.json
+    --art dist/horror-author1e/owned-OBJART2.RES
+          dist/horror-author1e/owned-OBJART3.RES
+    --output dist/horror-author1e/doors.json
+Join each command's indented continuation lines. Local evidence includes
+receiver-audit.json, doors.json, both complete relationship files and
+determinism.json under ignored dist/horror-author1e.
+
+Nothing was pushed. No APKs, screenshots, logs, dist data, saves, proprietary
+assets, bytecode or unrelated AUDIO changes were committed.

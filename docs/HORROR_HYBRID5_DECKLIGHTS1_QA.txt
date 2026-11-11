@@ -1,0 +1,237 @@
+HORROR-HYBRID5 / DECKLIGHTS1 — EXISTING-PIPELINE STATION PROFILE CLOSEOUT
+2026-10-04
+
+1. BASELINE, SCOPE, AND DECISION
+Starting branch: touch-controls; starting HEAD c85e656961cdaf54f9bc72ff20fd7321cc8a2b91.
+The working tree already contained the uncommitted HORROR-HYBRID4 station Auto
+archetypes and unrelated AUDIO work. This closeout commits only the visual
+changes, focused tests, and QA records. Medical (archive level 1) and Executive
+(level 6) remain the two accepted generated-light anchors. Door spill remains
+rejected and absent.
+
+The existing AUTHOR1E source association, GENERATED1 compiler, HG1P schema,
+runtime signature/CRC validation, and fail-closed GPU renderer were reused.
+No new fixture inference, receiver algorithm, SurfaceId semantics, geometry,
+door propagation, heuristic lighting, room lights, shaders, or post effects
+were added. The only new art parameter row is a shared Grove preset in the
+existing HYBRID3 table. The source inference script was temporarily allowed to
+accept levels 0..9 solely to make the eight attempts; that diagnostic CLI
+change was reverted before the build and is not in the commit.
+
+Ordinary deck closeout: PASS as a bounded coverage/classification exercise.
+FULL HYBRID: 2/10 (Medical, Executive). POST-ONLY: 8/10 (all attempted new
+decks). No new deck compiled with zero inference changes. The separately
+mapped Grove sky views have a special software-path limitation (section 5).
+This is not a claim that every area has a GPU Enhanced presentation.
+
+2. EXISTING-PIPELINE PROFILE ATTEMPTS
+Inputs: owned ARCHIVE.DAT, TEXTPROP.DAT, owned-objprop.dat, and the accepted
+profiles/horror-author1/rules.json. The command was the existing
+scripts/horror_author.py --archive ... --textprop ... --objprop ... --output
+dist/horror-author1d/generated --levels <archive-level>. No archetype,
+source, receiver, or runtime content was invented to make a deck pass.
+
+Deck / level       Source inference result                         Partial/HG1P/runtime
+Reactor / 0        KeyError '0': no accepted rules archetype        no source; not run; absent
+Research / 2       KeyError '2': no accepted rules archetype        no source; not run; absent
+Maintenance / 3    KeyError '3': no accepted rules archetype        no source; not run; absent
+Storage / 4        KeyError '4': no accepted rules archetype        no source; not run; absent
+Flight Deck / 5    KeyError '5': no accepted rules archetype        no source; not run; absent
+Engineering / 7    ValueError: Unresolved texture slot in          no source; not run; absent
+                   existing load_level(), before archetype lookup
+Security / 8       KeyError '8': no accepted rules archetype        no source; not run; absent
+Bridge / 9         KeyError '9': no accepted rules archetype        no source; not run; absent
+
+The seven missing-archetype failures are an explicit limit of the accepted
+rules file, not a compiler or runtime rejection. Engineering also hits an
+existing source-load limit. Since no source JSON existed for these decks, the
+accepted partial-receiver compiler and HG1P compiler had no valid input.
+Calling them with invented or stale input would not be a valid profile test.
+All eight are POST-ONLY, with the exact failure above. The accepted Medical
+and Executive HG1P files regenerated without rule changes: level-1.bin
+209410 bytes, 265 lights, 1653 surfaces; level-6.bin 195382 bytes, 179 lights,
+1589 surfaces. The existing asset generator/version, SHA-256 source signatures,
+and payload CRC checks passed. No verbose diagnostic JSON was packaged.
+
+3. RUNTIME LOAD AND FALLBACK
+QA APK contains exactly two compact profile assets, level-1.bin and
+level-6.bin. Existing GENERATED mode selects a level-specific profile; for an
+absent level it uses neutral GPU lighting and does not reuse the previous
+level's SurfaceIds, lights, or emissive masks. The live tour crossed Medical,
+Executive, all eight profileless decks, and the Grove maps without a crash or
+missing-profile error. On the final APK Medical logged loaded=1, reason=none, load_ms=10.790,
+lights=265, surfaces=1653. Executive logged loaded=1, reason=none,
+load_ms=9.315, lights=179, surfaces=1589. No new deck
+claimed a loaded generated profile. Med/Exec generated lights and emissive
+surfaces remained visible with no catastrophic wall leak or room overlight in
+the sampled indoor views. Existing version/signature/CRC rejection and neutral
+fallback remain intact. Runtime acceptance now uses a count-driven table of
+the same two signed profile identities, replacing the two hardcoded level
+comparisons; no new profile asset was packaged.
+Other unsupported levels continue to resolve to the neutral post row.
+
+4. HARDWARE VIEWS AND STATION-WIDE COVERAGE
+Connected authorized Samsung SM-S948U1, 2340x1080 landscape. Temporary QA
+teleports and camera turns were used; no useful save slot was overwritten.
+All evidence images are ignored under dist/horror-hybrid5 and are not in Git.
+For every ordinary deck a useful gameplay frame was obtained. Each was
+compared as ORIGINAL / GPU GENERATED with Post Off / GPU GENERATED with Post
+Auto. On the eight profileless decks the latter two use neutral GPU lighting.
+This is a one-view viability gate, not a complete art or geometry audit.
+
+Deck         Auto archetype          Profile  Class        View  Visual verdict / main limitation
+Medical      MED CLINICAL           yes      FULL HYBRID  yes   Dark clinical blues and cyan fixtures preserved; anchor-only profile.
+Research     RESEARCH CLINICAL      no       POST-ONLY    yes   Indoor teal room clear and usable; missing rules archetype, initial sky view bypassed GPU.
+Reactor      REACTOR INDUSTRIAL     no       POST-ONLY    yes   Red industrial room legible; red dominance predates Auto, no archetype.
+Maintenance  MAINTENANCE UTILITY    no       POST-ONLY    yes   Dark orange utility depth usable; no archetype.
+Storage      STORAGE WAREHOUSE      no       POST-ONLY    yes   Crate/monitor room framed and readable; no archetype.
+Flight Deck  FLIGHT METALLIC        no       POST-ONLY    yes   Best new Enhanced scene: blue-panel indoor room gains depth; no archetype, hangar sky view bypasses GPU.
+Executive    EXEC GOLD              yes      FULL HYBRID  yes   Warm-dark tone and generated fixtures preserved; anchor-only profile.
+Engineering  ENGINEERING MACHINERY  no       POST-ONLY    yes   Brown machinery and blue panels remain distinct; unresolved source texture slot.
+Security     SECURITY SEVERE        no       POST-ONLY    yes   Severe red/gray room readable; no archetype.
+Bridge       BRIDGE ENDGAME         no       POST-ONLY    yes   Corridor depth valid but gray, low color separation; no archetype.
+
+Research's prior wall-facing view was replaced by a clinical room view.
+Storage, Engineering, Security, and Bridge now have valid views. Bridge is the
+weakest Enhanced presentation: its dense grayscale texture leaves little
+separation for Auto to improve. Flight is the strongest newly reviewed
+POST-ONLY result in its saved indoor blue-panel scene. There is no "best new
+FULL HYBRID" deck because none of the eight got an accepted profile. All ten
+ordinary decks are visually usable in their reviewed views with Post Auto,
+subject to the sky-path exception for some views (section 5). No post tuning
+was made in this phase.
+
+Representative evidence names: medical anchor-reload.png; research-auto.png;
+reactor-auto.png; maintenance-auto.png; storage-auto.png; Flight
+final-flight-handoff.png; Executive gamma-final.png; engineering-auto.png;
+security-auto.png; bridge-auto.png. Matching *-original.png and
+*-post-off.png files cover the QA teleport views; the improved Research and
+Bridge files replaced their former wall/corner views. Flight indoor same-view
+comparison uses flight-mode-check.png (Original), flight-post-check.png
+(neutral GPU/Off), and final-flight-handoff.png (neutral GPU/Auto).
+
+Grove       Auto archetype    Profile  Class in sampled view        View  Visual verdict / main limitation
+Gamma       EXEC GOLD         yes      FULL HYBRID (indoor)         yes   Executive-toned entry is legible; only this interior was sampled.
+Delta       GROVE BOTANICAL   no       SPECIAL-PATH LIMITATION     yes   Plant-covered area legible; sky/stars forces software, Auto inactive.
+Alpha       GROVE BOTANICAL   no       SPECIAL-PATH LIMITATION     yes   Greenhouse depth legible; sky/stars forces software, Auto inactive.
+Beta        GROVE BOTANICAL   no       SPECIAL-PATH LIMITATION     yes   Vegetation legible; sky/stars forces software, Auto inactive.
+
+5. GROVES AND SPECIAL RENDER PATH
+Actual map identities in this build: Gamma Grove is an interior of Executive
+level 6; Delta Grove is separate level 11, Alpha level 12, Beta level 13.
+Gamma selects Executive Auto and the Executive HG1P asset; its enclosed
+"GAMMA GROVE" entry view showed AUTO EXECUTIVE, a clean generated profile
+load, and working GPU post. It is FULL HYBRID in that sampled interior.
+
+The three separate Grove maps select the shared GROVE BOTANICAL Auto row using
+existing exposure, tone, tint, haze, and depth parameters only. They have no
+generated profile. Valid plant/greenhouse gameplay views and Original/Auto
+selector comparisons were captured for each: alpha-grove-*.png,
+beta-grove-*.png, delta-grove-*.png. Their representative open-sky views
+log "GPU1B whole-view SOFTWARE reason=sky/stars" for levels 11, 12, and 13.
+The renderer deliberately bypasses GPU composition in these views, so the
+Grove Auto row is selected but its post pass is NOT ACTIVE in the live image;
+no POST1 TIMING/GROVE BOTANICAL submission occurred. GPU GENERATED also
+falls back to the original software presentation there. These three are
+SPECIAL-PATH LIMITATIONS, not accepted GPU POST-ONLY visual results. The
+images are usable original gameplay views. The same sky/stars fallback was
+observed at one Research spawn and the Flight hangar view; their indoor
+representative views use the Enhanced path. No renderer/sky support was added
+to chase Grove coverage. If future playtesting finds enclosed Grove views
+without that fallback, the Grove row is ready for the existing post path.
+
+6. ANCHORS, PERFORMANCE, AND TESTS
+Medical indoor save load: generated profile loaded and AUTO MEDICAL selected;
+clinical blue/cyan presentation remains intact. A later Medical QA-spawn
+capture showed red damage scanlines and death from gameplay combat; loading
+the preserved Medical save restored a clean view. No tone regression or
+profile-load regression was observed. Executive/Gamma: profile loaded,
+AUTO EXECUTIVE selected, HYBRID3 warm-dark tone intact. No anchor retuning.
+
+Short 300-frame CPU smoke, connected phone (GPU execution time unavailable):
+  Medical: final profile load 10.790 ms, 265 lights, 1653 surfaces; GPU submission
+    mean about 0.041-0.060 ms in sampled windows; post mean .016-.025 ms.
+  Executive/Gamma: final profile load 9.315 ms, 179 lights, 1589 surfaces;
+    GPU submission mean about .059-.069 ms; post mean about .014-.015 ms.
+  Flight POST-ONLY indoor: no profile-load cost or generated lights;
+    GPU submission mean .048-.051 ms; FLIGHT METALLIC post mean .016 ms,
+    p95 .017-.018 ms. The Off comparison has no post submission.
+  New FULL HYBRID deck: not applicable; none compiled with accepted rules.
+No obvious presentation hitch was seen. No long thermal/GPU benchmark was run.
+
+Focused visual unittest discovery: 43 PASS. Connected-phone
+scripts/test-horror-hybrid.py: PASS. Android NDK-built touch_qa_test executed
+on the phone: QA1_TESTS=PASS, including all-deck Auto labels, capture, mode
+cycling, lifecycle, and spawn rejection. The host touch script could not run
+because host gcc is absent; the equivalent device test passed. New coverage
+tests check accepted rule scope, exactly two bounded HG1P assets, payload
+CRC/signature field layout, no diagnostic JSON in APK, all ten Auto mappings,
+Grove mappings, and special-level neutral fallback. Existing generated/post
+rejection and transition tests were reused; live deck transitions provided
+the cross-deck stale-state check. A registry/asset test now checks that every
+packaged HG1P asset has exactly one matching signed runtime entry, so the
+runtime gate is count-independent. The registry still intentionally lists only
+levels 1 and 6. A future third profile requires a reviewed source signature,
+an asset, and a registry entry; actual three-profile execution is unverified.
+
+7. FINAL PACKAGE, INSTALL, AND PHONE HANDOFF
+Built QA APK:
+  dist/horror-hybrid5/SystemShock-HORROR-HYBRID5-DECKLIGHTS1-qa-arm64-v8a.apk
+SHA256:
+  69ac4c3e60c79884faa48958e2e1767d6be4d0289748a1f2a2b726b44889e8bf
+Package io.github.raposomiguel50.systemshock.qa; version code 10000;
+version name 1.0.0-qa. Signer SHA256:
+  6dc6baad4199aaa7637cbbe2af679156eb48731b0eacdeabc0ffaa78adcd9924.
+All native PT_LOAD alignments 0x4000 (16 KiB); native ZIP alignment PASS.
+adb install -r returned Success and the app launched. Pre/post install hashes
+of all eight save slots, touch-settings.cfg, and prefs.txt matched exactly.
+Temporary QA God Mode and teleports were cleared by a normal app restart.
+Final phone: awake, app foreground, Flight Deck saved blue-panel indoor
+gameplay view, GPU GENERATED, Post Auto, FX FULL, live MODE/POST controls.
+Final capture: ignored dist/horror-hybrid5/final-flight-handoff.png.
+
+8. CONCLUSION, CHANGED FILES, AND COMMITS
+Recommended final Enhanced architecture: GPU GENERATED selector plus Post
+Auto/FX FULL, with the existing signed Medical/Executive profiles where
+available and neutral GPU/Post Auto elsewhere; maintain safe software
+fallback for sky/stars and unsupported levels. Keep door spill absent.
+Further generated-light engineering is not justified as a station-wide
+closeout task: seven new decks require new accepted source archetypes and
+Engineering also has a source-load blocker. Treat ordinary-deck visuals as
+playtesting and spot fixes; independently scope any future special sky/Grove
+presentation request rather than silently claiming Grove Auto works there.
+
+Visual files committed for this and the preceding uncommitted HYBRID4 pass:
+  SourceSnapshot/src/MacSrc/GpuPost.h
+  SourceSnapshot/src/MacSrc/GpuGenerated.c
+  SourceSnapshot/src/MacSrc/GpuGenerated.h
+  SourceSnapshot/src/MacSrc/GpuWorld.c
+  AndroidProject/app/jni/touch/touch_visual_compare.h
+  AndroidProject/app/jni/touch/tests/touch_qa_test.c
+  tests/visuals/horror_hybrid_test.c
+  tests/visuals/test_horror_decks.py
+  tests/visuals/test_horror_decklights.py
+  docs/HORROR_HYBRID4_DECKS1_DOORSPILL1_QA.txt
+  docs/HORROR_HYBRID5_DECKLIGHTS1_QA.txt
+No APK, screenshot, log, save, proprietary archive, verbose generated
+diagnostic, or unrelated AUDIO file was committed. Commit hash is recorded
+as 9a405681370ff772cec3f3813c3b155cbb170f96 (visual implementation,
+tests, and first QA report). This report's final addendum commit is named in
+the task final response because a commit cannot contain its own hash. Nothing
+was pushed.
+
+9. CENTRAL QUESTIONS
+1. Ordinary FULL HYBRID count: 2/10.
+2. POST-ONLY: Research, Reactor, Maintenance, Storage, Flight Deck,
+   Engineering, Security, Bridge.
+3. New deck compiled cleanly with zero inference changes: NO.
+4. Best new full-hybrid result: NONE; best new Enhanced/Auto result is Flight.
+5. Weakest Enhanced presentation: Bridge, for low grayscale separation.
+6. All ten ordinary decks visually usable in reviewed Auto views: YES;
+   sky/stars views can bypass GPU and are not claimed as active Post Auto.
+7. Missing-profile neutral fallback clean: YES in sampled indoor paths;
+   no stale prior-deck profile or crash.
+8. Medical and Executive preserved: YES in sampled indoor anchor views.
+9. Further generated-light engineering worth doing now: NO.
+10. Ready for ordinary-deck playtesting/spot fixes: YES; separate Grove
+    sky-path limitation remains explicitly unresolved.

@@ -1093,7 +1093,8 @@ uchar intro_mouse_handler(uiEvent *ev, LGRegion *r, intptr_t user_data) {
     LGRegion *dummy2 = r;
 #endif
 
-    if (ev->mouse_data.action & MOUSE_LDOWN) {
+    if ((ev->mouse_data.action & MOUSE_LDOWN) &&
+        !(ev->mouse_data.modifiers & MOUSE_MOD_TOUCH_DRAG)) {
         // If in the splash screen, advance
         if (waiting_for_key) {
             waiting_for_key = false;

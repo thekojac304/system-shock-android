@@ -5,6 +5,7 @@ AndroidProject/local.properties
 AndroidProject/app/.cxx/
 AndroidProject/app/build/
 dist/
+AndroidProject/app/src/qa/assets/horror-generated/
 *.apk
 *.aab
 

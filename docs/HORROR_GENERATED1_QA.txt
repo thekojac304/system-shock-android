@@ -1,0 +1,234 @@
+HORROR-GENERATED1 -- BOUNDED GENERATED-LIGHTING GLES PROTOTYPE
+2026-10-03 (America/New_York)
+
+STATUS / VISUAL GATE
+GPU GENERATED exists in the QA app and was installed on the connected Samsung
+SM-S948U1. Medical and Executive compiled profiles loaded and submitted real
+generated receiver lights. The Medical result is a useful dark, source-driven
+first pass in Scene A, but Scene B exposes sparse coverage. An Executive fixture
+and depth view transfers the technique without an obvious seam or leak. The six
+Executive chandeliers exist in the loaded profile but were NOT in the convenient
+Executive saved view; their live appearance is still unverified. Artistic
+acceptance belongs to the user. This report records evidence, not a final art PASS.
+
+1. STARTING COMMIT AND TREE
+Starting HEAD ff626998124c44a5b4e3c235df476c2caae11584 on touch-controls.
+Unrelated AUDIO modifications and untracked AUDIO files were already present:
+musicai.c, ExternalMusic.c/.h, install-qa-soundtrack.py, test-audio2.py,
+external_music_smoke.c, external_music_test.c, AUDIO31_RESUME_QA.txt,
+AUDIO3_SOUNDTRACK_QA.txt, test-audio3.ps1, dynamic_music_test.c. They were
+neither staged nor changed deliberately for this phase. QA APKs were built in
+that shared dirty checkout, so the APK includes the worktree's AUDIO code.
+No existing user save slot was overwritten.
+
+Authority: HORROR_AUTHOR1E_PARTIAL_RECEIVER_GATE.txt and preceding AUTHOR1
+gates, GPU_RENDER2_3_4_QA.txt and GPU_RENDER1/1B gates, and VIS1/VIS1B gates.
+No generalized door research, broad inference, broad material review, renderer
+parity campaign, full-station authoring, fog, GPU-RENDER6 or new event system.
+
+2. DELIBERATE STATIC DOOR POLICY
+The AUTHOR1E compiler models every animated door cell as closed for generated
+light, in every actual animation frame. A relation requiring an unresolved door
+crossing is absent from the runtime receiver list. Opening a door does not grant
+cross-room light; closing cannot leave stale generated spill. Relations that
+remain valid wholly within the static topology can still receive light near a
+door. The runtime carries the conservative portal dependency bitmask for QA but
+does not use it to open crossings. Log reason:
+portal-crossing-generated-light-disabled. Normal GPU geometry, gameplay and
+original scalar/transient lighting are unaffected. This is an intentional
+GENERATED1 product restriction, not a claim of animated-door validation.
+
+3. PROFILE COMPILER, FORMAT AND LOADER
+scripts/compile-horror-generated.py takes accepted level-{1,6}.generated.json,
+level-{1,6}.partial.json, reviewed rules.json and the ignored owned ARCHIVE.DAT.
+It verifies the level, source baseline, rules signature and closed-door model,
+then compiles only levels 1 and 6. scripts/build.ps1 regenerates both QA assets
+when all inputs exist and rejects stale assets when an input is missing. Binary
+assets stay ignored under AndroidProject/app/src/qa/assets/horror-generated/;
+verbose diagnostic JSON and proprietary art/archive bytes are never packaged.
+
+Format HG1P version 1: fixed header with level, bounds, accepted baseline/rules
+SHA-256 signatures and CRC32 body; 4096 map geometry keys; 4096 region IDs;
+region/default ambient RGB; bounded light array with position/RGB/intensity/
+radius/material/object IDs; sorted SurfaceIds and up to four relationships each;
+full/partial status, up to two convex polygons of up to eight world-space
+half-planes and 64-bit portal dependency mask; ten 256-byte emissive index rows.
+Compiled sizes: Medical 209410 bytes / 265 lights / 1653 effective surfaces /
+434 regions; Executive 195382 bytes / 179 lights / 1589 effective surfaces /
+225 regions. The runtime validates version, accepted signatures, checksum,
+bounds, sorted IDs and payload; it compares the complete live 64x64 geometry-key
+array each generated frame. Any load or map mismatch applies NEUTRAL GPU to the
+entire frame/profile, without partial generated data or gameplay changes.
+Other levels always use neutral GPU in the GENERATED selector.
+
+4. SURFACEID RECEIVERS AND PARTIAL SHADER
+Existing emitted SurfaceIds are binary-searched in the compiled profile. Only
+exact geometry/neighbor keys match. A full relation evaluates the existing
+squared radial falloff; blocked/unsupported or missing relations add nothing.
+Partial polygons are compiled offline into world-space inward-guarded planes.
+The GLES fragment shader tests interpolated world position against at most two
+convex polygons per light, at most eight planes per polygon and four lights per
+draw. No runtime geometry traversal, ray tracing, shadow map or extra draws.
+AUTHOR1E's accepted 4-polygon representation is preserved as offline evidence;
+these two exact compiled levels use at most two and fail compilation if exceeded.
+No dynamic shadowing by movable objects is claimed.
+
+5. EMISSIVE MASKS AND ARCHETYPES
+The ten reviewed source-index rows cover texture IDs
+20,35,36,82,101,144,185,215,216,217. Indexed texture pixels are unchanged;
+palette lookup still determines base color. In GENERATED, a reviewed mask texel
+is self-lit and its housing follows normal illumination, independent of whether
+the fixture's source casts a local light. No global threshold or whole-texture
+emissive flag is used in this mode. GPU PROOF keeps its prior behavior.
+Medical uses cold clinical RGB(.72,.88,1)*.16; Executive warm-neutral
+RGB(1,.88,.76)*.16, with their existing generated lights and original live
+darkness. No proof lights, warm Medical alcove override, Executive room light,
+blanket ambient lift, fog or dynamic atmosphere was introduced.
+
+6. RUNTIME SELECTOR AND FALLBACK
+Pause -> Video cycles ORIGINAL -> VIS1B HORROR -> GPU PROOF -> GPU GENERATED ->
+VIS1 CONSERVATIVE -> ORIGINAL. Selection persists in prefs as gpu-generated,
+switches in the live game without a save reload and leaves Original and proof
+available. The accepted whole-view software fallback remains intact for GLES
+submission failure. Malformed/missing/stale generated data instead selects
+neutral GPU within GENERATED and logs the reason. Shader compilation/link on
+the connected phone passed with the new mask and partial-plane uniforms.
+
+7. MEDICAL LIVE REVIEW AND PATHS
+Phone gamma 28, framed high detail 1024x768, same fresh-start slot 7, tile
+approximately (30.5,22.625), heading 192. Mode changes were made through
+Pause -> Video with no movement or save reload. Visible palette/HUD animation
+and original transient fixture flicker can differ between captures.
+
+Scene A original:  dist/horror-generated1/sceneA-original.png
+Scene A proof:     dist/horror-generated1/sceneA-proof.png
+Scene A generated: dist/horror-generated1/sceneA-generated.png
+Final APK generated: dist/horror-generated1/final-sceneA-generated.png
+
+Generated Scene A has conspicuous violet ceiling and cyan fixture pixels,
+retained original panel/wall materials, local cool illumination and much deeper
+negative space than proof. The visible fixture housing stays dark. No obvious
+wall leak or partial-mask edge appears at this view, despite 34 partial light
+relationships. This is visually distinct from simply brightening Original.
+It is a useful horror-oriented automatic first pass, not a finished grade.
+
+Scene B uses existing slot 3 at the gold-control/supply-alcove doorway, with
+its saved open-door state, fixed camera/inventory and the same gamma/HUD.
+Scene B original:  dist/horror-generated1/sceneB-original.png
+Scene B proof:     dist/horror-generated1/sceneB-proof.png
+Scene B generated: dist/horror-generated1/sceneB-generated.png
+Generated light is sparse there (four references across 24 draws); the open
+door does not trigger cross-room spill. No obvious leak is visible. The useful
+darkness needs manual room/transition direction before final art acceptance.
+
+8. EXECUTIVE LIVE REVIEW AND PATHS
+Existing QA slot 2 loads Executive level 6 at tile (4,40), Gamma Grove, with a
+bright ceiling fixture, dark corridor depth and warm/neutral materials. Fixed
+checkpoint, fullscreen HUD and gamma 28 were held across mode switches.
+Original:  dist/horror-generated1/executive-original-fixture.png
+GPU proof: dist/horror-generated1/executive-proof-fixture.png
+Generated: dist/horror-generated1/executive-generated-fixed.png
+
+The ceiling fixture reads as a light against a very dark corridor, surrounding
+materials stay identifiable, and neither a receiver seam nor a wall leak is
+obvious in this view. The visual is darker and more local than Original. This
+supports limited transfer outside Medical. The six chandelier sources are
+retained in the runtime asset and have effective compiled receivers, but no
+chandelier was visible from this saved position. Chandelier pool quality,
+repeated-fixture balance and room-scale Executive attractiveness remain open.
+
+9. PERFORMANCE SMOKE
+Profile first load: Medical 10.697 ms on final APK; Executive 7.540-9.653 ms on
+the previous visually equivalent build. Medical Scene A: 83 draws, 63 active
+light references, mean .759/draw, max 4, 34 partial relationships. Scene B:
+24 draws, 4 references, mean .167/draw, max 1, zero visible partial relations.
+Executive fixed view: 67 draws, 79 references, mean 1.179/draw, max 3,
+41 partial relationships. Extra draws: zero.
+
+Stationary Medical GPU PROOF submit CPU approximately .052 ms mean versus
+GENERATED approximately .064 ms mean in adjacent 300-frame windows (+.012 ms).
+Executive neutral GPU approximately .046 ms versus GENERATED approximately
+.051 ms (+.005 ms). The existing full software backup/capture remains roughly
+6-7 ms in these views; GPU execution time was not measured. The 300-frame
+windows each took about five seconds (~16.7 ms presentation interval), without
+an obvious regression. This is a short smoke, not a thermal benchmark or broad
+GPU-RENDER2/3/4 rerun. Loading saves produced existing transient fallback logs;
+the stationary generated views rendered successfully.
+
+10. TESTS AND BUILD
+tests/visuals/test_horror_generated.py: 2 PASS, covering deterministic exact
+assets, accepted bounds/masks/checksum and stale rules/map resource rejection.
+The accepted AUTHOR1E 34-test geometry audit and zero-known-hidden-fragment
+result were reused, not repeated as a new proof. Final QA Gradle build PASS.
+Final verify-apk.ps1 PASS: package io.github.raposomiguel50.systemshock.qa,
+versionCode 10000, versionName 1.0.0-qa, debug signer SHA-256
+6dc6baad4199aaa7637cbbe2af679156eb48731b0eacdeabc0ffaa78adcd9924;
+all three native ELF PT_LOAD alignments 0x4000 and 16-KiB ZIP alignment PASS.
+
+11. KNOWN VISUAL AND AUTOMATION LIMITS
+Static closed-door topology can leave an open doorway unnaturally dark. Other
+levels, unsupported/complex terrain and arbitrary dynamic geometry have no
+generated light. A changed map key disables the whole profile until it matches
+again. The mask/shader is bounded, but visible fixture review covered only
+the encountered subset of ten masks and limited camera angles; all ten have
+exact offline index rows, not ten live visual passes. Partial boundaries looked
+clean in these views, not at every angle. A dedicated off-by-default colored
+debug overlay was deferred; logs expose load reason, source/receiver bounds,
+draw counts and partial-reference counts. The source fixture/object IDs and
+portal dependency bits remain available in compiled data for deeper QA.
+Original scalar/transient effects remain; no new event integration was tested.
+
+12. DECISION AND NEXT ART PASS
+Keep the generator as an ordinary-area starting layer, subject to user visual
+acceptance. Current estimate after live review: roughly 45-55% automatic /
+45-55% manual setup, LOW confidence from two decks and three fixed views. The
+strong Scene A and sparse Scene B argue for generated obvious fixtures and safe
+static receivers, then manual level grading/contrast, selective later fog,
+important doorway/space overrides and a few hero-room lights. Do not extend
+inference research or animated-door propagation before the user reviews this
+APK. Static no-cross-door spill is provisionally acceptable for this visual
+prototype; whether it is acceptable in the final art is the user's decision.
+
+13. APK, AUTOMATIC INSTALL AND PHONE HANDOFF
+Final review APK:
+C:\Dev\system-shock-android\dist\horror-generated1\SystemShock-HORROR-GENERATED1-qa-arm64-v8a.apk
+SHA-256 b01fa480c75fbf1b956ca06254be5119ae5afe61eb3d058b41f3e782f01ce2fd.
+Installed automatically with adb install -r: Success. Pulled installed APK
+matches that exact SHA-256. Direct component launch was denied because the
+activity is not exported; the normal launcher (monkey) succeeded and the QA
+activity was foreground. Existing QA APK, all savgam00..07 slots, prefs,
+CurrentGame and touch layout were backed up under dist/horror-generated1/before.
+Afterward, all eight saved slots and touch-settings.cfg still match the backup
+byte-for-byte. Preferences intentionally retain gpu-generated; CurrentGame
+changed naturally through normal load actions. No unrelated data was removed.
+
+Final phone state: powered by USB, awake, stay_on_while_plugged_in=15 unchanged.
+Medical slot 7 fresh-start tile (30.5,22.625), heading 192, gamma 28, framed
+high-detail HUD; PAUSED -> Video open, GPU GENERATED visible/selected. Return
+twice to see the actual GLES generated world. The panel's stored background is
+the safe software image by the existing menu design. No PIN, biometrics or
+security setting was changed.
+
+14. CENTRAL QUESTIONS
+1. GPU GENERATED exists? YES, in this installed QA APK.
+2. Medical useful horror first pass? YES for Scene A; sparse Scene B needs art.
+3. Executive convincing generalization? PARTIAL: fixture/depth view yes;
+   chandeliers/whole rooms unreviewed.
+4. Partial masks clean? No obvious seam in these Medical/Executive views; broader
+   angles unverified.
+5. Emissive masks correct? Visible reviewed fixtures show luminous pixels with
+   dark housing; all ten exact index rows pass compiler checks, not all ten live.
+6. Static no-cross-door spill acceptable? YES for this bounded prototype;
+   final artistic acceptance pending.
+7. Worth keeping? YES as a technical first-pass layer, pending user taste.
+8. Continue auto-generated fixtures? YES within the hybrid workflow.
+9. Manual versus automatic? Automatic obvious fixtures, bounded receivers and
+   mask application; manual grading, contrast, fog selection, key transitions,
+   hero rooms and final per-room review.
+10. Move next into hybrid art direction? RECOMMENDED after user judges the
+    Medical/Executive comparisons, without declaring this image final.
+
+15. COMMIT / PUSH
+Focused implementation commit hash: 7c5505e10bae8db9242059668f4c9918cce93029.
+No APK, screenshot, log, generated dist output, save, proprietary asset or
+unrelated AUDIO change belongs to the commit. Nothing was pushed.

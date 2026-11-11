@@ -1,0 +1,228 @@
+HORROR-HYBRID1 / POST1 QA handoff
+Date: 2026-10-03 (America/New_York)
+Device: Samsung SM-S948U1, serial <device serial redacted>, authorized ADB
+
+1. STARTING COMMIT / TREE
+Started at ed1f0b390116e76b29257a53e781062251acf916 on touch-controls.
+The tree already contained unrelated AUDIO work in source, scripts, tests, and docs.
+That work was preserved and excluded from these commits. No broad inference or
+animated-door-light work was resumed.
+
+2. FLICKER MISMATCH ROOT CAUSE
+The original renderer updates transient scalar light per map tile. GPU GENERATED
+used the generated fixture profile's static intensity and reviewed emissive mask
+without consulting that live transient value. A nearby surface could therefore
+dim while the fixture mask stayed bright. The source tile exposes the existing
+me_templight_floor/ceil and permanent me_light_floor/ceil values.
+
+3. FLICKER SYNCHRONIZATION IMPLEMENTATION / RESULT
+At each generated frame, sample the original transient value at a generated
+source's exact tile and choose floor or ceiling by source height. Only after two
+observed transitions does the guarded multiplier become
+clamp((15 - permanent + live) / 15, 0, 1). Static samples stay at 1.0.
+The same multiplier scales generated RGB source intensity and a draw's reviewed
+emissive output when source tile and material uniquely match. Object sources and
+ambiguous matches are left alone. The device log observed Medical source 226 at
+tile (28,24), material 35, live 0, permanent 13, multiplier 0.133, and a matching
+emissive draw. Focused device tests passed stable, changing, and reset cases.
+The code path and live association are verified. The short screenshot sequence
+did not show a reliable before/after brightness change for the previously
+reported visible lamp. Its exact temporal visual sync remains unconfirmed.
+
+4. POST-PROCESS ARCHITECTURE
+GPU GENERATED renders to its existing world target. The post pass copies that
+world texture into a GLES3 texture, shades one fullscreen triangle into a second
+SDL target, then composes that target before HUD, menu, and touch controls.
+The source is sampled with texelFetch at native world resolution. ORIGINAL,
+VIS1B HORROR, GPU PROOF, and GPU GENERATED remain selectable. Post runs only
+for GPU GENERATED on Medical or Executive. Other levels resolve to neutral.
+Missing shader/target, failed copy, or failed pass returns the ungraded world;
+the ordinary GPU/software fallback remains downstream. These fallback branches
+were inspected, but explicit fault injection was not run this phase.
+
+5. COLOR / TONE CONTROLS
+The centralized preset block includes exposure, power contrast, black toe,
+highlight shoulder, saturation, shadow and highlight tint RGB and strengths,
+vignette strength/radius/softness, and grain strength. The shader uses a bounded
+power curve with a sqrt toe lift and shoulder compression. A first hard black
+cutoff was rejected on hardware and replaced before the final build because it
+hid near-black structure. No separate gamma control was needed for these six
+presets; the game's existing gamma remains available.
+
+6. VIGNETTE
+World-only smooth radial falloff, controllable by preset strength, radius,
+softness, and an independent On/Off menu switch. Medical A's 0.10 strength is
+subtle on the phone and helps edge focus; it does not form a large dark oval.
+
+7. GRAIN
+World-only stable pixel-coordinate noise, independently switchable. Preset
+strengths are 0.005-0.012. The stable pattern avoids temporal crawl and was
+barely visible at ordinary phone viewing distance. It can remain enabled by
+default, but is not a major visual contributor.
+
+8. BLOOM
+Skipped. The current pass has a composed world image but no clean emissive-only
+source buffer. A global brightness threshold would bloom ordinary bright palette
+textures and risk making walls look like lamps. Adding a selective mask buffer
+and blur would be disproportionate for this phase. No bloom toggle is shown.
+
+9. MEDICAL PRESET PARAMETERS
+The fields below are exposure / contrast / toe / shoulder / saturation;
+shadow RGB and strength; highlight RGB and strength; vignette / radius /
+softness / grain. All values are shader-scale floats.
+MED A Clinical: 1.02 / 1.13 / .035 / .12 / .94;
+  (.78,.90,1.05) at .10; (1.02,1.02,1.00) at .025; .10/.72/.25/.007.
+MED B Diseased: .99 / 1.18 / .055 / .16 / .83;
+  (.77,1.02,1.00) at .14; (1.00,1.01,.98) at .025; .13/.69/.26/.012.
+MED C Cinematic: 1.03 / 1.22 / .04 / .20 / .94;
+  (.78,.88,1.06) at .13; (1.08,1.03,.92) at .08; .14/.73/.26/.006.
+Auto maps Medical level 1 to MED A. Cross-deck preset choices resolve to the
+current deck's default rather than applying an Executive grade to Medical.
+
+10. EXECUTIVE PRESET PARAMETERS
+EXEC A Decayed Luxury: 1.02 / 1.17 / .04 / .17 / .94;
+  (.85,.91,1.02) at .10; (1.07,1.01,.89) at .08; .11/.74/.25/.006.
+EXEC B Oppressive Gold: 1.01 / 1.20 / .05 / .22 / .87;
+  (.92,.94,1.00) at .07; (1.08,.99,.80) at .11; .13/.72/.25/.008.
+EXEC C Cold Corporate: 1.00 / 1.16 / .04 / .18 / .91;
+  (.86,.94,1.03) at .11; (1.06,1.02,.95) at .055; .09/.75/.25/.005.
+Auto maps Executive level 6 to EXEC A. Other decks use neutral world output.
+
+11. MEDICAL COMPARISON RESULTS
+Fresh-start Scene A was viewed on hardware in ORIGINAL, generated without post,
+and all three revised presets. Captures in ignored dist/horror-hybrid1 include
+med-generated-off.png, med-a-revised.png, med-b-revised.png, med-c-revised.png.
+A gives the best balance of darker depth and visible wall/fixture texture. B is
+colder, less saturated, and deeper; C has warmer highlights and stronger
+separation, but is less even. Materials still look like the original game; bright
+cyan and violet fixtures remain distinct without obvious highlight clipping.
+Scene B was compared in scene-b-original.png, scene-b-generated-off.png, and
+medical-b-scene.png. It remains sparse/dark because generated source coverage is
+sparse; grading does not create missing local lights. The previous visible
+flicker defect needs a targeted temporal review with the exact lamp in view.
+
+12. EXECUTIVE COMPARISON RESULTS
+The existing Executive QA save at the Gamma Grove fixture/depth view was compared
+in exec-generated-off.png, executive-a.png, exec-b.png, and exec-c.png. A adds
+restrained warmth to highlights with cooler dark structure and keeps the red sign
+and corridor materials readable. B is more amber and muted; C is steel-cool.
+Improvement is modest and provisional. The actual six-chandelier whole-room view
+was not reached in this bounded review, so chandelier quality remains unproven.
+
+13. UI / HUD ISOLATION
+Medical and Executive captures show original HUD colors and touch overlays around
+the graded world. Pause and Video menus retain their original palette. The post
+target is composed before UI. The Pause background uses the game's existing
+software view and is not a reliable live preview of the selected grade.
+
+14. PERFORMANCE SMOKE
+On the fixed Medical view, 300-frame windows advanced in approximately five
+seconds without observed presentation instability. Generated only (Post Off):
+GPU2 submit CPU mean 0.068 ms, p95 0.077 ms; no post pass. Grade only, vignette
+and grain Off: GPU2 submit CPU mean 0.066 ms, p95 0.076 ms; POST1 CPU mean
+0.018 ms, p95 0.020 ms. Grade plus vignette and grain: GPU2 submit CPU mean
+0.066 ms, p95 0.077 ms; POST1 CPU mean 0.018 ms, p95 0.020 ms. Earlier full
+viewport samples were about 0.015 ms mean post submission. These are CPU
+submission times, not GPU shader execution or a full frame-time comparison.
+The app has no reliable GPU timer for this pass. Bloom was not implemented.
+Preset and effect switches worked live; no crash or visible pumping observed.
+
+15. KNOWN LIMITATIONS
+Only exact tile/material unique matches receive emissive modulation; some
+dynamic sources may remain static if association is ambiguous or absent. Two
+changes must be observed before modulation starts. Temporal visual proof for the
+reported lamp is still open. Medical Scene B coverage and Executive chandelier
+review remain open. Post failure fallback was code-inspected, not fault-injected.
+Focused logic tests do not exercise a full preference reload in isolation;
+hardware prefs were read back after changing and restoring menu settings.
+The pause menu's software backdrop is ungraded by design. No bloom.
+
+16. RECOMMENDED MEDICAL PRESET
+MED A Clinical Horror (Auto on level 1), Post On, vignette On, grain On.
+
+17. RECOMMENDED EXECUTIVE PRESET
+EXEC A Decayed Luxury (Auto on level 6), provisional until a chandelier view.
+
+18. NEXT ARTISTIC PRIORITIES
+First, frame the exact Medical flickering lamp and record a longer synchronized
+fixture/surface sequence. Then add a few explicitly chosen light sources or
+hand adjustments around Medical Scene B's gold control / Healing Suite / supply
+alcove transition. Finally review the six Executive chandeliers in one reachable
+whole-room view and tune only obvious defects. Avoid renewed broad inference.
+
+19. APK PATH / HASH
+dist/horror-hybrid1/SystemShock-HORROR-HYBRID1-POST1-qa-arm64-v8a.apk
+SHA256 8c7e3f9c0f187fe87578da7e614245204017635e7ac46016069163a5bb2364b6
+QA package io.github.raposomiguel50.systemshock.qa, version 10000 / 1.0.0-qa.
+Signing certificate SHA256:
+6dc6baad4199aaa7637cbbe2af679156eb48731b0eacdeabc0ffaa78adcd9924
+verify-apk.ps1 passed native ELF PT_LOAD 0x4000 alignment for all three ABIs
+and ZIP alignment. The APK pulled from the installed phone hashes identically.
+
+20. AUTOMATIC INSTALL RESULT
+Built with scripts/build.ps1 -Variant qa -SkipGitCleanCheck and verified with
+scripts/verify-apk.ps1. adb install -r returned Success, then the app launched.
+All eight savgam00-07.dat files and touch-settings.cfg matched their preinstall
+SHA256 contents. No data-clearing install was used. The updated post preferences
+read back as On / Auto / vignette On / grain On.
+
+21. FINAL PHONE STATE
+Awake, existing stay_on_while_plugged_in=15 retained. Medical fresh-start Scene A
+loaded, framed view; Pause -> Video open; GPU GEN selected. Hybrid Post submenu
+was checked as Post On / Preset Auto / Vignette On / Grain On, then returned to
+Video. Final capture: ignored dist/horror-hybrid1/handoff-final.png. PIN and
+biometric settings were untouched.
+
+22. EXACT FILES CHANGED
+SourceSnapshot/src/GameSrc/wrapper.c
+SourceSnapshot/src/MacSrc/GpuWorld.c
+SourceSnapshot/src/MacSrc/GpuPost.h
+SourceSnapshot/src/MacSrc/GpuFlicker.h
+SourceSnapshot/src/MacSrc/Prefs.c
+SourceSnapshot/src/MacSrc/Prefs.h
+tests/visuals/horror_hybrid_test.c
+scripts/test-horror-hybrid.py
+docs/HORROR_HYBRID1_POST1_QA.txt
+No APK, screenshots, logs, saves, or proprietary resources were committed.
+
+23. COMMIT HASH(ES)
+Implementation and focused tests:
+b56fb78c1141550ddcde35849301e1cd6941841c
+This report is committed separately; its hash is the current HEAD in the final
+handoff. The starting commit is recorded in section 1.
+
+24. NO-PUSH CONFIRMATION
+These are local commits only. Nothing was pushed.
+
+CENTRAL QUESTIONS
+1. Was the emissive/flicker mismatch fixed? The guarded source association and
+   shared multiplier are implemented and exercised; final visual proof for the
+   originally reported lamp remains open.
+2. Does the fixture itself visually follow original flicker? A matching emissive
+   draw receives the live multiplier on device; the short capture did not prove
+   temporal brightness change for that visible lamp.
+3. Does generated RGB follow it? Yes in code for safely associated profile
+   sources; the same live multiplier scales their RGB intensity. Hardware log
+   confirms the dynamic source path; a temporal visual pair is still needed.
+4. Medical materially improved? Yes in Scene A: more depth and mood while
+   retaining near-black texture and palette identity. Scene B is still sparse.
+5. Executive materially improved? Modestly in the reviewed fixture/depth view;
+   the whole-room result is not yet known.
+6. Best Medical: MED A Clinical Horror.
+7. Best Executive: EXEC A Decayed Luxury, provisional.
+8. Vignette: helps subtly at these settings; retain On by default.
+9. Grain: neither clearly helps nor harms at normal viewing distance; retain
+   the low default with an Off switch, and do not increase it without review.
+10. Bloom: not worth retaining in this phase; skipped for lack of a clean mask.
+11. Hybrid versus more inference: for these reviewed scenes, the global grade
+    delivered a reliable broad change without a new inference dependency.
+12. Keep GPU GENERATED underneath? Yes; its local fixture light and reviewed
+    emissive masks provide depth the global grade cannot create.
+13. Highest-payoff manual work: exact flicker-lamp temporal review, a few
+    Medical Scene B transition sources, and Executive chandelier review.
+
+FOCUSED VALIDATION
+python scripts/test-horror-hybrid.py: HORROR_HYBRID_TEST=PASS on arm64 phone.
+python -m unittest tests/visuals/test_horror_generated.py: 2 passed.
+On-device GLES3 post shader and target creation: PASS at 1024x768 gameplay
+and 857x414 framed world. Build and APK verification: PASS.

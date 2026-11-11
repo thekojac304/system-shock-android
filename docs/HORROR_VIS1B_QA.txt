@@ -1,0 +1,274 @@
+HORROR-VIS1B -- AGGRESSIVE MEDICAL ITERATION
+
+HISTORICAL PHASE REPORT: statements below describe that phase only.
+Current GPU-RENDER1B acceptance/closeout: see GPU_RENDER1B_QA.txt.
+The GPU Medical visual continuation gate has since passed; this does not
+retroactively certify indexed VIS enemy QA or full renderer parity.
+
+Implementation / hardware QA: 2026-10-03
+Authority: HORROR_VISUAL_FEASIBILITY.txt and HORROR_VIS1_QA.txt, followed by
+the user's VIS1B art-direction brief. Same 17-tile Healing Suite only. NO VIS2.
+Status: implemented, installed, hardware comparisons captured; user aesthetic
+acceptance and enemy encounter QA remain open.
+
+BUILD / COMPARISON
+
+One APK: dist/SystemShock-HORROR-VIS1B-qa-arm64-v8a.apk
+Package: io.github.raposomiguel50.systemshock.qa, version 10000 / 1.0.0-qa.
+SHA256: 94951a6f3c193f10b9b66133e61a5b0e87045f1ffa9fdb26e05024da7961fe0f
+Built in the existing dirty checkout based on fa57a8b04af804e9698e585722dc83ee90273f2c.
+Pre-existing audio work and VIS1 integration remain present. No commit or push.
+
+Pause -> Video -> bottom-left selector cycles:
+  ORIGINAL -> VIS1 CONSERVATIVE -> VIS1B HORROR -> ORIGINAL.
+Conservative retains the original VIS1 scalar function, masks, pools, material
+exceptions and banks exactly. Original remains the real renderer bypass.
+The temporary wider button occupies the formerly unused bottom-center space.
+No reinstall, player movement, gamma change or save reload occurs on a toggle.
+Prefs: original / enhanced / horror. Legacy enhanced means Conservative;
+conservative is also accepted. Missing/invalid values select Original.
+The existing field is now an integer mode instead of a boolean. It belongs to
+ShockPrefs only; no Player/FullMap/serialized save structure changes.
+
+CHANGES FROM VIS1 (not a list of all pre-existing checkout changes)
+
+SourceSnapshot/src/GameSrc/horror_profile.c:
+  horror_pools, hv_horror_darkness: new spatial scalar treatment;
+  hv_build_banks: two additional aggressive banks and semantic ramp protection.
+SourceSnapshot/src/GameSrc/Headers/horror_profile.h:
+  two bank IDs and new function declaration.
+SourceSnapshot/src/GameSrc/horror_visuals.c:
+  horror_visuals_bind: mode-specific bank selection, cold landing/warm floor,
+  surface+1 stored in the existing scoped scalar field;
+  horror_visuals_light: mode dispatch with floor/object/wall distinctions;
+  horror_visuals_set_mode: validated 0..2 selection and persistence;
+  init/end_view logs identify extra banks. Scope restore/exclusion logic retained.
+SourceSnapshot/src/GameSrc/Headers/horror_visuals.h: mode parameter name.
+SourceSnapshot/src/GameSrc/wrapper.c:
+  visuals_button_draw/toggle, video_screen_init: three-way label/cycle and width.
+SourceSnapshot/src/MacSrc/Prefs.h/.c:
+  doHorrorVisuals type, LoadPrefs parser, SavePrefs writer.
+tests/visuals/profile_test.c, adapter_checks.c, preferences_checks.c:
+  aggressive monotonicity/bounds, spatial contrast, gold/skin protection,
+  three-way scopes and persistence tests, production bank dump.
+scripts/vis1-device.py: optional output directory; backup all existing save slots.
+scripts/vis1b-evidence.py: read-only palette, timing and screenshot analysis.
+This report is new. No new frterr/gameobj/frmain hooks are needed beyond VIS1.
+
+SCALAR CURVE (8.8 internally; formulas below use shade-row units)
+
+Input p = original permanent darkness, higher = darker:
+  f(p) = p                         when p <= 4
+         4 + 1.75 * (p - 4)         when p > 4
+  ambient = min(15, f(p) + bias)
+  result = clamp(ambient - strongest_pool, minimum, surface_cap)
+
+Bias: floor 4.5; ordinary wall/object lower samples 6.5;
+      every ceiling/upper-wall sample 10.
+There is no compression above 8 and no universal ceiling cap of 12.
+The ambient cap happens BEFORE pool subtraction: originally dark geometry can
+still receive a substantial local lift. Contributions do not add together.
+
+Away from pools, input p = 0,2,4,6,8,10,12,15 gives:
+  accelerated f: 0,2,4,7.5,11,14.5,18,23.25
+  wall lower:   6.5,8.5,10.5,14,15,15,15,15
+  ceiling:      10,12,14,15,15,15,15,15
+  floor:        4.5,6.5,8.5,12,13,13,13,13 (before path cap)
+  object:       6.5,8.5,10.5,11,11,11,11,11
+
+Caps/ranges: ordinary walls and non-exempt ceilings 0..15;
+floors 0..13, with ramp/landing samples y=22..24 capped at 11;
+objects 0..11. Sample coordinates x=26..27, y=20..21 have a minimum authored
+row of 1 so bright warm-pool surfaces keep their amber bank identity.
+Original transient light subtraction, camera lamp/muzzle, global modifiers and
+rend3 full-bright behavior still follow this response and can override it.
+Emissive textures 35 and 216 bypass BOTH scalar and bank modification.
+
+POOLS: (x, y), Manhattan radius, lower/floor strength, ceiling strength
+  display wall:   (30,24),   1.5, 13,10
+  north bed edge: (28,21),   1.5, 10,4
+  south bed edge: (28,24),   1.5, 10,4
+  landing panels:(26,22.5), 1.5, 10,16
+  supply ceiling:(26.5,20.5),2,  26,22
+Weight w=max(0,1-ManhattanDistance/radius); lift=strength*w*w.
+The implementation quantizes w to 8.8 before squaring. At half radius the
+contribution is 25%, vs VIS1's 50% linear tent. Only the strongest pool wins.
+The strength can exceed 15 because off-grid fixture centers are sampled at
+tile corners. Supply-corner distance 1 with radius 2 gives a lower lift of 6.5,
+not 26. These are interpolated corner lights, not per-pixel radial lights or
+occluded illumination. No pool expands the original 17-tile mask.
+
+COLOR BANKS / LIMITS
+
+Five 16x256 banks (20 KiB total; +8 KiB over VIS1). Original palette unchanged.
+Nearest-color search runs only at palette initialization, never per pixel.
+The two original banks still change exactly 302 and 1271 of 4096 entries.
+Final Horror cool/warm change 1559 and 1614 entries respectively.
+
+For each original shaded RGB, Y=(2R+4G+B)/7:
+  cool target = (0.30Y,0.85Y,1.25Y)
+  warm target = (1.85Y,0.90Y,0.18Y)
+Mix amount /128: cool row1=48, row2=88, rows3..15=128;
+warm rows1..15=128. Original row0 is copied in every bank.
+Source red dominance (R>2G and R>2B) or green dominance (G>2R and G>2B)
+reduces amount by 4. Gold/orange (R>=G, R>2B, G>2B) reduces it by 8.
+Inspected rose/skin indices 48..63 and skin/leather indices 128..159 reduce it
+by another 4. This trades maximum grading for object/semantic color identity.
+RGB targets clamp to 0..255; nearest available nonreserved palette index uses
+weighted squared error 2*dR^2 + 4*dG^2 + 3*dB^2, as in VIS1.
+
+All source indices 0..31, 255, invariant entries, and protected original outputs
+remain unchanged. Ordinary pixels never map into reserved/cycling ramps.
+The landing is now cool, and floor family 37 receives regional color in Horror.
+Conservative retains its neutral landing/floor. Monitors and unlit objects retain
+their existing exemptions; luminous panels retain their original blue/violet.
+
+Observed palette constraints:
+  The palette has no dense muted blue-green ramp. Many midtone gray/slate colors
+  choose the same teal index or fall back to dark blue/purple. Stronger RGB targets
+  cannot create missing hues, and increasing the grade merges texture colors.
+  Original dark cyan output index 9 is protected by the reserved-output policy;
+  for example source112 at row6 remains (0,27,27) even in the warm bank.
+  Dark saturated blue source240 at row6 maps to near-black gray223 (11,11,11) in
+  both Horror banks: blue detail is lost, not recovered by gamma.
+  Gold source80 at row6 retains original index83 (95,71,0).
+  Full-bright/reserved pixels and entire exempt fixture materials resist regional
+  recoloring intentionally. Therefore the warm alcove has blue original fixtures
+  over amber geometry, not physically consistent orange-emitting fixture art.
+See dist/vis1b/evidence-summary.txt for actual final row cardinalities and probes.
+
+KNOWN COSTS / READABILITY
+
+Dark ceiling panels and rust marks deliberately merge/disappear. Walls can show
+large stepped dark fields; the existing 16 rows and corner interpolation are
+more visible with this contrast curve. Warm neutral/slate surfaces share orange
+ramps and lose subtle original hue differences. This is the aggressive prototype
+tradeoff, not an assertion that texture fidelity is preserved everywhere.
+Doorway, ramp and gold control remain the navigation anchors. Objects retain an
+11-row authored cap and skin/amber hue protection. Enemy visual acceptance still
+requires an actual encounter; bank tests alone do not certify enemy visibility.
+Existing unsupported translucent/voxel/invisible-critter and special-view paths
+remain as documented in VIS1. No AI, map light, detection, lamp energy or save
+data is changed by selecting a visual mode.
+
+VALIDATION / EVIDENCE
+
+Production core/adapter/preferences compiled with NDK and executed on the phone.
+Passed: real owned-palette invariants, unchanged input table, deterministic banks,
+monotonic sub-row curves, bounded surfaces, spatial contrast, gold/skin probes,
+1000 nested scopes alternating Conservative/Horror, Original short-circuit,
+special-view guards, incompatible-map fallback, legacy/new preference roundtrip,
+unchanged gamma and soundtrack. See dist/vis1b-tests.log.
+Build log: dist/vis1b-build.log. Package/alignment: dist/vis1b-apk-verification.log.
+
+Matched direct hardware captures (unmodified PNGs):
+  Scene A: dist/vis1b/A-original.png, A-conservative.png, A-horror.png
+  Scene B: dist/vis1b/B-original.png, B-conservative.png, B-horror.png
+Scene A uses the existing slot7 fresh-start save from VIS1, preserving the exact
+starting camera. Scene B is reached through ordinary touch movement and the gold
+button. Between members of a comparison triplet: no movement, simulation resume,
+save load, HUD change, gamma change or brightness adjustment. The game stays in
+its Video menu. The menu label/cursor and animated HUD trace may differ; those
+are not world rendering differences. The phone's floating lock is unrelated UI.
+Initial development screenshots with -v1/-v2 and other exploratory names are not
+the final comparison evidence. No screenshot grading, compositing or retouching.
+
+Hardware: Samsung SM-S948U1, Android 17; 2340x1080 capture; framed 1024x768 game
+canvas, High detail, full resolution, gamma28. Existing touch and audio settings
+retained. Diagnostics opt-in marker is removed after final measurement.
+All existing saves, preferences, touch settings, CurrentGame and installed APK
+were backed up to ignored dist/vis1b/before before installation.
+Byte comparison after QA confirmed savgam00/01/02/07 unchanged. No new save slot
+was created. CurrentGame reflects ordinary load/play activity. Gamma stayed 28.
+The device is handed back at the fresh-start camera, Video menu, VIS1B HORROR;
+persistence was verified by clean force-stop/relaunch after removing diagnostics.
+
+Final hardware observations:
+  A: deliberately darker ceiling and right recesses; surviving cold midtones,
+  preserved luminous beds/displays and visible ramp/control. On the fixed world
+  crop, mean screenshot luma falls from 54.18 Original / 48.53 Conservative to
+  32.38 Horror; pixels below code-value 12 rise from 2.73% / 4.00% to 24.92%.
+  These describe the composition; they are not a numerical aesthetic pass.
+  B: obvious amber walls/floor against cool dark Medical geometry in one frame.
+  Door frame, gold control, lead pipe and supplies remain identifiable. The warm
+  area loses neutral metallic color: the pipe looks strongly amber under this
+  treatment. Blue fixture versus orange surroundings is deliberately stylized.
+  B camera follows the same doorway route but was reframed during this session;
+  all three NEW B captures match each other exactly, not the historical VIS1 B
+  pixel framing. A uses the historical fresh-start saved camera.
+  C: gold control could be identified/used in Horror through ordinary touch play;
+  supplies could be inspected at the doorway. See C-control.png / C-supplies.png.
+  No nearby enemy was brought into this bounded test; enemy visibility remains
+  unverified on hardware. Skin-ramp tests only address hue protection.
+  21 additional menu toggles at B: repeated Original and Horror sampled world
+  crops are byte-identical to their first captures. No toggle corruption/crash.
+  Left/right MFD and body/status sampled crops match Original/Horror at A and B.
+  The sampled upper blue fixture at B is byte-identical Original/Horror.
+  No new manual lamp/infrared/cyber/secondary-camera transitions were performed;
+  the VIS1 exclusions pass fixture tests, but their hardware gaps remain open.
+
+FINAL-BUILD PERFORMANCE (stationary fresh-start camera, framed HUD)
+
+Same physical device, same session and settings; 5-second warm-up then 31 seconds
+per mode, unpaused gameplay. Each mode yields 12 world batches of 300 draws and
+6 presentation batches of 300 samples. Order: Horror, Original, Conservative.
+                                   Original   Conservative  Horror
+  mean world draw (ms)              1.5118     1.5247        1.5263
+  largest sampled world draw (ms)   4.260      4.876         4.602
+  conversion/upload mean (ms)       8.7030     8.6830        8.6740
+  SDL present call mean (ms)        0.1385     0.1378        0.1385
+  presentation interval mean (ms)  16.6668    16.6670       16.6670
+  max presentation interval (ms)   31.724     28.446        30.186
+  intervals over 20ms / 1800        2          5             4
+
+No material sustained slowdown in this sample. This is not a moving-route,
+thermal/battery or complete GPU benchmark. World draws are not presented frames;
+present-call time is CPU submission/blocking, not GPU work duration.
+Raw epoch log and exact windows: dist/vis1b/timing.log, timing-windows.json.
+Only the final uninterrupted timing run is used. Earlier development timing was
+discarded (one run was interrupted by navigation before its last window ended).
+Runtime additions are three extra bounded pool checks versus Conservative and
+two extra precomputed 4-KiB banks. Rasterizer lookup cost is unchanged.
+
+PROJECT GATE / RECOMMENDATION
+
+Does the indexed renderer, aggressively pushed, transform the image enough to
+justify the full horror-profile/auto-authoring direction?
+
+My assessment: YES, conditionally on the user's visual acceptance. The actual
+captures show a substantial change in shadow composition and simultaneous
+warm/cool staging, not merely a modest tint. A has hostile dark recesses between
+unchanged bright anchors; B has a clearly amber interior surrounded by colder
+geometry. This is enough evidence to consider VIS2, rather than reject the
+indexed renderer for lack of useful range.
+
+It is not an unconditional recommendation to author the entire game. Decide
+first whether the coarse bands, merged shadow texture, teal/blue quantization
+and blue fixtures over amber surroundings are aesthetically acceptable. Enemy
+readability and functional/special-light hardware cases also remain gates.
+If those visible artifacts are unacceptable, more content authoring will not
+repair the palette's missing intermediate hues; reconsider the indexed route.
+No VIS2 system, external auto-authoring, larger mask or modern renderer feature
+was implemented. Await the user's art-direction decision.
+
+2-3 MINUTE ACCEPTANCE ROUTE
+
+0:00 Load the existing fresh-start save (eighth/last load row), or New Game and
+dismiss the initial help. Do not move. Pause -> Video. Cycle Original,
+Conservative, Horror. Inspect the ceiling recesses, bright beds/panels, gold
+control and route down the ramp. Leave gamma and device brightness fixed.
+
+0:45 Return twice. Walk straight down the short ramp. In CURSOR mode double-tap
+the gold wall button; the supply door opens beside it. Turn toward that doorway
+and stop where both the Medical wall and alcove interior are visible.
+
+1:15 Pause -> Video and repeat all three modes without moving. Judge the amber
+interior against cold shadow, the original blue fixture, doorway silhouette and
+floor. Return, approach supplies, inspect the pipe/pickups and gold control.
+
+2:00 Toggle several more times. If desired, use CURSOR and the original fullscreen
+HUD icon for a larger view; keep that same HUD mode for each comparison. Finish
+in whichever mode you prefer. A nearby enemy encounter is a separate readability
+check and may exceed this short acceptance route. No reinstall is needed.
+
+The final visual decision belongs to the user. Do not automatically begin VIS2.

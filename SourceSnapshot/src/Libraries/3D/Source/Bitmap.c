@@ -1,3 +1,4 @@
+#include "GpuWorld.h"
 /*
 
 Copyright (C) 2015-2018 Night Dive Studios, LLC.
@@ -361,6 +362,7 @@ grs_vertex **g3_bitmap_common(grs_bitmap *bm, g3s_phandle p) {
     // vpl[3][4] undefined
 
     // vpl[3][5] provided
+    gpu_world_sprite(bm,_g3d_bitmap_poly,p,_g3d_light_flag==2 ? _g3d_bitmap_clut : NULL);
     tmap_info.flags = 0;
     // do blending?
     if (_g3d_light_flag == 2) {

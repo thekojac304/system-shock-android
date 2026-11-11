@@ -1,0 +1,64 @@
+{
+  "version": 1,
+  "provenance": "Resource-ID catalog reviewed from original TEXTURE.RES contact sheets; no room masks or Medical proof light records used. RGB/radius/intensity are design seeds, not original facts.",
+  "classes": {
+    "luminous_fixture": [20,26,35,36,52,82,99,101,144,185,215,216,217],
+    "monitor_display": [6,28,39,41,42,43,44,122,130,131,162,222,224,266,270],
+    "clinical_panel": [37,38,51,108],
+    "industrial_wall": [12,14,31,86,118,119,143,145,188,191,192,194,195,196,219,221,226],
+    "decorative": [120,124,125,126,127,139,140,141,142,147,151,152,153,154,159,160,177,252,253],
+    "non_emissive_bright": [9,102,218],
+    "damaged_surface": [34,46,47,49,50,121,123,128,129,149,156,161,199,203,220,223,225,227],
+    "organic_grove": [202],
+    "machinery": [45,269],
+    "unknown": [13,148,150,205,232,267]
+  },
+  "deck_luminous_fixture": {"3":[188],"5":[188],"7":[155,188]},
+  "fixture_rgb": {
+    "20": [1.0,0.72,0.4], "35": [0.18,0.85,1.0], "36": [0.18,0.85,1.0],
+    "26": [1.0,0.54,0.3],
+    "52": [0.78,0.9,1.0],
+    "82": [1.0,0.7,0.38], "101": [0.85,0.92,1.0], "144": [0.85,0.92,1.0],
+    "155": [1.0,0.74,0.48],
+    "99": [0.78,0.86,1.0],
+    "185": [0.75,0.85,1.0], "215": [0.4,0.4,1.0], "216": [0.4,0.4,1.0],
+    "188": [0.82,0.88,0.94],
+    "217": [0.72,1.0,0.8]
+  },
+  "surface_emission": {
+    "luminous_ceiling": "emits_normal",
+    "low_floor_ids": [35,36],
+    "low_wall_ids": [20,35,36,82],
+    "display": "emissive_only"
+  },
+  "reviewed_emissive_indices": {
+    "20": [2,208,210],
+    "26": [176,177,178,179,180,213],
+    "35": [100,101,102,103],
+    "36": [100,101,102,103],
+    "52": [176,177,178,179],
+    "82": [176,177,178,179,180,181],
+    "99": [208],
+    "101": [2,208,209],
+    "144": [208,209,210,211,212],
+    "155": [176,177,178,179,180],
+    "185": [208,209,210],
+    "188": [214,215,216,217,218,219],
+    "215": [113,114,115,116,117,118],
+    "216": [113,114,115,116,117,118],
+    "217": [158,159,160,161]
+  },
+  "reviewed_texture_sha256": "c277956df8a90e9d2d3b8941313f58d37b2c44328c1cc3d3a3e63768924bef48",
+  "archetypes": {
+    "0": {"name":"reactor_industrial", "ambient_rgb":[1.0,0.82,0.68], "ambient_intensity":0.16, "fog_rgb":[0.2,0.1,0.08]},
+    "1": {"name":"cold_clinical", "ambient_rgb":[0.72,0.88,1.0], "ambient_intensity":0.16, "fog_rgb":[0.12,0.2,0.24]},
+    "2": {"name":"research_sterile", "ambient_rgb":[0.82,0.96,1.0], "ambient_intensity":0.16, "fog_rgb":[0.12,0.2,0.22]},
+    "3": {"name":"maintenance_utility", "ambient_rgb":[0.9,0.92,0.85], "ambient_intensity":0.16, "fog_rgb":[0.14,0.16,0.13]},
+    "4": {"name":"storage_warehouse", "ambient_rgb":[0.84,0.92,1.0], "ambient_intensity":0.16, "fog_rgb":[0.11,0.15,0.18]},
+    "5": {"name":"flight_metallic", "ambient_rgb":[0.82,0.9,1.0], "ambient_intensity":0.16, "fog_rgb":[0.11,0.16,0.2]},
+    "6": {"name":"warm_neutral", "ambient_rgb":[1.0,0.88,0.76], "ambient_intensity":0.16, "fog_rgb":[0.18,0.16,0.14]},
+    "7": {"name":"engineering_industrial", "ambient_rgb":[0.84,0.9,0.96], "ambient_intensity":0.16, "fog_rgb":[0.14,0.15,0.16]},
+    "9": {"name":"bridge_command", "ambient_rgb":[0.82,0.9,1.0], "ambient_intensity":0.16, "fog_rgb":[0.11,0.16,0.2]}
+  },
+  "generation": {"ceiling_radius":2.5, "ceiling_intensity":1.5, "object_radius":2.0, "object_intensity":1.0, "max_lights_per_receiver":4, "max_receiver_energy":1.8}
+}

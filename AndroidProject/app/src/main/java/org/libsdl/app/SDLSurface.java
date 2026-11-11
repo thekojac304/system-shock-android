@@ -193,6 +193,11 @@ public class SDLSurface extends SurfaceView implements SurfaceHolder.Callback,
         return SDLActivity.handleKeyEvent(v, keyCode, event, null);
     }
 
+    // Raw surface pixels for the Android touch adapter, before SDL's logical
+    // viewport conversion. Native queues these; it never runs game code here.
+    private static native void onNativeSurfaceTouch(int device, int finger, int action,
+            float x, float y, int width, int height, long timestamp);
+
     // Touch events
     @Override
     public boolean onTouch(View v, MotionEvent event) {
@@ -202,7 +207,7 @@ public class SDLSurface extends SurfaceView implements SurfaceHolder.Callback,
         int action = event.getActionMasked();
         int pointerFingerId;
         int i = -1;
-        float x,y,p;
+        float x,y;
 
         /*
          * Prevent id to be -1, since it's used in SDL internal for synthetic events
@@ -239,15 +244,8 @@ public class SDLSurface extends SurfaceView implements SurfaceHolder.Callback,
                 case MotionEvent.ACTION_MOVE:
                     for (i = 0; i < pointerCount; i++) {
                         pointerFingerId = event.getPointerId(i);
-                        x = event.getX(i) / mWidth;
-                        y = event.getY(i) / mHeight;
-                        p = event.getPressure(i);
-                        if (p > 1.0f) {
-                            // may be larger than 1.0f on some devices
-                            // see the documentation of getPressure(i)
-                            p = 1.0f;
-                        }
-                        SDLActivity.onNativeTouch(touchDevId, pointerFingerId, action, x, y, p);
+                        onNativeSurfaceTouch(touchDevId, pointerFingerId, action,
+                                event.getX(i), event.getY(i), (int)mWidth, (int)mHeight, event.getEventTime());
                     }
                     break;
 
@@ -264,30 +262,14 @@ public class SDLSurface extends SurfaceView implements SurfaceHolder.Callback,
                     }
 
                     pointerFingerId = event.getPointerId(i);
-                    x = event.getX(i) / mWidth;
-                    y = event.getY(i) / mHeight;
-                    p = event.getPressure(i);
-                    if (p > 1.0f) {
-                        // may be larger than 1.0f on some devices
-                        // see the documentation of getPressure(i)
-                        p = 1.0f;
-                    }
-                    SDLActivity.onNativeTouch(touchDevId, pointerFingerId, action, x, y, p);
+                    onNativeSurfaceTouch(touchDevId, pointerFingerId, action,
+                            event.getX(i), event.getY(i), (int)mWidth, (int)mHeight, event.getEventTime());
                     break;
 
                 case MotionEvent.ACTION_CANCEL:
-                    for (i = 0; i < pointerCount; i++) {
-                        pointerFingerId = event.getPointerId(i);
-                        x = event.getX(i) / mWidth;
-                        y = event.getY(i) / mHeight;
-                        p = event.getPressure(i);
-                        if (p > 1.0f) {
-                            // may be larger than 1.0f on some devices
-                            // see the documentation of getPressure(i)
-                            p = 1.0f;
-                        }
-                        SDLActivity.onNativeTouch(touchDevId, pointerFingerId, MotionEvent.ACTION_UP, x, y, p);
-                    }
+                    // A cancellation is never a tap/release-to-click.
+                    onNativeSurfaceTouch(touchDevId, 0, action, 0, 0,
+                            (int)mWidth, (int)mHeight, event.getEventTime());
                     break;
 
                 default:

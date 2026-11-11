@@ -209,11 +209,25 @@ uchar gump_get_useful(bool shifted) {
     return FALSE;
 }
 
+/* Match the item's drawn bitmap, not just its MFD slot rectangle. */
+bool touch_gump_item_at(const MFD *m, int x, int y) {
+    x -= m->rect.ul.x;
+    y -= m->rect.ul.y;
+    if (x < LEFT_MARGIN || y < FIRST_ITEM_Y) return false;
+    int row = 2 * ((y - FIRST_ITEM_Y) / CONTENTS_HGT) +
+        (x - LEFT_MARGIN) / CONTENTS_WID;
+    if (row < 0 || row >= gump_num_objs || gump_idlist[row] == OBJ_NULL)
+        return false;
+    grs_bitmap *bm = bitmaps_2d[OPNUM(gump_idlist[row])];
+    if (!bm) return false;
+    int bx = LEFT_MARGIN + (row % 2 ? CONTENTS_WID : 0) + (CONTENTS_WID - bm->w) / 2;
+    int by = FIRST_ITEM_Y + (row / 2 ? CONTENTS_HGT : 0) + (CONTENTS_HGT - bm->h) / 2;
+    return x >= bx && x < bx + bm->w && y >= by && y < by + bm->h;
+}
+
 uchar mfd_gump_handler(MFD *m, uiEvent *e) {
     LGPoint pos = e->pos;
     byte row;
-    short x, y;
-    grs_bitmap *bm;
 
     pos.x -= m->rect.ul.x;
     pos.y -= m->rect.ul.y;
@@ -238,11 +252,7 @@ uchar mfd_gump_handler(MFD *m, uiEvent *e) {
     if (!(e->mouse_data.action & (MOUSE_LDOWN | MOUSE_RDOWN | UI_MOUSE_LDOUBLE)) && !(e->buttons & (1 << MOUSE_RBUTTON)))
         return FALSE;
 #endif // RIGHT_BUTTON_GUMP_UI
-    // Hey, this is a little extra work, but it gets the job done.
-    bm = bitmaps_2d[OPNUM(gump_idlist[row])];
-    x = LEFT_MARGIN + ((row % 2 == 0) ? 0 : CONTENTS_WID) + (CONTENTS_WID - bm->w) / 2;
-    y = FIRST_ITEM_Y + ((row / 2 == 0) ? 0 : CONTENTS_HGT) + (CONTENTS_HGT - bm->h) / 2;
-    if (pos.x >= x && pos.x < x + bm->w && pos.y >= y && pos.y < y + bm->h) {
+    if (touch_gump_item_at(m, e->pos.x, e->pos.y)) {
         if (e->mouse_data.action == UI_MOUSE_LDOUBLE) {
             LAST_DOUBLE = TRUE;
             return TRUE;

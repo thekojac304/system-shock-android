@@ -1,3 +1,4 @@
+#include "GpuWorld.h"
 /*
 
 Copyright (C) 2015-2018 Night Dive Studios, LLC.
@@ -292,6 +293,7 @@ draw_poly_common_raw:
         dest++;
     }
 
+    gpu_world_polygon(c,n_verts,_vbuf2,gour_flag);
     if (gour_flag >= 2) // some kind of shading
     {
         if (gour_flag >= 4) // cpoly
@@ -329,6 +331,7 @@ draw_poly_common_raw:
 // draw a point in 3-space. takes esi=point. returns al=drew.
 // trashes eax,edx,esi and if must project, ecx
 int g3_draw_point(g3s_phandle p) {
+    gpu_world_reject("world point primitive");
     int sx, sy;
 
     if (p->codes)
@@ -371,6 +374,7 @@ int g3_draw_line(g3s_phandle p0, g3s_phandle p1) {
 }
 
 int draw_line_common(g3s_phandle p0, g3s_phandle p1) {
+    gpu_world_reject("world line primitive");
     byte code0, code1;
     int result;
     grs_vertex v0, v1;

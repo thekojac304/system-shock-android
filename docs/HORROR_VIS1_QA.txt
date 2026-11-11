@@ -1,0 +1,359 @@
+HORROR-VIS1 -- MEDICAL HEALING SUITE
+
+HISTORICAL PHASE REPORT: statements below describe that phase only.
+Current GPU-RENDER1B acceptance/closeout: see GPU_RENDER1B_QA.txt.
+The GPU Medical visual continuation gate has since passed; this does not
+retroactively certify indexed VIS enemy QA or full renderer parity.
+
+Implementation / hardware QA: 2026-10-03
+Design authority: docs/HORROR_VISUAL_FEASIBILITY.txt
+Status: bounded indexed-renderer prototype, ready for user visual acceptance.
+Not a full-level conversion. Special-case hardware QA remains open below.
+
+1. BUILD AND BASELINE
+
+Baseline commit: fa57a8b04af804e9698e585722dc83ee90273f2c.
+Work was performed in the existing dirty working tree, without commit or push.
+Pre-existing modifications were musicai.c, ExternalMusic.c/.h, the soundtrack
+installer, test-audio2.py, and external_music_smoke.c / external_music_test.c.
+Pre-existing untracked files were AUDIO31_RESUME_QA.txt, AUDIO3_SOUNDTRACK_QA.txt,
+HORROR_VISUAL_FEASIBILITY.txt, test-audio3.ps1, and dynamic_music_test.c.
+Those audio changes were left intact and are included by the normal QA build.
+This is not an APK built from the clean baseline commit alone.
+
+One APK contains BOTH Original and Enhanced:
+  dist/SystemShock-HORROR-VIS1-qa-arm64-v8a.apk
+  package io.github.raposomiguel50.systemshock.qa
+  version 10000 / 1.0.0-qa
+  SHA256 a2bfcf63f3000893b764a748824a68384b3a8512bb0c6ea60eafbb3a865ed184
+The QA package is the project's existing variant, not a visual-mode variant.
+Build and 16 KB native ZIP/ELF alignment verification passed. Logs:
+  dist/vis1-build.log
+  dist/vis1-apk-verification.log
+  dist/vis1-tests.log
+
+Rebuild:
+  pwsh -File scripts/build.ps1 -Variant qa -SkipGitCleanCheck
+  pwsh -File scripts/verify-apk.ps1 -Variant qa
+JAVA_HOME used: C:\Program Files\Eclipse Adoptium\jdk-17.0.20.101-hotspot
+No GLSL, replacement textures, geometry, map resources, AI or save formats changed.
+
+2. EXACT LOCATION AND FRESH-GAME ROUTE
+
+Medical, engine level index 1, named region medical-healing-suite-v1.
+Inspected the installed, user-owned ARCHIVE.DAT through the QA app's run-as:
+resource 4104 FullMap, 4105 64x64 tiles (16 bytes each), 4107 texture-slot IDs,
+4108 objects (27 bytes each). Texture art was also inspected from TEXTURE.RES.
+No proprietary resource bytes are added to the repository or APK.
+
+The 17-tile mask, in original map coordinates:
+  y=20: x=26                       warm supply alcove
+  y=21: x=26 warm; x=27,28 cool
+  y=22: x=26 neutral; x=27..30 cool
+  y=23: x=26 neutral; x=27..30 cool
+  y=24: x=26 neutral; x=27,28 cool
+All other tiles and levels use Original, even while Enhanced is selected.
+See dist/vis1/region-mask.png and the exact signatures in horror_profile.c.
+Runtime validation checks all 17 tile types, floor/ceiling heights and resolved
+wall/floor/ceiling resource IDs; incompatible data disables the entire profile.
+Mutable light, door, object, quest and transient fields are NOT validation keys.
+
+Start New Game -> dismiss the introductory help -> you are already in the test
+room. Keep the initial view for Scene A. Walk straight down the short ramp to
+the gold square wall button -> use that button -> enter the small supply alcove
+opened by it. Stop at its doorway for Scene B. Its loose supplies are Scene C.
+The door initially reports locked if used before the wall button.
+On touch, CURSOR mode and a double-tap directly on the gold button is reliable.
+No keycard, combat, puzzle chain, equipment, cheat or sequence break is needed.
+Time: zero gameplay for Scene A; roughly 15-30 seconds of ordinary movement and
+one button interaction for the alcove (allow a minute while learning controls).
+This route was exercised on the phone. Directions intentionally use visible
+landmarks; map axes should not be mistaken for screen-left/screen-right.
+
+Player source start: (30.5,22.625), heading 192; tile (30,22).
+Inspected objects include:
+  displays 699 / 718 at (29.80,24.00) / (30.29,24.00)
+  wall control 176 at (26.03,22.40)
+  doors 5 / 327 at (26.50,22.00) / (26.50,24.00)
+  lead pipe 665 at (26.46,20.59), several other supplies on tile (26,20)
+  pickup 133 at (28.18,24.50)
+Nearest inspected enemy: object 352, class/sub/type 14/2/0, at (30.5,19.5),
+OUTSIDE the mask. VIS1 does not move/spawn an enemy to manufacture a test.
+
+3. RUNTIME TOGGLE AND PRESERVATION
+
+Pause -> Video -> VISUALS ORIGINAL / VISUALS ENHANCED -> Return.
+The normal Video options pushbutton also accepts H while that panel is open.
+It refreshes the world immediately behind the panel, then redraws the panel.
+No level reload, renderer teardown, save/load, gamma change or camera move.
+Preference: prefs.txt, world-visuals = original|enhanced. Default is Original;
+missing/invalid values in existing preference files resolve to Original.
+This preference is not added to Player or FullMap and is not serialized in saves.
+
+Original is an explicit bypass. Terrain keeps its original scalar calculation,
+objects call the unchanged original show_obj body, and the actual original shade
+table remains bound. Original does not select a zero-intensity modified bank.
+Banks are separate allocations; original SHADTABL and palette bytes are not edited.
+Every Enhanced scope restores the prior light-table pointer, model CLUT pointer,
+fill type, fill parameter and scalar state before returning. Object early returns
+are inside the wrapper. Tile state is restored before objects are drawn.
+Nested excluded camera/picking views temporarily restore baseline bindings and
+then restore their parent scope. World state is restored before fr_send_view/UI.
+No cosmetic value is assigned to permanent/transient map-light fields.
+Gameplay detection continues reading the original map values.
+
+Guarded Original paths: cyberspace, non-Medical, incompatible map, OpenGL,
+infrared/nonzero CLUT, nonstandard light table, LSD/SIGHT, cutscene palette,
+picking, secondary/HACKCAM, palette/solid/no-render view flags.
+Turning Enhanced on during one of these conditions preserves the preference;
+the effect resumes only in a supported normal world view.
+One loading sequence can log an initial incompatible signature before the final
+load_textures call validates the fully loaded map; this is fail-closed behavior.
+
+4. LIGHTING, TABLES AND COVERED PATHS
+
+Precedence in VIS1:
+  Original level default -> empty common/inference stage -> named tile mask
+  -> surface/material exceptions -> dynamic/special-view exclusions.
+Selection belongs to each drawn tile/object, not the camera's current region.
+The neutral landing separates the cool bay from the warm alcove. Different
+banks can appear in the same frame; crossing a boundary does not change the
+whole screen's profile. A moving object can still change bank at a tile boundary.
+
+Scalar response uses 8.8 darkness (higher = darker):
+  above row 8, compress excess darkness by 3/4;
+  add 1.25 rows to ordinary floor/object samples, 4.5 to ceiling samples;
+  subtract two stationary Manhattan tent pools;
+  clamp authored floor/object darkness to 0..11 and ceiling to 0..12.
+Pool records (x,y,radius,floor strength,ceiling strength), all in tile/row units:
+  (30,24,3,4,3), (26.5,20.5,2,3,2).
+These coordinates are within/along the inspected room, not invented map sites.
+This response runs BEFORE existing transient light subtraction, lamp/muzzle
+distance terms, global modifiers, and special rend3 full-bright behavior.
+The caps constrain the authored component; original functional effects can still
+alter the final result. Terrain interpolates scalar vertex values, not indices.
+Dark ceilings and brighter bed/floor areas both remain; gamma is untouched.
+
+Precomputed 16x256 indexed banks: Original=0, cool=1, warm=2 (12 KiB total).
+Only palette-load initialization performs nearest-color searches. Per-pixel
+rasterizers retain their existing shade-table lookup. The cool bank gently
+reduces red and lifts cyan/blue. The warm bank targets restrained amber by
+luminance; bright and saturated source colors receive smaller changes.
+The original palette's strongly blue slate made a simple warm multiplier map
+back to the same blue ramp. The final luminance-based target fixes that specific
+quantization failure without a truecolor extension.
+Actual owned-palette table differences: cool 302/4096, warm 1271/4096 entries.
+These are table-entry counts, not percentages of screen pixels.
+
+Protection:
+  all shade row 0 entries copied unchanged (full-bright response);
+  source indices 0..31, 255, and entries invariant across original shade rows;
+  protected outputs preserved, ordinary colors never remapped INTO reserved ramps;
+  transparency and palette-cycle indices retain original semantics;
+  inspected luminous texture IDs 35 and 216 bypass BOTH scalar and color changes;
+  floor family 37 retains neutral color while scalar treatment applies;
+  displays and original unlit/light-type exemptions use Original.
+These protect the intended original fixture colors, which include blue/purple
+lights; VIS1 does not repaint those fixtures to white or amber.
+
+Terrain: external/internal walls, floors and ceilings. External walls resolve
+the actual selected texture (including neighbor texture selection).
+Objects: bitmap/pickup sprites, anchored sprites, multiview critters, doors,
+textured panels, polygon/model CLUT rendering, and cube paths receive a scoped
+bank at the object's location; ordinary object darkness uses the same response.
+Model CLUT and bitmap/terrain ltab are bound together. Dynamic monitors are exempt.
+Object source code is covered; hardware images verified doors, supplies and
+control/display behavior, not every possible representation or enemy species.
+
+Explicit unsupported color paths: translucent FAUBJ_TL_POLY, voxels, and invisible
+critters use their original color/scalar path. Their blends are not rebuilt.
+No such translucent object was identified in this starting mask. This is a known
+integration limit, not claimed comprehensive translucent visual coverage.
+Special procedural world effects may use raw colors instead of CLUTs; those
+colors remain original. No fullscreen palette processing is used.
+
+5. FILES / FUNCTIONS
+
+New GameSrc/horror_profile.c + Headers/horror_profile.h:
+  inspected HvTile records, HvLightPool records, hv_region_tile,
+  hv_resolve_bank, hv_darkness, hv_build_banks (engine-independent core).
+New GameSrc/horror_visuals.c + Headers/horror_visuals.h:
+  initialization, map compatibility, view/draw scopes, preference callback,
+  selection logs, opt-in QA timing.
+GameSrc/frterr.c: _fr_do_light_val, _render_3d_walls, fr_draw_tile integration.
+GameSrc/gameobj.c: show_obj scope around unchanged show_obj_original body.
+GameSrc/frmain.c: fr_rend view scope and optional world timing.
+GameSrc/init.c: load_da_palette initializes banks from the canonical palette.
+GameSrc/textmaps.c: load_textures validates current map/material identity.
+GameSrc/wrapper.c: normal Video button, immediate redraw.
+MacSrc/Prefs.h/.c: presentation boolean, default/load/save preference.
+MacSrc/Shock.c: optional SDLDraw timing only; no presentation color operation.
+SourceSnapshot/CMakeLists.txt: compile the two new sources.
+scripts/inspect-vis1-map.py: owned-data metadata inspection.
+scripts/vis1-texture-probe.py: owned texture contact sheet/palette test inputs.
+scripts/vis1-device.py: explicit QA-only capture/input/install/backup commands.
+scripts/test-vis1.py + tests/visuals/: NDK production-code fixtures run on ADB.
+scripts/vis1-evidence.py: recorded timing summary, pixel checks, tile-mask diagram.
+
+6. VERIFICATION AND LIMITS
+
+PASS: Android build, package validation, native 16 KB alignment.
+PASS: production core on actual palette; deterministic banks; unchanged input
+tables; protected/reserved/row-zero semantics; bounded monotonic scalar curve;
+region and surface exceptions.
+PASS: production adapter with mocked engine boundaries, 1,000 nested scope
+cycles, excluded views, infrared CLUT preservation, cyberspace/cutscene guards,
+Original short-circuit, incompatible geometry fallback, gamma unchanged.
+PASS: production preference parser/writer, old/missing option, invalid values,
+mixed case, Enhanced/Original round trips and unchanged gamma/soundtrack.
+Fixture tests do not substitute for hardware transition or rasterizer tests.
+
+Observed on device: launch, old save load outside the region, new game, starting
+room, gold control, opening supply door, readable supplies, entering alcove,
+repeated menu toggles, framed and fullscreen HUD modes, persistence across restart.
+No toggle crash or accumulating image corruption was observed.
+Recorded pixel comparisons (scripts/vis1-evidence.py):
+  fullscreen Enhanced -> Original -> Enhanced: sampled world pixels identical
+  doorway Original -> Enhanced -> Original: sampled world pixels identical
+  existing save outside the region: sampled world pixels A/B identical
+  framed left/right MFD and body/status regions: A/B identical
+  sampled emissive upper panel in the alcove: A/B identical
+  touch pause/SET on black gutter: A/B identical.
+Transparent overlays over changed world pixels naturally composite differently;
+these tests do not claim every UI pixel of a running animated screen is identical.
+
+Images under ignored dist/vis1/:
+  full-original.png / full-enhanced.png: final-build Scene A, fullscreen
+  B-original-repeat.png / B-enhanced-clean.png: final-build doorway, framed
+  final-supply.png: doorway gameplay, touch controls visible
+  region-mask.png, textures.png, evidence-summary.txt
+The settings label/cursor/PAUSED overlay can differ between menu captures. The
+clean doorway pair avoids the initial PAUSED overlay. Screenshots retain the
+device's unrelated gray floating-lock overlay; it is not part of the renderer.
+
+Remaining visual limitations: original 16-row banding and triangle/vertex light
+gradients remain visible; warm quantization can flatten subtly different source
+hues into one brown ramp; luminous tile exemptions also preserve their dark
+surrounds; cold treatment is deliberately subtle on already-cyan art. Object
+shade is sampled, not a continuous per-pixel light field. These are VIS2 tuning
+questions. Enemy/skin readability is NOT visually signed off by sprite-path code.
+
+An observed Quit -> relaunch attempt in the same process crashed in
+perform_svga_conversion -> ss_bitmap -> load_res_bitmap_cursor ->
+load_misc_cursors -> _screen_init_mouse. Clean force-stop/relaunch worked.
+This was not a toggle crash. Its baseline status was not established, and no
+unrelated restart fix is included. Use a clean launch if that transition fails.
+
+Save compatibility: no serialization/layout change; existing saves loaded.
+Only normal new-game/play/QA-save activity modified runtime game state; changing
+visual preference never invokes save_game/load_game or modifies map lighting.
+Existing QA slots 0..2, preferences and CurrentGame were backed up before QA
+under ignored dist/vis1/before/. Byte comparison confirmed all three existing
+save files unchanged after QA. A new fresh-start save was created in slot 7
+(the eighth/last row; its name is blank in this UI). An incomplete task-created
+slot 6 was removed after a too-early QA force-stop interrupted that optional
+save; no existing slot was replaced. The device is returned to Original at the
+fresh-start save. CurrentGame reflects normal QA/new-game activity. Original
+preferences and CurrentGame remain available in the backup if needed.
+
+7. PERFORMANCE EVIDENCE
+
+Phone: Samsung SM-S948U1, Android 17. 2340x1080 physical screenshot, game video
+mode 4 (1024x768 indexed canvas), full resolution, High detail, gamma 28.
+Final-APK paired stationary sample at fresh-start camera, framed HUD:
+  Original: world mean 1.4945 ms; largest sample 4.247 ms
+  Enhanced: world mean 1.5015 ms; largest sample 3.714 ms
+  conversion/upload: 8.7912 / 8.8150 ms
+  SDL_RenderPresent call: 0.1352 / 0.1370 ms
+  presentation start interval: 16.6668 / 16.6666 ms
+  largest presentation interval: 30.000 / 32.255 ms
+  >20 ms intervals: 10/3600 Original, 7/3600 Enhanced
+Windows: device local 01:52:00..01:52:59 and 01:54:00..01:54:59.
+World sample counts: 7200 each (world draws are not presented-frame counts).
+No new sustained missed-frame pattern appeared in this stationary sample.
+It is not a moving-route, long thermal, battery or GPU benchmark. Present call
+time is CPU submission/blocking time, not a complete GPU cost measurement.
+Raw final evidence: dist/vis1/final-device.log. Reproduce the summary with
+scripts/vis1-evidence.py. An earlier timing-session.log remains as development
+evidence but is not the source of the final measurements above.
+
+Instrumentation is opt-in in the SAME QA APK: create app-private
+files/vis1-diagnostics.txt before a clean launch. Every 300 samples logs world
+and conversion/upload/present/interval statistics with mode=0/1. Remove the file
+and restart to disable. Non-QA builds return zero without sampling. Normal
+profile activation logs report region ID, camera tile and bank mask; no debug
+overlay is added to normal gameplay. Log mask bits: Original=1, cool=2, warm=4.
+The diagnostics file was removed and the installed app cleanly restarted for
+handoff, so timing diagnostics are disabled on the device.
+
+8. EXACT HARDWARE ACCEPTANCE CHECKLIST
+
+Use one installation and one save. Hold resolution, gamma, HUD configuration,
+brightness, player position, facing and equipment state fixed for each A/B pair.
+Keep device brightness fixed and take screenshots after the menu redraw settles.
+Use Pause -> Video -> VISUALS; capture while the same options panel is open, or
+Return without moving. First select Original, then Enhanced, then Original again.
+
+[ ] A: fresh-game camera. Compare monitor colors, luminous bed/panels, ceiling
+    detail, floor boundaries, right-side pickup, and controls. Reject crushed
+    blacks or a result whose only distinction is lower overall brightness.
+[ ] B: walk down ramp, use gold button, stop at opened supply doorway. Compare
+    cold adjacent wall, warm alcove wall, neutral floor and bright panel in one
+    frame. Enter/leave while looking back. Reject camera-wide color pops.
+[ ] C: compare lead pipe/other supplies, door and gold control. Acquire a weapon
+    through normal play if needed; encounter the nearby enemy and, if feasible,
+    let it approach the suite. Check sprite/skin readability, lit polygon/model
+    objects where available, and boundary transitions. Enemy visual test pending.
+[ ] D: repeat A/B in framed AND fullscreen HUD (CURSOR -> left fullscreen icon).
+    Check crosshair, cursor, text, MFDs, pause/options and touch radial menus.
+    Compare opaque UI colors, not transparent blends over changed backgrounds.
+[ ] E: at the same camera with equipment available, lamp off/on; fire a weapon;
+    infrared on/off. Confirm original functional cues and that infrared suspends
+    the profile and restores it on exit. Fresh spawn lacks those hardware items;
+    actual lamp/muzzle/infrared hardware transitions remain pending.
+[ ] F: at least 20 Original/Enhanced cycles while stationary; repeat between
+    movement steps, on both sides of the doorway, while the door animates, and
+    entering/leaving menus. Verify Original after the final cycle. The menu
+    pauses simulation, so a mid-motion toggle happens at the paused motion state.
+[ ] Palette cycles: watch displays/animated lights in both modes for several
+    seconds. Reserved-index tests passed; exhaustive cycle hardware QA pending.
+[ ] Secondary/security camera: compare its view before/during/after Enhanced;
+    it must remain Original. Guard fixture passed; actual camera QA pending.
+[ ] Cutscene: enter/leave with Enhanced selected, confirm menu/video palettes
+    and resumed world. Guard fixture passed; actual transition QA pending.
+[ ] Cyberspace: enter/exit in both modes. Cyber must remain Original and returning
+    to Medical must restore the correct scoped profile. Hardware QA pending.
+[ ] Persistence: select Enhanced, clean restart, load the same save; repeat in
+    Original. Compare position, gamma, inventory, quest and door state.
+[ ] Outside scope: walk through the other exit into Medical; compare both modes
+    looking away from the test region. Later rooms must remain unchanged.
+[ ] Performance: repeat a fixed 30-60 second camera/route window per mode after
+    warm-up, omit menu/load windows, inspect >20 ms intervals and sustained stalls.
+
+9. VIS2 / AUTO-AUTHORING REUSE AND RECOMMENDATION
+
+Keep the indexed approach for the next bounded iteration, pending user visual
+acceptance. Scalar distribution produced the strongest change; material banks
+can provide localized warm/cold contrast without changing gamma or HUD. There is
+no evidence here requiring a truecolor renderer extension. Do not expand across
+Medical until the pending enemy, functional-light and special-transition checks
+pass and the warm ramp/banding are judged acceptable on the device.
+
+Reusable now: one persistent Original/Enhanced architecture; engine-independent
+tile/material/pool data; resolved texture-ID exceptions; original-table-based
+bank generator; scoped terrain/object/CLUT binding; fail-closed map validation;
+special-view priority; fixed camera A/B workflow and opt-in timing.
+The static C records are a first data source, not a requirement to write renderer
+code for every room. A later external/generated data provider can populate a
+level default, common/inferred rules, named masks and pool records, then apply
+surface exceptions and dynamic overrides through the same binding scopes.
+No external loader, whole-level profiles or inference engine is claimed in VIS1.
+
+Useful generator inputs already available: original floor/ceiling darkness,
+resolved texture IDs/families, luminous-texture exceptions, fixture/display and
+pickup locations, floor/ceiling geometry, doors and adjacency. Future providers
+can add hazard flags, trigger/quest state and music zones as weak hints. Dynamic
+state belongs at the last precedence stage and must never rewrite gameplay
+lighting. A generator should emit first-pass records for review, with named
+overrides only where art direction needs them; manual authoring of every room
+from scratch is not the intended architecture.

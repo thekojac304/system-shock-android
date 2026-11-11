@@ -248,6 +248,8 @@ void load_textures(void) {
     unload_master_texture_properties();
     textures_loaded = TRUE;
     game_fr_reparam(all_textures, -1, -1);
+    extern void horror_visuals_map_loaded(void);
+    horror_visuals_map_loaded();
 }
 
 void free_textures(void) {

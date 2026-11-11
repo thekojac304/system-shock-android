@@ -1,3 +1,5 @@
+#include "GpuWorld.h"
+#include "GpuPost.h"
 /*
 
 Copyright (C) 2015-2018 Night Dive Studios, LLC.
@@ -555,6 +557,8 @@ void pushbutton_draw_func(uchar butid) {
 }
 
 uchar pushbutton_handler(uiEvent *ev, uchar butid) {
+    if (ev->type == UI_EVENT_MOUSE &&
+        (ev->mouse_data.modifiers & MOUSE_MOD_TOUCH_DRAG)) return FALSE;
     if (((ev->type == UI_EVENT_MOUSE) && (ev->subtype & MOUSE_DOWN)) ||
         ((ev->type == UI_EVENT_KBD_COOKED) &&
          ((ev->cooked_key_data.code & 0xFF) == OButtons[butid].user.pushbutton_st.keyeq))) {
@@ -691,6 +695,9 @@ void multi_draw_func(uchar butid) {
 uchar multi_handler(uiEvent *ev, uchar butid) {
     uint val = 0, delta = 0;
     opt_multi_state *st = &OButtons[butid].user.multi_st;
+
+    if (ev->type == UI_EVENT_MOUSE &&
+        (ev->mouse_data.modifiers & MOUSE_MOD_TOUCH_DRAG)) return FALSE;
 
     if (ev->type == UI_EVENT_MOUSE) {
         if (ev->subtype & MOUSE_LEFT)
@@ -867,6 +874,9 @@ void textlist_select_line(opt_textlist_state *st, uchar butid, uchar line, uchar
 uchar textlist_handler(uiEvent *ev, uchar butid) {
     uchar line;
     opt_textlist_state *st = &OButtons[butid].user.textlist_st;
+
+    if (ev->type == UI_EVENT_MOUSE &&
+        (ev->mouse_data.modifiers & MOUSE_MOD_TOUCH_DRAG)) return FALSE;
 
     if ((ev->type == UI_EVENT_MOUSE) && (ev->subtype & MOUSE_DOWN)) {
         short w, h;
@@ -1837,6 +1847,99 @@ void gamma_slider_dealfunc(ushort gamma_qvar) {
     uiShowMouse(NULL);
 }
 
+/* Normal video options widget: presentation preference, no quest/save variable. */
+extern void horror_visuals_set_mode(int mode);
+static void visuals_button_draw(uchar butid) {
+    char label[48];
+    strcpy(label,gShockPrefs.doHorrorVisuals==4 ? "GPU\nGEN" : gShockPrefs.doHorrorVisuals==3 ? "GPU\nPROOF" : gShockPrefs.doHorrorVisuals==2 ? "VIS1B\nHORROR" :
+                 gShockPrefs.doHorrorVisuals==1 ? "VIS1\nCONS" : "VISUALS\nORIGINAL");
+    text_button(label,BR(butid).ul.x,BR(butid).ul.y,BUTTON_COLOR,BUTTON_SHADOW,
+                BR(butid).ul.x-BR(butid).lr.x,BR(butid).ul.y-BR(butid).lr.y);
+}
+static void visuals_button_toggle(uchar butid) {
+    (void)butid;
+    #ifdef RP5NP_GPU_WORLD
+    /* Keep Conservative available after the main review sequence. */
+    int mode=gShockPrefs.doHorrorVisuals;
+    horror_visuals_set_mode(mode==0?2:mode==2?3:mode==3?4:mode==4?1:0);
+#else
+    horror_visuals_set_mode((gShockPrefs.doHorrorVisuals+1)%3);
+#endif
+    /* Like gamma: a fresh world draw while the options panel remains open.
+     * Corner intensities are recomputed each draw; no level reload is needed. */
+    uiHideMouse(NULL);
+    render_run();
+    /* Keep the stored menu background in the newly selected presentation mode.
+     * GPU mode supplies a complete software view while this panel is open. */
+    if (full_game_3d) {
+#ifdef SVGA_SUPPORT
+        uchar old_over = gr2ss_override;
+        gr2ss_override = OVERRIDE_ALL;
+#endif
+        gr_push_canvas(grd_screen_canvas);
+        ss_get_bitmap(&inv_view360_canvas.bm, GAME_MESSAGE_X, GAME_MESSAGE_Y);
+        gr_pop_canvas();
+#ifdef SVGA_SUPPORT
+        gr2ss_override = old_over;
+#endif
+    }
+    opanel_redraw(TRUE);
+    uiShowMouse(NULL);
+}
+
+#ifdef RP5NP_GPU_WORLD
+static void post_screen_init(void);
+static void post_button_draw(uchar butid) {
+    char label[48];
+    switch(butid) {
+    case 0: strcpy(label,gShockPrefs.postEnabled?"POST\nON":"POST\nOFF");break;
+    case 1:
+        if(!gShockPrefs.postChoice)strcpy(label,"PRESET\nAUTO");
+        else snprintf(label,sizeof(label),"PRESET\n%s",gpu_post_choice_name(gShockPrefs.postChoice));
+        break;
+    case 2: strcpy(label,gShockPrefs.postVignette?"VIGNETTE\nON":"VIGNETTE\nOFF");break;
+    case 3: strcpy(label,gShockPrefs.postGrain?"GRAIN\nON":"GRAIN\nOFF");break;
+    case 4: snprintf(label,sizeof(label),"FX\n%s",gShockPrefs.postFxMode==0?"BASE":gShockPrefs.postFxMode==1?"HAZE":gShockPrefs.postFxMode==2?"DIST":"FULL");break;
+    case 5: strcpy(label,"RESET\nAUTO");break;
+    default: strcpy(label,"VIDEO\nBACK");break;
+    }
+    text_button(label,BR(butid).ul.x,BR(butid).ul.y,BUTTON_COLOR,BUTTON_SHADOW,
+                BR(butid).ul.x-BR(butid).lr.x,BR(butid).ul.y-BR(butid).lr.y);
+}
+static void post_button_toggle(uchar butid) {
+    if(butid==6){video_screen_init();return;}
+    if(butid==0)gShockPrefs.postEnabled=!gShockPrefs.postEnabled;
+    if(butid==1){
+        int first=player_struct.level==1?1:player_struct.level==6?4:0;
+        if(first)gShockPrefs.postChoice=(gShockPrefs.postChoice<first||gShockPrefs.postChoice>=first+2)?first:gShockPrefs.postChoice+1;
+        else gShockPrefs.postChoice=0;
+    }
+    if(butid==2)gShockPrefs.postVignette=!gShockPrefs.postVignette;
+    if(butid==3)gShockPrefs.postGrain=!gShockPrefs.postGrain;
+    if(butid==4)gShockPrefs.postFxMode=(gShockPrefs.postFxMode+1)%4;
+    if(butid==5){gShockPrefs.postChoice=0;gShockPrefs.postEnabled=1;gShockPrefs.postVignette=1;gShockPrefs.postGrain=1;gShockPrefs.postFxMode=3;}
+    uiHideMouse(NULL);render_run();
+    if(full_game_3d)opanel_redraw(FALSE);
+    post_screen_init();uiShowMouse(NULL);
+}
+static void post_screen_init(void) {
+    LGRect r;
+    clear_obuttons();
+    for(int i=0;i<7;i++){
+        standard_button_rect(&r,i,2,3,2);
+        pushbutton_init(i,'p',ID_NULL,post_button_toggle,&r);
+        OButtons[i].drawfunc=post_button_draw;
+    }
+    keywidget_init(QUIT_BUTTON,'x',wrapper_pushbutton_func);
+    opanel_redraw(TRUE);
+}
+static void post_open(uchar butid) {(void)butid;post_screen_init();}
+static void post_open_draw(uchar butid) {
+    text_button("HYBRID\nPOST",BR(butid).ul.x,BR(butid).ul.y,BUTTON_COLOR,BUTTON_SHADOW,
+                BR(butid).ul.x-BR(butid).lr.x,BR(butid).ul.y-BR(butid).lr.y);
+}
+#endif
+
 void video_screen_init(void) {
     LGRect r;
     int i;
@@ -1899,6 +2002,22 @@ void video_screen_init(void) {
         standard_button_rect(&r, i, 2, 2, 2);
         multi_init(i, 't', REF_STR_TextFilt, REF_STR_TFUnfil, ID_NULL,
                    sizeof(gShockPrefs.doTextureFilter), &gShockPrefs.doTextureFilter, 2, renderer_dealfunc, &r);
+        i++;
+    }
+#endif
+
+    if (i<5) {
+        standard_button_rect(&r,i,2,2,2);
+        pushbutton_init(i,'h',ID_NULL,visuals_button_toggle,&r);
+        OButtons[i].drawfunc=visuals_button_draw;
+        i++;
+    }
+
+#ifdef RP5NP_GPU_WORLD
+    if(i<5){
+        standard_button_rect(&r,i,2,2,2);
+        pushbutton_init(i,'p',ID_NULL,post_open,&r);
+        OButtons[i].drawfunc=post_open_draw;
         i++;
     }
 #endif

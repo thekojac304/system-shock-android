@@ -225,6 +225,25 @@ void init_side_icon_hotkeys(void) {
 // Declare the appropriate regions for the side icons
 // (called from screen_start() in screen.c)
 
+static LGRegion *touch_side_icon_left, *touch_side_icon_right;
+
+bool touch_side_icon_at(const LGRegion *region, int x, int y) {
+    extern uchar fullscrn_icons;
+    if (region != touch_side_icon_left && region != touch_side_icon_right)
+        return false;
+    if (global_fullmap->cyber || (full_game_3d && !fullscrn_icons))
+        return false;
+    int first = region == touch_side_icon_left ? 0 : (NUM_SIDE_ICONS + 1) / 2;
+    int end = region == touch_side_icon_left ? (NUM_SIDE_ICONS + 1) / 2 : NUM_SIDE_ICONS;
+    LGPoint point = {x, y};
+    for (int i = first; i < end; ++i)
+        if (RECT_TEST_PT(&side_icons[i].r, point) &&
+            get_player_ware_version(icon_data[i].waretype,
+                IDX_OF_TYPE(icon_data[i].waretype, icon_data[i].waretrip)) != 0)
+            return true;
+    return false;
+}
+
 void screen_init_side_icons(LGRegion *root) {
     int id;
     LGRegion *left_region, *right_region;
@@ -238,6 +257,7 @@ void screen_init_side_icons(LGRegion *root) {
     r.ul = side_icons[0].r.ul;
     r.lr = side_icons[(NUM_SIDE_ICONS - 1) / 2].r.lr;
     macro_region_create_with_autodestroy(root, left_region, &r);
+    touch_side_icon_left = left_region;
     uiInstallRegionHandler(left_region, UI_EVENT_MOUSE | UI_EVENT_MOUSE_MOVE, &side_icon_mouse_callback, 0,
                            &id);
     uiSetRegionDefaultCursor(left_region, NULL);
@@ -245,6 +265,7 @@ void screen_init_side_icons(LGRegion *root) {
     r.ul = side_icons[(NUM_SIDE_ICONS + 1) / 2].r.ul;
     r.lr = side_icons[(NUM_SIDE_ICONS - 1)].r.lr;
     macro_region_create_with_autodestroy(root, right_region, &r);
+    touch_side_icon_right = right_region;
     uiInstallRegionHandler(right_region, UI_EVENT_MOUSE | UI_EVENT_MOUSE_MOVE, &side_icon_mouse_callback,
                            ((NUM_SIDE_ICONS + 1) / 2), &id);
     uiSetRegionDefaultCursor(right_region, NULL);

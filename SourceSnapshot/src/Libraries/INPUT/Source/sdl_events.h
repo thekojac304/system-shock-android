@@ -38,7 +38,8 @@ typedef enum rp5np_controller_action {
     RP5NP_CONTROLLER_ACTION_CYCLE_WEAPON_PREV,
     RP5NP_CONTROLLER_ACTION_CYCLE_WEAPON_NEXT,
     RP5NP_CONTROLLER_ACTION_LOOK_MODE,
-    RP5NP_CONTROLLER_ACTION_CURSOR_MODE
+    RP5NP_CONTROLLER_ACTION_CURSOR_MODE,
+    RP5NP_CONTROLLER_ACTION_TOUCH_AMMO
 } rp5np_controller_action;
 
 typedef void (*rp5np_controller_action_handler)(rp5np_controller_action action, void *userdata);

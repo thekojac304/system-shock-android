@@ -186,7 +186,18 @@ uchar really_really_locked(int qvar) { return (qvar == 0x5E || qvar == 0xE7); }
 //      and should be used by anyone other than the player trying
 //      to use the door.
 //
+#ifdef RP5NP_AUDIO_DIAGNOSTICS
+#include "audio_trace.h"
+#include "Prefs.h"
+#include "transition_trace.h"
+#else
+#define TRANSITION_TRACE(stage, target) ((void)0)
+#endif
 uchar use_door(ObjID id, uchar in_inv, ObjID cursor_obj) {
+#ifdef RP5NP_AUDIO_DIAGNOSTICS
+    AUDIO_TRACE("door_use id=%d frame=%d", id, objs[id].info.current_frame);
+    TRANSITION_TRACE("door_begin", player_struct.level);
+#endif
     uchar retval = FALSE;
     uchar play_fx = FALSE;
     uchar use_card = FALSE;
@@ -275,6 +286,9 @@ access_ok:
             }
 
             add_obj_to_animlist(id, FALSE, FALSE, FALSE, 32, 0, 0, 0); // play anim forwards
+#ifdef RP5NP_AUDIO_DIAGNOSTICS
+            AUDIO_TRACE("door_animation id=%d direction=open", id);
+#endif
             play_fx = TRUE;
 
             // remove render-blocking bit, since well, we're open.
@@ -300,6 +314,9 @@ access_ok:
     } else {
         char real_frame = objs[id].info.current_frame;
         add_obj_to_animlist(id, FALSE, TRUE, FALSE, 32, 0, 0, 0); // play anim backwards
+#ifdef RP5NP_AUDIO_DIAGNOSTICS
+        AUDIO_TRACE("door_animation id=%d direction=close", id);
+#endif
         play_fx = TRUE;
     }
     if (play_fx) {
@@ -333,17 +350,34 @@ access_ok:
             sfx_id = SFX_DOOR_NORMAL;
             break;
         }
-        if (sfx_id != -1)
+        if (sfx_id != -1) {
+#ifdef RP5NP_AUDIO_DIAGNOSTICS
+            AUDIO_TRACE("door_sfx_begin id=%d sfx=%d", id, sfx_id);
+#endif
             play_digi_fx_obj(sfx_id, 1, id);
+#ifdef RP5NP_AUDIO_DIAGNOSTICS
+            AUDIO_TRACE("door_sfx_end id=%d sfx=%d", id, sfx_id);
+#endif
+        }
     }
     if (((other = objDoors[objs[id].specID].other_half) != OBJ_NULL) && !(in_inv & 0x1)) {
         uchar otherdoor = objs[other].obclass == CLASS_DOOR;
         // use other half if we don't have the same closed-ness, in order to
         // cause us to have the same closed-ness.
-        if (!otherdoor || (door_moving(id, TRUE) != (DOOR_REALLY_CLOSED(other) || door_moving(other, TRUE))))
+        if (!otherdoor || (door_moving(id, TRUE) != (DOOR_REALLY_CLOSED(other) || door_moving(other, TRUE)))) {
+#ifdef RP5NP_AUDIO_DIAGNOSTICS
+            AUDIO_TRACE("door_other_begin id=%d other=%d", id, other);
+#endif
             object_use(objDoors[objs[id].specID].other_half, otherdoor ? (in_inv | 0x1) : FALSE, OBJ_NULL);
+#ifdef RP5NP_AUDIO_DIAGNOSTICS
+            AUDIO_TRACE("door_other_end id=%d other=%d", id, other);
+#endif
+        }
     }
 out:
+#ifdef RP5NP_AUDIO_DIAGNOSTICS
+    AUDIO_TRACE("door_end id=%d retval=%d", id, retval);
+#endif
     return retval;
 }
 
@@ -672,6 +706,7 @@ uchar object_use(ObjID id, uchar in_inv, ObjID cursor_obj) {
         case ELEPANEL1_TRIPLE:
         case ELEPANEL2_TRIPLE:
         case ELEPANEL3_TRIPLE: {
+            TRANSITION_TRACE("elevator_panel_begin", player_struct.level);
             if (me_bits_music(MAP_GET_XY(PLAYER_BIN_X, PLAYER_BIN_Y)) != ELEVATOR_ZONE) {
                 string_message_info(REF_STR_UseTooFar);
                 retval = TRUE;
@@ -696,6 +731,7 @@ uchar object_use(ObjID id, uchar in_inv, ObjID cursor_obj) {
                     mfd_change_slot(mfd, MFD_INFO_SLOT);
                 }
             }
+            TRANSITION_TRACE("elevator_panel_end", player_struct.level);
             retval = TRUE;
             break;
         }
@@ -1111,6 +1147,8 @@ errtype elevator_janitor_run() {
     ObjRefID orefid;
     extern uchar robot_antisocial;
 
+    TRANSITION_TRACE("elevator_janitor_begin", player_struct.level);
+
     // clear out our movelist
     for (i = 0; i < MAX_JANITOR_OBJS; i++)
         objlist[i] = OBJ_NULL;
@@ -1133,6 +1171,9 @@ errtype elevator_janitor_run() {
     while (me_bits_music(MAP_GET_XY(x1, y1)) == ELEVATOR_ZONE)
         y1++;
     y1--;
+#ifdef RP5NP_AUDIO_DIAGNOSTICS
+    AUDIO_TRACE("elevator_janitor_bounds x=%d..%d y=%d..%d", x0, x1, y0, y1);
+#endif
 
     // Collect all the objects
     for (x = x0; x <= x1; x++) {
@@ -1178,6 +1219,10 @@ errtype elevator_janitor_run() {
         obj_move_to(objlist[i], &newloc, TRUE);
     }
     robot_antisocial = FALSE;
+
+#ifdef RP5NP_AUDIO_DIAGNOSTICS
+    AUDIO_TRACE("elevator_janitor_end objects=%d dump=%d,%d", obj_count, dump_loc.x, dump_loc.y);
+#endif
 
     return (OK);
 }
@@ -1317,6 +1362,11 @@ uchar elevator_use(short dest_level, ubyte which_panel) {
     char *buf;
 #endif
 
+    TRANSITION_TRACE("elevator_begin", dest_level);
+#ifdef RP5NP_AUDIO_DIAGNOSTICS
+    AUDIO_TRACE("elevator_selection which_panel=%d", which_panel);
+#endif
+
     if (dest_level == player_struct.level) {
         string_message_info(REF_STR_ElevatorSameFloor);
         return (FALSE);
@@ -1362,7 +1412,9 @@ uchar elevator_use(short dest_level, ubyte which_panel) {
     old_zsh = MAP_ZSHF;
 
     if (full_game_3d) {
+        TRANSITION_TRACE("elevator_render_begin", dest_level);
         render_run();
+        TRANSITION_TRACE("elevator_render_end", dest_level);
     }
 
     // Find what the equivalent panel on the new level is
@@ -1386,6 +1438,9 @@ uchar elevator_use(short dest_level, ubyte which_panel) {
         new_panel = new_panel >> 16;
     else
         new_panel = new_panel & 0xFFFF;
+#ifdef RP5NP_AUDIO_DIAGNOSTICS
+    AUDIO_TRACE("elevator_destination panel=%d offset=%d,%d,%d", new_panel, xdiff, ydiff, zdiff);
+#endif
 
     objs[player_struct.panel_ref].info.current_frame = nuframe;
     check_panel_ref(TRUE);
@@ -1393,7 +1448,9 @@ uchar elevator_use(short dest_level, ubyte which_panel) {
     // Teleport the player to that level, at the same relative distance
     // from the new panel as to the old.
     begin_wait();
+    TRANSITION_TRACE("elevator_teleport_begin", dest_level);
     retval = trap_teleport_func(0xF000, 0xF000, 0xF000, dest_level); // no change in x, y, or z
+    TRANSITION_TRACE("elevator_teleport_end", dest_level);
 
     if (retval == OK) {
         panel_loc = objs[new_panel].loc;
@@ -1415,7 +1472,9 @@ uchar elevator_use(short dest_level, ubyte which_panel) {
         else
             newloc.z = panel_loc.z - (zdiff >> (old_zsh - MAP_ZSHF));
 
+        TRANSITION_TRACE("elevator_position_begin", dest_level);
         obj_move_to(PLAYER_OBJ, &newloc, TRUE);
+        TRANSITION_TRACE("elevator_position_end", dest_level);
 
         // Clear out old cruft in the new elevator squares
         elevator_janitor_run();
@@ -1446,7 +1505,9 @@ uchar elevator_use(short dest_level, ubyte which_panel) {
 #endif
         end_wait();
 
+        TRANSITION_TRACE("elevator_stop_sfx_begin", dest_level);
         stop_digi_fx(); // KLC - Moved this to before the door tries to open.
+        TRANSITION_TRACE("elevator_stop_sfx_end", dest_level);
 
         // open the door, unless freight elevator
         id = door_in_square(&panel_loc, TRUE);
@@ -1455,6 +1516,7 @@ uchar elevator_use(short dest_level, ubyte which_panel) {
         }
     } else
         critical_error(CRITERR_FILE);
+    TRANSITION_TRACE("elevator_end", dest_level);
 #endif
     return (TRUE);
 }

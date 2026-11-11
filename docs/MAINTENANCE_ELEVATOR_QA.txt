@@ -1,0 +1,125 @@
+MAINTENANCE ELEVATOR INVESTIGATION
+
+RESULT
+Current hardware status: INTERMITTENT / NOT REPRODUCED ON RETEST.
+The user reports that the previously observed Maintenance elevator freeze did
+not recur in the completed hardware retest. The original hardware report
+remains valid historical evidence. Root cause remains unknown; no elevator
+behavior fix is claimed and the original issue is not definitively fixed.
+Diagnostics/instrumentation remain useful if it recurs. No new deterministic
+failure evidence appeared during closeout, so no behavior change was made.
+See QA2_COORDINATED_QA.txt for the coordinated hardware acceptance and the
+detailed checklist items still pending. Exact routes, soundtrack-mode matrix,
+repetition counts and save/load/lifecycle checks were not reported in this
+retest and are not marked hardware PASS here.
+
+HISTORICAL INVESTIGATION RESULT
+The reported hardware freeze was not reproduced or diagnosed by the initial pass.
+Retained Android logs establish a successful QA teleport Reactor (0) ->
+Maintenance (3), tile 34,39, z=87, followed by Remake maintenance.mp3 starting.
+Those logs contain no elevator activation/transition markers from that session.
+Read-only inspection of the connected Samsung QA device cannot establish the
+reported elevator interaction. No live device input, reinstall, save edit or
+soundtrack-setting change was performed during this investigation.
+
+No elevator, teleport, music ownership or fallback behavior was changed to
+claim a fix without reproduction evidence. Existing AUDIO2 and lifecycle work
+was preserved. New instrumentation requires RP5NP_AUDIO_DIAGNOSTICS.
+
+NORMAL VS QA ARRIVAL
+Normal elevator arrival and QA travel both call trap_teleport_func, which calls
+go_to_different_level. That path stores inventory, writes the old deck, loads
+the destination, restores inventory/art/physics, advances destination schedules,
+runs level-entry triggers and moves the player through obj_move_to.
+
+The elevator additionally closes its MFD panel reference before travel, uses
+the fixture's destination-panel table to preserve player offset, repositions
+at the destination panel, runs the elevator janitor and opens the arrival door.
+QA instead validates an empty flat tile from CurrentGame and places the player
+there at standing height; it does not perform those elevator-specific steps.
+The QA selector checks all 64x64 terrain tiles, requires standing clearance
+and a same-height exit, and prefers open tiles nearest the map center.
+The logs now record panel reference, player physics handle and score state at
+the same transition stages so stale QA state can be distinguished from an
+elevator or music failure rather than presumed to be the cause.
+
+MUSIC OWNERSHIP
+Remake music selects a deck, including its elevator tiles. The physics path
+still changes stock music zones: compare_locs -> fade_into_location ->
+load_score_guts(7) for ELEVATOR_ZONE. A stock theme load invokes StopTheMusic,
+which suspends the external stream and restores the synth hook. The next
+eligible music-AI update resumes the existing same-deck decoder; a deck change
+stops/frees the old stream and selects the new deck's track. StartTrack refuses
+stock MIDI playback while external music owns the stream. The old level-change
+MacTuneQueueTune calls are stubs in this Shockolate implementation.
+
+DATA VALIDATION
+The owned pristine ARCHIVE.DAT and two local CurrentGame.dat snapshots each
+pass all 25 elevator fixtures / 52 destination links, valid active destination
+panels, elevator tile bounds and acyclic tile object-reference chains. These
+are data checks, not proof that live engine object lists remain valid.
+The legacy janitor/map walks are unbounded, but no malformed elevator geometry
+or reference cycle was found in the inspected owned data. No speculative
+bounds rewrite was applied.
+
+Maintenance fixtures in these archives:
+  panel 225, tile 37,25: Reactor (0), Research (2), Maintenance (3).
+  panel 7, tile 32,34: Maintenance (3), Storage (4), Flight Deck (5).
+  panel 129, tile 36,38: Maintenance (3), Executive (6).
+There is no direct Maintenance -> Medical (1) link in these fixtures. To reach
+Medical through this elevator route, use Research and its Medical connection.
+
+AUTOMATED VALIDATION
+  scripts/test-elevator.ps1 -Compiler <gcc path>
+  python scripts/test-elevator-archive.py <ARCHIVE.DAT> [CurrentGame.dat ...]
+The focused production ExternalMusic test passes Original and Remake ownership
+for 20 Maintenance route cycles, same-deck elevator updates, stock-theme
+suspend/resume, no duplicate decoder/start and no permanent silence at the
+mocked mixer boundary. The no-mixer stock fallback passes too.
+The four instrumented engine files passed ARM64 QA diagnostics syntax checks.
+These tests do not exercise device callbacks, MIDI threads, live physics,
+level-save/load execution, actual touches or the reported hardware freeze.
+
+TARGETED HARDWARE REPRO
+Use the diagnostics QA APK produced by the coordinated pass. Use a disposable
+QA save and record whether the freeze happens opening the door, entering the
+car, opening its panel, selecting a floor, loading the deck or opening the
+arrival door. Record the panel/floor actually used.
+
+For BOTH Original and Remake soundtrack modes:
+  1. Arrive normally from Research -> Maintenance through panel 225.
+     Open the car/panel, return Maintenance -> Research, then return again.
+  2. QA teleport -> Maintenance. Walk to panel 225 at tile 37,25.
+     Open the door, enter, select Research (2), and return to Maintenance.
+     If Medical is required, continue Research -> Medical -> Research.
+  3. Repeat QA teleport -> Maintenance -> Research -> return at least 5 times.
+  4. If the originally used car was elsewhere, repeat with panel 7 (Storage)
+     or panel 129 (Executive), preserving the exact route in the report.
+  5. Confirm one external stream in Remake, normal Original music, door SFX,
+     no permanent silence, crash or freeze after departure and return.
+
+LOG INTERPRETATION
+Capture Android logcat around each attempt. Existing ExternalMusic messages
+remain intact. New AUDLIFE transition stage markers report level/target,
+player tile/z, panel reference, physics handle, loop, cyber flag, music enabled,
+soundtrack mode, external owner, score and old tile-music bits.
+
+  door_begin / door_animation / door_sfx_begin-end / door_other_begin-end /
+    door_end: local door activation, SFX or paired-door recursion.
+  music_zone_begin-end / music_theme_stop_begin-end /
+    music_theme_load_begin-end: elevator-zone theme stop/load.
+  elevator_panel_begin-end: elevator MFD setup.
+  elevator_begin / elevator_selection / elevator_render_begin-end /
+    elevator_destination: selected floor, panel resolution and player offset.
+  elevator_teleport_begin-end / teleport_begin / level_begin:
+    entry to the shared transition path.
+  level_queue_music / level_store_inventory / level_save / level_load /
+    level_schedule / level_entry_triggers begin-end: internal transition phases.
+  teleport_position_begin-end / elevator_position_begin-end /
+    elevator_janitor_begin / elevator_janitor_bounds / elevator_janitor_end:
+    player placement and destination elevator cleanup.
+  elevator_stop_sfx_begin-end / elevator_end: arrival completion.
+
+An unmatched begin marker localizes the next investigation. Correlate its
+timestamp with existing mixer/device lifecycle markers. A successful matrix
+on different hardware does not close the reported failure.

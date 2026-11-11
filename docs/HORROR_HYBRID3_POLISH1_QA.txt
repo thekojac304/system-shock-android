@@ -1,0 +1,203 @@
+HORROR-HYBRID3 / POLISH1 -- BOUNDED VISUAL POLISH QA
+Date: 2026-10-04 (America/New_York)
+Phone: Samsung SM-S948U1, authorized ADB serial <device serial redacted>
+
+1. STARTING COMMIT / TREE
+Started at d4dab8bd8c35467c4125c88e0a659c79266b448d on touch-controls.
+The checkout already held unrelated AUDIO source, tests, scripts and docs plus
+Python caches. Those changes were preserved and excluded from both visual
+commits. The QA APK necessarily includes the existing dirty AUDIO source tree;
+this report does not validate that separate work. No push occurred.
+
+2. HIGHLIGHT SHOULDER
+The prior grade's .68 high-value shoulder remains. A new high-only, monotone
+rolloff begins at .64 after the previous curve, using excess /
+(1 + 2 * rolloff * excess). Executive Auto rolloff is .55; Medical is zero.
+Midtones below .64 are untouched by this stage. Executive's already-reviewed
+emissive mask pixels also use .88 intensity, so texture variation reaches the
+8-bit target before it can clip. Global exposure remains 1.02.
+
+3. MIDTONE LIFT
+Executive Auto adds .030 only in a luminance window: smoothstep(.03,.16,Y)
+times (1 - smoothstep(.36,.68,Y)). It fades out at black and in highlights.
+Medical lift is zero. This is a small structural lift, not a deck-wide exposure
+change.
+
+4. NEAR-BLACK PRESERVATION
+After the previous toe/shoulder, Executive Auto multiplies channels by
+1 + .08 * (1 - smoothstep(.02,.16,channel)). Zero remains exactly zero and
+the adjustment vanishes above .16. Medical preservation is zero, retaining
+the accepted Medical curve.
+
+5. EMISSIVE / GENERATED-LIGHT MULTIPLIERS
+Generated world shading uses a per-preset emissive multiplier only where the
+reviewed material mask row marks a self-lit pixel. Executive Auto is .88;
+Medical Auto is 1.00. Ordinary bright unmasked pixels and unreviewed unlit
+objects receive no new scale. Existing source-tile flicker still multiplies
+the reviewed source. Generated local-light contribution is multiplied after
+profile intensity and flicker: Executive Auto 1.05, Medical Auto 1.00. No
+source position, receiver, or geometry is changed. Post Off and post failure
+use 1.00 multipliers. Older presets' zero-initialized new fields resolve to
+neutral 1.00.
+
+6. SPLIT TONING
+The existing shadow and highlight weighted tint stages already implement
+split toning. They remain separate; Executive Auto shadow tint is
+(.85,.91,1.02) at .10 and highlight tint (1.07,1.01,.89) at .08. The added
+Executive shadow bias was reduced from (.015,-.010,.012) to
+(.005,-.010,.012), avoiding an over-warm dark region. Medical cool shadows
+and neutral/cool highlights are unchanged. This is a refinement of the
+existing split, not a new global color filter.
+
+7. BLOOM DECISION / SOURCE ARCHITECTURE
+SKIPPED. The reviewed mask is available inside the world fragment shader, but
+the SDL-owned RGBA8 world target stores composed RGB and packed distance in
+alpha. There is no clean emissive-only image to blur. A correct path would add
+an MRT attachment or selective pass, then downsample, blur, composite, and
+resource/fallback handling around SDL target binds. That is disproportionate
+to this bounded pass. Broad luminance thresholding would make ordinary white
+textures bloom and was rejected. No buffer, toggle, or halo is claimed.
+
+8. HEIGHT FOG
+The normal world fragment pass computes world-space low-height weight below
+1.55 units over a .9-unit falloff and multiplies it by the existing camera
+distance interval 2..10 units. Executive Auto uses density .045, cap .04,
+and muted neutral color (.45,.42,.39). It mixes into world RGB before the
+post stage. Medical density is zero. It adds no FBO, texture, depth readback,
+or draw. The existing distance haze remains independently active. Height fog
+is enabled only for generated + post + FX FULL; if post has failed, subsequent
+world submissions use zero fog. Invalid/zero falloff or density is neutral.
+
+9. LOCAL FOG VOLUMES / HEAT HOOK
+SKIPPED both. Manually placed volumes and future heat distortion would add
+new controls and authoring without improving the reviewed views in this pass.
+
+10. FINAL MEDICAL AUTO PARAMETERS
+Baseline unchanged: exposure 1.02, contrast 1.13, toe .035, shoulder .12,
+saturation .94; shadow (.78,.90,1.05) at .10; highlight
+(1.02,1.02,1.00) at .025; vignette .10/.72/.25 and grain .007.
+Existing haze (.53,.63,.68), start 2/end 9, strength .070; far desaturation
+.070, far contrast .030, shadow bias (-.020,.004,.025), drift 18 s/.004.
+New rolloff/lift/near-black = 0/0/0, emissive/light = 1/1, height fog = off.
+
+11. FINAL EXECUTIVE AUTO PARAMETERS
+Baseline: exposure 1.02, contrast 1.17, toe .04, shoulder .17,
+saturation .94; shadow (.85,.91,1.02) at .10; highlight
+(1.07,1.01,.89) at .08; vignette .11/.74/.25 and grain .006.
+Existing haze (.47,.42,.38), start 3/end 12, strength .080; far desaturation
+.050, far contrast .025, drift 26 s/.003. Shadow bias is now
+(.005,-.010,.012). New rolloff .55, midtone lift .030, near-black .08,
+emissive .88, generated light 1.05. Height fog: base 1.55, falloff .9,
+density .045, cap .04, color (.45,.42,.39).
+
+12. EXECUTIVE HARDWARE REVIEW
+The existing slot02 Gamma Grove wall/door and bright ceiling fixture corridor
+was loaded at the same saved camera as HYBRID2. Ignored captures:
+dist/horror-hybrid2/exec-full-tuned.png (previous Auto),
+dist/horror-hybrid3/exec-tone-only.png (new Auto, FX BASE), and
+dist/horror-hybrid3/exec-final-stable.png (new Auto, FX FULL).
+In a fixed 320x95 ceiling crop, previous RGB mean (76.4,80.2,73.5), peak
+channel 216; final (73.8,76.5,71.2), peak 195. The ceiling retains its
+panel pattern and is less dominating. In a fixed dark corridor crop, means
+move from (17.1,14.7,14.5) to (19.2,16.8,16.5); the corridor stays dark
+and navigable. Wall pattern, red sign, cyan kiosk, and warm trim remain
+distinct. FULL versus BASE has no obvious fog wall or color wash in this view.
+These are crop comparisons, not a display calibration or independent proof of
+each effect. A different white-panel corridor and the six-chandelier room were
+not reached in this bounded pass. Chandelier prominence and whole-room balance
+remain unverified on hardware.
+
+13. MEDICAL REGRESSION REVIEW
+Final slot07 fresh-start capture: dist/horror-hybrid3/medical-final-stable.png.
+Compared with dist/horror-hybrid2/med-final-iter2.png at the same saved view:
+cyan beds, violet fixtures, dark ceiling, central control, and wall texture
+look consistent. The existing flicker/animated HUD can differ frame to frame.
+No Medical tone, light, or height-fog parameter changed. The Medical long
+corridor and Healing Suite doorway were not revisited on the final APK.
+
+14. PERFORMANCE SMOKE
+Short stationary 300-frame windows, no long campaign. Executive FX BASE
+post CPU submission .015-.016 ms mean, .016-.018 p95; GPU2 submission
+about .050-.053 ms. Executive FX FULL post about .016 ms mean/.017 p95;
+GPU2 about .048-.050 ms. HYBRID2 Executive FULL was about .015 ms post and
+.047-.051 ms GPU2 in its fixed view. Medical FULL post .019 ms mean and
+GPU2 .067-.070 ms, consistent with HYBRID2. No visible presentation hitch.
+The counters are CPU submission only; GPU execution timing is unavailable.
+Height fog adds fragment ALU and no extra render target or memory allocation.
+Bloom has zero cost because it was skipped. No isolated GPU cost for height
+fog was measurable with the available timer.
+
+15. RETAINED / DISABLED EFFECTS AND DEFAULTS
+Recommended Enhanced defaults: GPU GENERATED, Post Auto, FX FULL, vignette On,
+low grain On. Medical retains its HYBRID2 grade and atmosphere without height
+fog. Executive adds tone zones, reviewed emissive .88, generated-light 1.05,
+restrained split-tint refinement, and subtle height fog on top of HYBRID2
+distance atmosphere. Bloom, local fog volumes, and heat distortion stay off.
+Existing MODE/POST touch QA buttons remain visible, with FX BASE/HAZE/DIST/
+FULL in the Post menu. No new menu system was added.
+
+16. FALLBACK / TESTS
+Existing post shader/target/copy/submit failures return the GPU world; world
+shader or GPU submission failure returns the software world. New multipliers
+are neutral when post is off or failed, and the fog term is zero. The new
+world and post GLES3 shaders compiled/linked on the phone; the 1024x768 post
+target reported PASS. python scripts/test-horror-hybrid.py passed on ARM64:
+high-only rolloff monotonic/bounds, midtone zone, black safety, multiplier
+bounds, split weights, fog bounds, and prior flicker/distance/drift checks.
+Scoped git diff --check passed. No new fault injection was run; HYBRID2 had
+tested the existing post-submit fallback on device.
+
+17. APK / INSTALL / PHONE HANDOFF
+Final: dist/horror-hybrid3/SystemShock-HORROR-HYBRID3-POLISH1-qa-arm64-v8a.apk
+SHA256: f46bec12d5fb55501fe1468c968923eec612bdbf81cf2367a2a41692e42cf6f3
+Package io.github.raposomiguel50.systemshock.qa, version 10000 / 1.0.0-qa.
+Signer SHA256: 6dc6baad4199aaa7637cbbe2af679156eb48731b0eacdeabc0ffaa78adcd9924.
+All three native libraries have 0x4000 PT_LOAD alignment and native ZIP
+alignment PASS. adb install -r returned Success; the launcher entry started.
+The installed APK pulled from the phone hashes identically. All eight
+savgam00-07.dat files and touch-settings.cfg are byte-identical to preinstall
+backups. Persisted preferences: gpu-generated, post yes, preset Auto,
+vignette yes, grain yes, FX FULL. Phone is Awake with the QA game foreground,
+Executive slot02 Gamma Grove/fixture view loaded, QA MODE/POST visible;
+final capture dist/horror-hybrid3/final-handoff.png. The chandelier room was
+not reached. No data clear or save rewrite occurred.
+
+18. EXACT FILES / COMMITS / NO PUSH
+Visual implementation and tests:
+  SourceSnapshot/src/MacSrc/GpuPost.h
+  SourceSnapshot/src/MacSrc/GpuWorld.c
+  tests/visuals/horror_hybrid_test.c
+Report:
+  docs/HORROR_HYBRID3_POLISH1_QA.txt
+Implementation commit: 0f56ff8b59c75b85e55b1c61def04bca2019405d.
+Report is a separate local documentation commit (the commit containing this
+file; inspect HEAD at handoff). No APK, screenshot, log, save, proprietary
+asset, dist output, cache, or unrelated AUDIO work was committed. Nothing
+was pushed.
+
+19. CENTRAL QUESTIONS
+1. Highlight rolloff improved Executive white panels? YES in the reviewed
+   bright ceiling crop; a separate white-panel corridor remains unreviewed.
+2. Midtone lift recovered dark-room structure? YES modestly at Gamma Grove;
+   broad dark-room coverage remains unverified.
+3. Blacks convincingly dark? YES in the reviewed corridor; zero is unchanged.
+4. Per-deck multipliers help? Executive mask attenuation improves ceiling
+   restraint; 1.05 light boost is subtle, chandelier effect unverified.
+5. Split toning better without tinting everything? Restrained in this view;
+   independent artistic benefit of the small shadow-bias change is unproven.
+6. Clean emissive-only bloom feasible within bounded scope? NO; skipped.
+7. Bloom worth keeping? Not applicable; no bloom implementation.
+8. Height fog helps? Implemented and cosmetically safe in the reviewed view;
+   independent depth benefit is too subtle to establish here.
+9. Medical preserved? YES in fresh-start comparison; other Medical views not
+   revisited on final build.
+10. Executive materially better than HYBRID2? Modestly better in the saved
+    fixture/corridor view; broader verdict awaits white-panel/chandelier views.
+11. Enabled effects cheap enough? CPU submission smoke YES; GPU time unknown.
+12. Default Enhanced visuals? Keep current Medical Auto; use Executive tone
+    zones and restrained atmospheric FULL, with bloom off.
+
+20. RECOMMENDED NEXT VISUAL STEP
+Use a deliberately framed Executive white-panel corridor and six-chandelier
+whole-room save, plus a Medical long corridor, to make the final art-direction
+call. Keep it a scene review, not a renderer architecture campaign.

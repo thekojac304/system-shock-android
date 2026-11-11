@@ -625,6 +625,9 @@ errtype load_da_palette(void) {
         critical_error(CRITERR_RES | 4);
     ResExtract(RES_gamePalette, FORMAT_RAW, ppall);
     ResCloseFile(pal_file);
+    /* Canonical palette; never rebuild from gamma/cycled display colors. */
+    extern void horror_visuals_init(void);
+    horror_visuals_init();
     gr_set_pal(0, 256, ppall);
 
     return (OK);

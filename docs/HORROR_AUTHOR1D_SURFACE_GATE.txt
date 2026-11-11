@@ -1,0 +1,187 @@
+HORROR-AUTHOR1D / STABLE SURFACE IDENTITY AND GENERATED RECEIVER GATE
+2026-10-03
+
+VERDICT
+Offline safety/usefulness gate: FAIL. GLES integration gate: FAIL / not entered.
+No GPU GENERATED mode exists. No APK, device visual capture, live door-light test,
+or generated runtime profile was made. The explicit stop condition was reached:
+the terrain-safe whole-face receiver pass retains only 1/17 Medical held-out
+tiles, and animated door opening aperture remains uncertified. The source
+identity work and deliberately restrictive receiver compiler are reusable;
+neither is represented as a passed generated-lighting runtime.
+
+1. STARTING TREE AND BOUNDARY
+Starting HEAD: dec7fde75149f129d7b3c02197b3de0f9e2db15c. The working tree
+already contained unrelated AUDIO edits and untracked AUDIO files. None was
+staged or changed for AUTHOR1D. Medical level 1 and Executive level 6 alone
+were regenerated from the owned local ARCHIVE.DAT, TEXTPROP.DAT and OBJPROP.DAT.
+Generated profiles, compiled receiver diagnostics and source resources remain
+ignored under dist/horror-author1d. The generator does not read old proof
+coordinates, labels, hand-authored radii or the Medical 17-tile reference.
+That reference was compared only after generation.
+
+2. SURFACE ID CONTRACT AND GPU DRAW ATTACHMENT
+GpuSurfaceId.h defines level, tile X/Y, terrain class, face/edge index,
+subface, terrain type, own raw geometry key, optional neighbor raw geometry
+key and valid bit. Floors and ceilings have distinct classes. External wall
+edges and emitted strips have separate face/subface fields; internal wall
+face indices cover diagonal and slope-generated internal faces. Own geometry
+key packs original tile type, raw floor/ceiling heights, parameter and mirror
+bits without a hash. External walls also bind to the adjacent tile geometry
+key. Draw metadata separately records material resource ID. Identity never
+uses GPU buffer index, pointer, traversal order or frame number. It changes
+no saved format or gameplay state.
+
+frterr.c now sets this context immediately before its original wall,
+floor and ceiling emission, and tags both emitted floor/ceiling subfaces.
+Single ceiling polygons use subface 0; only two-element ceilings use
+subfaces 1 and 0, matching the offline flat-face record.
+GpuWorld.c copies it into each captured terrain Draw. Object draws carry an
+invalid ID; missing or out-of-range terrain identity also fails invalid.
+The original terrain traversal and geometry remain authoritative. Unsupported
+generated metadata must leave the accepted neutral GPU draw intact; no
+generated-light application path was installed in this phase. The Android QA
+native build compiles this path, but a live draw-by-draw ID census and map
+mutation test were not performed. Thus the source contract is implemented,
+while on-device completeness is still unverified.
+
+3. RECEIVER APPLICATION AND PARTIAL FACES
+scripts/horror_surface.py is a separate conservative offline compiler. It
+reads a validated generated profile and emits sorted light ID -> exact flat
+floor/ceiling SurfaceId pairs. It never upgrades the earlier tile mask to a
+draw receiver. It proves a sufficient terrain-clear case: every cell in the
+axis-aligned XY bounding prism from source to the entire target square must
+be an ordinary flat tile, contain the full source-to-face vertical interval,
+and contain no recorded door tile. Every source-to-face-fragment segment is
+inside that prism, so no accepted face has a known hidden terrain fragment.
+Other flat faces, all complex faces, wall faces and all partial cases receive
+no generated light. This is deliberately over-restrictive and is not a
+runtime receiver loader. Dynamic objects are outside this terrain proof.
+The compiler records baseline/rules signatures but does not authenticate
+them against live archive resources; no runtime fail-closed profile loader
+or active light-list budget has been implemented.
+
+4. ANIMATED DOOR APERTURE
+The AUTHOR1C collision/static portal records remain 58/63 Medical and 54/58
+Executive doors. Source inspection confirms frame 0 through 2 is closed for
+physics/facelets and frame >=3 is open for that purpose. Game object rendering
+uses a frame-specific cached bitmap, whose width/height set plane extents;
+the door remains an object plane and paired halves have independent frames.
+The existing portal_transmits policy requires both halves at frame >=3.
+Neither that threshold nor the earlier Flight visual parity recording
+certifies the luminous aperture silhouette of Medical/Executive door art
+at each frame. No bitmap transparency/width sequence was decoded here.
+The AUTHOR1D receiver compiler therefore treats every portal as closed,
+including fully open frames. This prevents closed-door spill offline but
+cannot provide conservative increasing/decreasing live spill. No portal
+runtime record or lighting invalidation was added.
+
+5. EMISSIVE MASKS
+The ten AUTHOR1C reviewed palette-index masks for resources 20, 35, 36, 82,
+101, 144, 185, 215, 216 and 217 remain in shared rules and unchanged.
+They were not re-audited. They are not compiled into the GLES material path;
+therefore luminous pixels versus dark housing and palette cycling have no
+new AUTHOR1D in-game result. The existing GPU proof path is unaffected.
+
+6. MEDICAL OFFLINE RE-RUN
+Independent generation is unchanged: 434 regions, 224 singleton regions,
+265 sources and 780/1184 proposed receiver tiles. Six generated sources
+affect 14/17 held-out tiles under the old diagnostic tile masks. The strict
+flat-prism compiler accepts 1,183 floor/ceiling face-light relationships
+covering 404 of those 780 tiles. It rejects 1,287 flat relationships and
+950 complex relationships (475 complex tile-light pairs x two faces).
+Only tile 1564 of the 17 held-out tiles has a certified surface receiver;
+one generated light contributes two face records there. This is a severe
+usefulness regression, though it creates no known terrain hidden-fragment
+leak. Closed doors reject; open-door spill is unsupported. Medical has six
+relevant reviewed texture masks, still not active in GLES. No Medical visual
+result exists.
+For comparison only, the AUTHOR1C nine-point audit classified flat
+floor light-pairs 754 full / 454 partial / 27 blocked and ceiling pairs
+692 full / 296 partial / 247 blocked. Those sampled "full" results were
+never used as fragment-safe receiver permissions.
+
+7. EXECUTIVE OFFLINE RE-RUN
+The same shared inference rules retain 225 regions, 81 singletons, 179
+sources and 693/1227 proposed receiver tiles. Chandelier objects 62, 63,
+69, 70, 180 and 181 still generate sources; each has at least six accepted
+flat-face records. The strict compiler accepts 1,265 face-light relations
+covering 411/693 proposed tiles; it rejects 959 flat and 560 complex face
+relations. Of 506 originally dark floor+ceiling tiles, 365 lack a certified
+surface receiver (the old tile diagnostic left 288 unlit). Repeated fixture
+sources remain bounded by the unchanged generator, but no live intensity or
+visual sanity check was possible. Executive has five relevant reviewed
+masks, not active in GLES. No Executive visual result exists.
+The sampled AUTHOR1C flat-face audit gave floor 763 full / 332 partial /
+17 blocked and ceiling 682 full / 267 partial / 163 blocked; the strict
+compiler does not promote those sampled full results automatically.
+
+8. GATES, TESTS AND PERFORMANCE
+Offline FAIL: source IDs are compiled into draws, and accepted flat faces
+have a sufficient whole-face terrain proof, but the Medical holdout collapses
+to 1/17 and opening-door spill lacks certified geometry. Exact wall and
+complex face receiver compilation, material-mask compilation and runtime
+signature validation are also unfinished. GLES FAIL/not entered by the
+required stop rule. GPU GENERATED, QA overlay, profile load, dynamic-light
+event, Medical/Executive runtime review and live door-light cycle are N/A.
+
+The QA native renderer build succeeded without installing an APK. Twenty-one
+focused existing/new offline tests passed, including SurfaceId determinism,
+face/shape distinction, clear/blocked/height/partial prism cases, closed
+portal rejection, prior paired-door threshold behavior and prior signature
+tests. Recompiling Medical surface records produced byte-identical SHA256
+657be2acc9023e6dfeb1fc6783f1205c7dbc47e219066184c254dea0aa2ab2b2.
+No frame delta, active lights per draw, Android profile load time or GPU
+partial-surface count was measured because generated runtime was not entered.
+
+9. REMAINING ERRORS AND ESTIMATE
+Potential false positives: generated source placement/color/energy remain
+unreviewed visual inferences; the flat-prism terrain proof ignores occlusion
+by dynamic objects; live ID correctness under terrain mutation is not yet
+measured. It does not claim wall/complex receiver safety. False negatives:
+the bounding prism rejects many clear narrow sight cones, all complex and
+wall faces, every door crossing even when open, and 16/17 Medical held-out
+tiles. Medical tiles 1370, 1438 and 1502 still lack proposed tile receivers.
+
+For planning only, revise the prior 65-75% automatic ordinary-area setup /
+25-35% substantive review to roughly 50-60% automatic and 40-50% manual
+engineering/visual review, very low confidence. This is not a measured
+station-wide completion rate. Current runtime-safe held-out coverage is too
+low to estimate finished visual authorship from these two levels.
+
+10. CENTRAL ANSWERS
+1. Stable emitted surface identity? Implemented in source and QA-buildable
+   for the original terrain emission paths; live per-draw completeness not
+   yet verified.
+2. Safe exact-surface targeting? Offline flat floor/ceiling subset yes;
+   runtime targeting and walls/complex surfaces no.
+3. Hidden-fragment handling? Rejected rather than uniformly lit for the
+   certified subset; partial-face lighting itself remains unimplemented.
+4. Safe door-state spill? Closed case only; opening/open/closing no.
+5. Reviewed masks working in GLES? No, not integrated.
+6. Medical useful independent generated light? Original proposal yes;
+   current certified holdout only 1/17, so not useful enough for runtime.
+7. Executive generalizes? Source inference and all six chandeliers yes;
+   conservative receivers cover 411 proposed tiles, visuals untested.
+8. GPU GENERATED safe for live review? No.
+9. Horror-oriented generated visual result? Not available.
+10. Ready for broad visual authoring? No.
+
+11. FILES, COMMIT AND NEXT PHASE
+Implementation commit: 199e31d65fb168fe39e141f2fe7d28598024d1c0.
+Its exact files: SourceSnapshot/src/GameSrc/frterr.c,
+SourceSnapshot/src/MacSrc/GpuSurfaceId.h,
+SourceSnapshot/src/MacSrc/GpuWorld.c,
+SourceSnapshot/src/MacSrc/GpuWorld.h,
+scripts/horror_surface.py, tests/visuals/test_horror_surface.py.
+This report is docs/HORROR_AUTHOR1D_SURFACE_GATE.txt, committed separately.
+Its commit also includes the single-ceiling subface correction in frterr.c.
+No push was performed. No APK, screenshot, log, generated dist data, save,
+proprietary resource or unrelated AUDIO change was committed.
+
+Recommended next phase: establish a bounded partial-face mask or split for
+the Medical holdout, certify frame-indexed door bitmap aperture geometry
+including paired halves, then repeat the same Medical/Executive surface gate.
+Only after both are useful and safe should generated profile and emissive
+masks be compiled into the QA-only GLES mode for visual review. Do not begin
+full-station authoring or GPU-RENDER6.

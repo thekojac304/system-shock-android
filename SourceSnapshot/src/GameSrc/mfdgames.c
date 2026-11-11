@@ -893,7 +893,7 @@ uchar games_handle_road(MFD *m, uiEvent *e) {
         road_state *cur_rs = (road_state *)GAME_DATA;
         int bt = e->mouse_data.buttons;
         if (bt != 0)
-            if (e->mouse_data.modifiers != 0)
+            if (e->mouse_data.modifiers & 1)
                 bt++;
 
         //	if (bt!=cur_rs->last_bs)
@@ -1439,8 +1439,8 @@ static uchar games_handle_mcom(MFD *m, uiEvent *e) {
         if (e->mouse_data.action & MOUSE_LDOWN)
             mcom_start_game();
     } else if (ms->state < MCOM_PLAY_GAME || (ms->state == MCOM_PLAY_GAME && (ms->enemies || num_attackers))) {
-        int left = (e->mouse_data.action & MOUSE_LDOWN) && (e->mouse_data.modifiers == 0);
-        int right = (e->mouse_data.action & MOUSE_LDOWN) && (e->mouse_data.modifiers != 0);
+        int left = (e->mouse_data.action & MOUSE_LDOWN) && !(e->mouse_data.modifiers & 1);
+        int right = (e->mouse_data.action & MOUSE_LDOWN) && (e->mouse_data.modifiers & 1);
         // KLC - no need to worry about left/right hand mouse for Mac version.
         //		if (QUESTVAR_GET(MOUSEHAND_QVAR))
         //		{

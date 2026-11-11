@@ -26,17 +26,34 @@
 #include "lg.h"
 #include "2d.h"
 
+// Movie fields are packed little-endian bytes, not aligned native words.
+// In particular a 3-byte Huffman entry or 6-byte mask may end exactly at
+// an allocation boundary. Loading a wider word and masking afterwards still
+// reads outside that allocation (and can hit the allocator's guard page).
+template <typename T, unsigned N>
+static T read_le(const uint8_t* p)
+{
+    T value = 0;
+    for (unsigned i = 0; i < N; ++i)
+        value |= T(p[i]) << (8 * i);
+    return value;
+}
+
 // Holds bitstream information between invocations.
 class BitstreamInfo
 {
     uint8_t* ptr;
+    const uint8_t* end;
     uint32_t word; // working value
     int count;     // how many bits are available in word
 public:
-    explicit BitstreamInfo(uint8_t* p) : ptr(p), word(0), count(0) {}
+    BitstreamInfo(uint8_t* p, const uint8_t* limit) : ptr(p), end(limit), word(0), count(0) {}
     inline void reserve(int nbits) {
 	while (count < nbits) {
-	    word = (word << 8) | *ptr++;
+            // A flash-table lookup peeks 12 bits even when the final code
+            // uses fewer. Zero-extend that lookahead at the control-stream
+            // boundary; those padding bits are not part of the code consumed.
+	    word = (word << 8) | (ptr < end ? *ptr++ : 0);
 	    count += 8;
 	}
     }
@@ -87,8 +104,8 @@ void Draw4x4(uchar* p, int width, int height)
     int cell_column;
     int row = grd_canvas->bm.row;
     cell_column = width / 4;
-    BitstreamInfo bitstream(p+2);
-    uchar* mask_stream = (p + *((ushort*)(p)));
+    uchar* mask_stream = p + read_le<uint16_t, 2>(p);
+    BitstreamInfo bitstream(p+2, mask_stream);
 
     uchar* bits = grd_canvas->bm.bits;
 
@@ -113,7 +130,7 @@ static void Draw4x4_InternalAlpha(uint32_t* xtab, int b, BitstreamInfo& bitstrea
 	// hufftable.
 	auto const hindex = bitstream.peek(12);
 	uint8_t* huffptr = &d4x4_hufftab[hindex * 3];
-	uint32_t huffword = *((uint32_t*)huffptr) & 0x00FFFFFF;
+	uint32_t huffword = read_le<uint32_t, 3>(huffptr);
 	// Bits 20-23 are the count field.
 	auto count = (huffword & 0xf00000) >> 20;
 	if (count == 0) {
@@ -130,7 +147,7 @@ static void Draw4x4_InternalAlpha(uint32_t* xtab, int b, BitstreamInfo& bitstrea
 		
 		huffptr += offset * 3;
 		// Check the next count: if it's still zero, go round again.
-		huffword = *((uint32_t*)huffptr) & 0x00FFFFFF;
+		huffword = read_le<uint32_t, 3>(huffptr);
 		count = (huffword & 0xf00000) >> 20;
 		if (count == 0)
 		{
@@ -225,7 +242,7 @@ static uint8_t* Draw4x4_InternalBeta(uint32_t* xtab, int framesize,
 		uint8_t(xparam & 0xff),
 		uint8_t((xparam & 0xff00) >> 8)
 	    };
-	    auto mask = *(uint16_t*)mask_stream;
+	    auto mask = read_le<uint16_t, 2>(mask_stream);
 	    mask_stream += 2;
 	    tbits = bits;
             if (ctab[0] != 0) {
@@ -259,7 +276,7 @@ static uint8_t* Draw4x4_InternalBeta(uint32_t* xtab, int framesize,
 	    // main colour table, taken to point to a 4-byte colour table. Set
 	    // each tile pixel to the colour table indexed by the corresponding
 	    // 2 bits of the mask word.
-	    auto mask = *(uint32_t*)mask_stream;
+	    auto mask = read_le<uint32_t, 4>(mask_stream);
 	    mask_stream += 4;
             tbits = bits;
 	    auto const ctab = d4x4_colorset + xparam;
@@ -295,7 +312,7 @@ static uint8_t* Draw4x4_InternalBeta(uint32_t* xtab, int framesize,
 	    // code, I think it's more convenient and probably just as efficient
 	    // to let the compiler deal with wide data types, even on a 32-bit
 	    // platform.
-	    auto mask = *(uint64_t*)mask_stream;
+	    auto mask = read_le<uint64_t, 6>(mask_stream);
 	    mask_stream += 6;
             tbits = bits;
 	    auto const ctab = d4x4_colorset + xparam;
@@ -326,7 +343,7 @@ static uint8_t* Draw4x4_InternalBeta(uint32_t* xtab, int framesize,
 	{
 	    // Type 4: 4-bit index. Mask word is 64 bits, colour table has 16
 	    // entries.
-	    auto mask = *(uint64_t*)mask_stream;
+	    auto mask = read_le<uint64_t, 8>(mask_stream);
 	    mask_stream += 8;
             tbits = bits;
 	    auto const ctab = d4x4_colorset + xparam;

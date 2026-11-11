@@ -1,0 +1,421 @@
+Android audio lifecycle investigation — 2026-10-02
+
+RESULT AND LIMITS
+
+Root cause is not established. No Android device was connected to ADB during
+this investigation, so there are no new hardware timing measurements. The
+reported clean-restart recovery and approximately 200–300 ms late door SFX are
+user observations, not reproduced results from this session.
+
+Continuous runtime alone: UNTESTED.
+One background/resume: UNTESTED.
+Repeated resumes compounding latency: UNTESTED.
+Screen lock/unlock: UNTESTED.
+Exact trigger: UNKNOWN. Use the matrix below without combining cases initially.
+
+This is an instrumentation experiment, not a purported fix. No buffer size,
+backend selection, audio pause policy, input behavior, wheel timing, game
+simulation timing, or animation timing was changed. No commit or push.
+
+SOURCE IDENTITY
+
+Working source started clean at d5b8bb96303b0593e93a99f19333f63f4725bfbf.
+SDL 2.32.10: 5d249570393f7a37e037abf22cd6012a4cc56a71.
+SDL_mixer 2.8.1: 171eb2d420d5643e4ee11514a06e04a41a463bbd.
+Both .deps dependency checkouts were clean and remain unmodified.
+Upstream comparison: Interrupt/systemshock, commit
+4cc3d07dfff2d11b6d3a0a9960a51cf4ca253690, src/MacSrc/SDLSound.c.
+The exact upstream file was fetched into dist/upstream-SDLSound.c.
+
+LIFECYCLE PATH
+
+1. ShockolateActivity inherits the pinned SDLActivity. Its onResume calls
+   super, then reapplies landscape/fullscreen/keyguard policy. It does not
+   pause, resume, close or reopen audio itself.
+
+2. SDLActivity.mHasMultiWindow means API >=24 support, not whether the window
+   is currently split. This port requires API >=33, so onPause/onResume freeze
+   and unfreeze HID but native suspension is driven by onStop/onStart.
+   Focus loss calls nativeFocusChanged(false); it does NOT pause the native
+   thread on these Android versions. Regaining focus attempts a resume.
+
+3. handleNativeState discards a transition already in its current state.
+   PAUSED calls nativePause and pauses the surface. RESUMED requires a ready
+   surface, focus, and mIsResumedCalled; it calls nativeResume for an existing
+   SDL thread. The first native-thread start deliberately does not signal a
+   resume semaphore. Surface destruction can also drive a paused transition.
+
+4. nativePause/nativeResume post Android_PauseSem/Android_ResumeSem. They do
+   not directly touch the mixer. SDL's Android event pump consumes those
+   semaphores. Shock.c explicitly sets SDL_ANDROID_BLOCK_ON_PAUSE="1".
+
+5. Android_PumpEvents_Blocking sends MINIMIZED and
+   SDL_APP_WILLENTERBACKGROUND / SDL_APP_DIDENTERBACKGROUND, lets the last
+   background event reach the application, then calls the backend pause
+   functions and blocks the main SDL event-pump thread on Android_ResumeSem.
+
+6. On resume SDL sends SDL_APP_WILLENTERFOREGROUND /
+   SDL_APP_DIDENTERFOREGROUND and RESTORED BEFORE backend resume calls. It then
+   resumes backend audio and restores graphics/keyboard state. An app event
+   watcher observing DIDENTERFOREGROUND is therefore not proof that sound has
+   restarted yet. The diagnostic backend_resume.end marker is later.
+
+7. Normal background/foreground preserves the mixer device and its channels.
+   The application has no lifecycle Mix_Pause/Mix_Resume/Mix_CloseAudio calls,
+   no manual device handle restoration, and no independent lifecycle reopen.
+   SDL2_mixer owns the device ID; the old raw SDL device belongs to the
+   non-Android branch. No app-side duplicate resume path was found.
+
+8. Lock/unlock will follow the above path IF Android stops/restarts the
+   Activity or destroys/restores the surface. This app requests KEEP_SCREEN_ON,
+   showWhenLocked, turnScreenOn and keyguard dismissal. Consequently, do not
+   equate a power-button press with a successfully suspended app. Verify the
+   screen and the Java locked/interactive plus SDL/backend markers. A focus-only
+   OEM overlay is a separate case and may keep audio running normally.
+
+Compared with the pinned SDL Java sources, SDLActivity and SDLAudioManager are
+unchanged. SDLSurface differs in its touch forwarding only; that code was not
+changed. SDL native dependencies have no project modifications. Project audio
+workarounds already present are single-device ownership, auxiliary postmix,
+the 1024-frame Android buffer, and XMI scheduler/controller cleanup changes.
+The touch bridge consumes lifecycle events to clear/reset touch state; it does
+not own or pause audio. There is no evidence here implicating Touch Alpha 4.
+
+BACKENDS, QUEUES AND MIXER STATE
+
+All three Android backends are compiled. SDL's default selection order is
+openslES, AAudio, android (Java AudioTrack). No project audio-driver override
+was found. Read AUDLIFE config backend= on hardware to confirm the selected
+driver; source selection order alone is not hardware observation.
+
+OpenSL ES:
+- NUM_BUFFERS=2, a two-slot circular PCM buffer and native simple-buffer queue.
+- openslES_PauseDevices sets SL_PLAYSTATE_PAUSED; ResumeDevices sets PLAYING.
+- Neither clears the queue, recreates the player, nor takes the mixer lock.
+- Callback production may finish/fill the bounded queue after pause until the
+  audio thread blocks on playsem. Playback completion posts that semaphore.
+- Retaining queued pre-pause PCM is real source behavior. At the requested
+  format, two complete buffers represent 42.667 ms. It is NOT proof of a
+  persistent 200–300 ms delay or cumulative latency after multiple resumes.
+- No unbounded PCM queue or queue growth per resume appears in this backend.
+  Android's AudioFlinger/HAL can have additional buffering not exposed here.
+- An enqueue failure returns a semaphore token; diagnostics log that condition.
+
+Fallbacks:
+- AAudio takes the mixer lock, requests stream pause, then requests start and
+  unlocks on resume; it also has native error recovery/rebuild and a broken
+  timestamp-state detector. The detector can trigger a pause/resume independently
+  of an app lifecycle event. That trigger is logged in this QA build.
+- The Java android backend locks/unlocks the mixer across suspension; it keeps
+  the AudioTrack device. Existing submitted AudioTrack data can drain while no
+  new callbacks are mixed. SDLAudioManager handles open/write/close, not an
+  additional app-specific pause/reopen.
+- Detailed native queue/position diagnostics in this build cover OpenSL only.
+  If config reports a fallback backend, collect its system audio dump and add
+  backend-specific timestamp/queue telemetry before drawing queue conclusions.
+
+SDL_mixer installs mix_channels as SDL_AudioSpec.callback. There is no
+SDL_QueueAudio playback in this Android game path. SDL_GetQueuedAudioSize always
+returns zero for an application callback device, so zero would not establish
+an empty native queue. The log explicitly says queue_api=callback_not_applicable
+and uses OpenSL GetState instead. Do not clear queued SDL audio as a blind fix.
+Official API explanation: https://wiki.libsdl.org/SDL2/SDL_GetQueuedAudioSize
+
+SDL_GetAudioDeviceStatus reads SDL's enabled/paused flags. OpenSL's lifecycle
+pause does not update those flags, so status=SDL_AUDIO_PLAYING (1) can coexist
+with native SL_PLAYSTATE_PAUSED (2). This is expected; compare both layers.
+SDL status values: STOPPED=0, PLAYING=1, PAUSED=2.
+OpenSL play states: STOPPED=1, PAUSED=2, PLAYING=3.
+
+The app's Mix_PauseAudio(1/0) bridges are short, matched critical sections while
+creating/freeing cutscene/audio-log streams. All inspected Android paths pair
+them; there is no background-specific unmatched pause. These calls pause the
+whole device callback, not individual Mix channels. They preserve the device.
+
+The auxiliary SDL_AudioStream has its own buffered PCM. Game/cutscene code
+feeds it; postmix drains it into the SAME output buffer after music and SFX.
+It survives lifecycle suspension. It could retain old auxiliary speech, but
+SFX are mixed alongside it, not queued behind it. An auxiliary backlog alone
+does not explain a delayed door sound. aux_bytes measures available output
+bytes at postmix entry, not every possible input/resampler byte.
+
+MusicCallback takes MyMutex and generates synthesizer PCM before SFX mixing.
+The independent XMI event thread has no lifecycle pause hook and can continue
+updating synthesizer state while SDL audio is stopped. Its existing monotonic
+scheduler rebases active layer origins after >30 ms lateness. This deserves
+music-resume testing; it does not itself prove that SFX PCM accumulates.
+max_music_us distinguishes a slow music hook/mutex wait from other callback
+work. Existing RP5NP_XMI_CLOCK_REBASE logs are retained for correlation.
+Mix_PlayingMusic reports SDL_mixer's built-in music object, not the custom XMI
+synth hook; music_playing=0 is not proof that this game's music is silent.
+
+UPSTREAM AND CURRENT CONFIGURATION
+
+The exact upstream SDLSound.c opens a raw SDL callback device for auxiliary
+audio and a separate SDL_mixer device, both requesting 2048 samples. The
+Android port already replaced that with one mixer-owned physical device;
+restoring the upstream two-device design would undo a documented ownership fix.
+
+Requested mixer configuration:
+  Rate:              48000 Hz
+  Format:            AUDIO_S16SYS; signed 16-bit little-endian on ARM64
+  Output channels:   2 (stereo)
+  Chunk/callback:    1024 sample frames, 4096 bytes
+  Nominal duration:  1024 / 48000 = 21.333333 ms
+  OpenSL slots:      2, nominal combined 42.666667 ms of PCM
+  SFX channels:      SND_MAX_SAMPLES=12 (independent of stereo output channels)
+  Format changes:   Mix_OpenAudioDevice allowed_changes=0
+  Music:            custom Mix_HookMusic(MusicCallback), music volume max;
+                    synthesizer/XMI supplies the game music
+  Auxiliary:        postmix, same 48 kHz/S16/stereo format
+  Pause hint:       SDL_ANDROID_BLOCK_ON_PAUSE=1
+  Pause-audio hint: no explicit override; SDL default true; blocking pump
+                    pauses audio unconditionally in this pinned implementation
+
+AUDLIFE config logs the obtained mixer spec, selected backend and hint strings.
+A null pause_audio_hint means no explicit value, not disabled. Neither nominal
+duration nor OpenSL queue count is an end-to-speaker latency measurement.
+
+WHAT WAS ADDED / HOW TO REMOVE
+
+All additions are identified by AUDLIFE / RP5NP_AUDIO_DIAGNOSTICS. Enable only
+for QA with:
+  pwsh -File scripts/build.ps1 -Variant qa -AudioDiagnostics -SkipGitCleanCheck
+
+Default builds leave diagnostics disabled. The flag is rejected for non-QA
+variants. The CMake helper creates diagnostic copies of three dependency
+translation units under .cxx; it never patches .deps. Anchor mismatches fail
+configuration. All buffers, device ownership and lifecycle operations remain
+the originals. Generated overlays are rebuildable from the tracked helper.
+
+Instrumentation covers:
+- Java onStart/onStop/onPause/onResume/focus, native state, screen/keyguard.
+- Actual SDL app lifecycle names supported by SDL 2.32.10, focus, device events.
+- Backend pause/resume call boundaries; OpenSL native state/count/position and
+  operation return values; device open/close; auxiliary Mix_PauseAudio pairs.
+- Door use and animation-list insertion, SFX request, decode/load, mixer accept
+  and play return. Match sfx to sound reference using ref=201+sfx.
+- Acceptance receives a sequence ID while the mixer lock is held. First mixing
+  is recorded inside mix_channels when that channel's PCM is about to be mixed.
+  Join accept/first_mix by seq and sample_loaded/play_return by chunk and order.
+- Callback entry/end, frames, maximum callback gap/work/music-hook duration per
+  five-second window. A 10-second pause should produce a large gap; distinguish
+  that expected gap from continued bad cadence AFTER backend_resume.end.
+- Auxiliary available bytes; dropped trace-record count.
+
+Native timestamps use CLOCK_MONOTONIC microseconds; Java uses System.nanoTime
+on Android. These clocks exclude deep sleep. Use actual external video/logcat
+time for the duration of a screen-off interval, not a monotonic delta alone.
+first_mix has embedded first_us/accepted_us: its outer log line is emitted up
+to roughly 100 ms later by the diagnostic worker. Never measure first-mix
+latency from its logcat printing time. first_mix means processing starts, not
+the first nonzero PCM sample or audible speaker onset; samples may have silence.
+
+The mixer callback performs clock/atomic operations and bounded ring writes,
+not log I/O or allocation. OpenSL's submit path makes read-only state queries
+and logs at five-second intervals and on lifecycle/errors. Main-thread SFX
+and acceptance logging has measurable overhead, including a log under the
+mixer lock. Compare against the control APK if diagnostics change the symptom.
+Queue count/position snapshots are not atomic with hardware playback and do
+not expose the AudioFlinger/HAL/DAC queue. Callback heartbeat stops advancing
+if mixing stalls; the independent worker can still report the last timestamps.
+The logger/event watcher is removed before the physical device closes.
+
+No experimental lifecycle fix was chosen: the source trace establishes bounded
+queue retention but not a fault explaining the reported persistent latency.
+
+BUILD / TEST RESULTS
+
+Diagnostics QA APK: dist/SystemShock-Audio-Lifecycle-Diagnostics-qa-arm64-v8a.apk
+Package: io.github.raposomiguel50.systemshock.qa; version 1.0.0-qa, code 10000.
+SHA256: bae74a3fe36459d34775d8e896d5036bb7f666375a98907704443b6ffea0531f
+Build: PASS. APK identity/signature/native contents/16 KB ELF and ZIP alignment:
+PASS. Existing Touch suites: all 10 PASS, including Alpha 4 and lifecycle cases.
+Movie decoder tests: PASS at -O0 and -O2. PowerShell parse checks: PASS;
+PSScriptAnalyzer is not installed. No existing audio lifecycle hardware test
+suite was found. These tests do not verify audible synchronization or resumes.
+
+Build warnings include existing Android SDK XML/tool version and deprecated
+Java/OpenSL API warnings. No build errors.
+
+Logs: dist/audio-diagnostics-build.log,
+dist/audio-diagnostics-apk-verification.log,
+dist/audio-diagnostics-touch-tests.log, dist/audio-diagnostics-movie-tests.log.
+A second QA control APK with diagnostics disabled is provided as
+dist/SystemShock-Audio-Lifecycle-Control-qa-arm64-v8a.apk.
+Control SHA256:
+285736f1fac55b9c909531bb312c74026baa5caa76ce81ece358db9c2abae8f0
+Control build and APK verification: PASS. Binary inspection confirmed AUDLIFE
+markers in all three diagnostic native libraries and absent in all three
+control libraries. The final normal app/build/outputs QA path was rebuilt with
+diagnostics enabled; use the named dist APKs to avoid ambiguity.
+Both use the same QA package/signature; adb install -r switches between them
+without intentionally clearing QA data. Neither is a stable-release package.
+
+PRECISE HARDWARE PROCEDURE (PowerShell, repository root)
+
+Use built-in speakers or the same wired route throughout the first matrix.
+Record model/Android build, output route, volume, battery/power-saving mode,
+charging state and any OEM game/audio effects. Do not mix route changes into
+the first reproduction. Use the same save and same nearby door each time.
+Keep music and SFX enabled. Close a playing audio log before the basic matrix.
+
+1. Install the diagnostic QA APK (no uninstall/data clear):
+   $adb = Join-Path $env:ANDROID_HOME 'platform-tools/adb.exe'
+   $pkg = 'io.github.raposomiguel50.systemshock.qa'
+   & $adb devices -l
+   & $adb install -r .\dist\SystemShock-Audio-Lifecycle-Diagnostics-qa-arm64-v8a.apk
+   & $adb shell am start -W -n "$pkg/com.rp5np.systemshock.LauncherActivity"
+
+   If QA has no game data, use the importer with your owned res folder. Create
+   or load a repeatable save near an operable door. Do not remove the stable app.
+   If installation reports a signature mismatch, stop and retain existing data.
+
+2. In a dedicated PowerShell terminal set $adb as above and capture continuously:
+   & $adb logcat -v threadtime 'SDL:V' 'SDL/APP:V' 'AUDLIFE:I' 'AUDCASE:I' 'RP5NP:I' 'AudioTrack:V' 'AudioFlinger:I' 'AAudio:V' 'AndroidRuntime:E' '*:S' > .\dist\audio-hardware.log
+
+   Leave capture running across force-stops/restarts. Do not filter by PID,
+   because force-stop changes PID. Stop capture with Ctrl+C after the matrix.
+   Check the new launch contains AUDLIFE config and device_open markers.
+
+3. In a second terminal define $adb/$pkg and this launch helper:
+   function Start-CleanAudioCase([string]$case) {
+       & $adb shell am force-stop $pkg
+       & $adb shell log -t AUDCASE "$case clean_launch"
+       & $adb shell am start -W -n "$pkg/com.rp5np.systemshock.LauncherActivity"
+   }
+
+   Force-stop is only for the beginning of each independent case, never between
+   cycles within Case D. It does not clear the game's data. Load the same save.
+
+4. Measure with an external camera recording video AND sound, preferably 60 fps
+   or faster. Some slow-motion modes omit audio; verify recording has it. Keep
+   camera position/audio-video settings fixed. Film the display, tap and speaker
+   sound. Measure animation onset to SFX onset for at least five isolated door
+   actions per checkpoint, waiting for each action/animation to finish. Save
+   raw clips and record median/range; 60 fps visual precision is about 16.7 ms.
+   Camera AV offset affects absolute results, so compare changes against the
+   same-session clean baseline. Android screen recording captures another path
+   and does not prove speaker-output latency.
+
+MATRIX
+
+A — Clean launch:
+  Start-CleanAudioCase 'A'
+  Test five actions immediately after loading the save. Record music/SFX sync.
+
+B — Foreground runtime:
+  Start-CleanAudioCase 'B'
+  Play continuously for 15 minutes with no Home, lock, notification shade or
+  overlays. Mark/test at 0, 1, 5, 10 and 15 minutes:
+    & $adb shell log -t AUDCASE 'B minute_5 test'
+  Check logs show no SDL/backend pause during this case. If one occurs, the
+  case is no longer a clean test of runtime alone; repeat it separately.
+
+C — One background/resume:
+  Start-CleanAudioCase 'C'
+  Test baseline. Mark and send Home, wait 10 seconds, then return via Recents:
+    & $adb shell log -t AUDCASE 'C background'
+    & $adb shell input keyevent KEYCODE_HOME
+    Start-Sleep -Seconds 10
+  Select the existing QA game in Recents; do not force-stop or start a new game.
+    & $adb shell log -t AUDCASE 'C resumed_test'
+  Test immediately and at 5 and 30 seconds after return. Confirm native pause
+  and resume markers occurred and there is no new device_open/process startup.
+  A new process/device open is activity/process recreation, a separate case.
+
+D — Repeated background/resume (critical):
+  Start-CleanAudioCase 'D'
+  Test baseline. Repeat C's Home -> 10 seconds -> Recents return TEN TIMES
+  without force-stop, reloading or reinstalling. Label D cycle_1 ... cycle_10
+  using AUDCASE. Test immediately after every cycle and again after 30 seconds
+  on cycles 1, 5 and 10. Compare delay per cycle, queue snapshots and callback
+  timing. Record whether delay compounds, stays constant, or clears by itself.
+  Normal resumes should preserve one device-open generation. Inspect failures,
+  unexpectedly repeated transitions and callbacks failing to resume.
+
+E — Screen lock/unlock:
+  Start-CleanAudioCase 'E'
+  Test baseline. Mark, physically lock for 10 seconds, verify screen actually
+  stays off/locked, unlock and return to the game. Repeat FIVE TIMES, testing
+  each return. Record whether lock exercised onStop/backend_pause or only
+  focus changes. The app's wake/keyguard policy can make this path differ from
+  Home. If it wakes itself, record that rather than count an unverified lock.
+
+F — Focus-only (separate optional discriminator):
+  Fresh launch; briefly open/dismiss notification or OEM overlay. Check whether
+  only FOCUS_LOST/GAINED occurred. Test sync. This separates focus from stop/start.
+
+After the basic matrix, repeat C/D/E while an audio log is playing, and test a
+cutscene entry/exit. Confirm each Mix_PauseAudio.before has its resume partner,
+music volume/ducking recovers, auxiliary bytes drain, and door SFX still work.
+
+AT EVERY CHECKPOINT RECORD
+
+Clean/resumed audible sync; music continuity/tempo/volume; SFX playback; no
+crackling/dropouts; no missing or duplicated sounds; no crash, frozen input or
+resume hang. Mark pass/fail and retain the log/video for every failure. Repeated
+resume validation requires all ten D cycles and all five E cycles to pass on
+hardware; desktop tests/build success cannot substitute for this.
+
+When delay appears, do NOT restart before collecting:
+  & $adb shell log -t AUDCASE 'DELAY_PRESENT before_restart'
+  & $adb shell dumpsys media.audio_flinger > .\dist\audio-flinger-delayed.txt
+  & $adb shell dumpsys audio > .\dist\audio-service-delayed.txt
+  & $adb shell dumpsys activity activities > .\dist\audio-activity-delayed.txt
+Repeat the audio dumps at a clean baseline for comparison. Look for changed
+output route, track/buffer size, underruns, flags and additional tracks. Dump
+formats/visibility differ by vendor. Take dumps after the measured actions;
+dumpsys itself can disturb timing. Then force-stop/relaunch and record whether
+the delay resets. Preserve that recovery comparison too.
+
+If the diagnostics alter the symptom, install the control APK with adb install
+-r, force-stop once, and repeat the same case/recordings. Reinstall diagnostics
+for logs. No configuration/buffer/backend change distinguishes these APKs.
+
+HOW TO INTERPRET THE EVIDENCE
+
+- door_animation -> sfx_request -> sample_request: game-side dispatch/resource
+  access before the sample reaches the mixer. A growth here implicates the
+  request path; do not blame the device yet.
+- sample_loaded load_us: decode/conversion cost; compare clean and delayed.
+- sample_loaded -> accept: includes entry/logging and mixer-lock acquisition.
+  A long interval plus long max_music_us can implicate music-hook contention.
+- first_us - accepted_us: accepted SFX waiting for actual mixer processing.
+  first_mix wait_us supplies this directly and is immune to deferred logging.
+- Good request/accept/first-mix timing with late audible output points downstream
+  of the mixer (or sample onset/recording alignment); inspect native/system
+  buffers and output route before selecting a backend/device-lifecycle fix.
+- max_work_us > nominal 21333 us or persistent large foreground callback gaps:
+  investigate callback scheduling/work. max_music_us isolates custom music.
+  Compare multiple steady five-second windows, excluding lifecycle gaps.
+- Frames/window near 48000 per second is expected during steady playback.
+  A window spanning pause is not a useful real-time-rate test. Bursts after
+  resume are expected while filling a bounded queue; sustained growth is not.
+- OpenSL queued <=2 with stable callback cadence cannot establish downstream
+  hardware latency. Increasing system track buffers or route changes would
+  support an effective-buffering hypothesis despite static SDL chunk size.
+- aux_bytes growth with only speech delayed implicates the auxiliary stream.
+  Its size in output milliseconds is approximately bytes / 192.
+- Only the first old sound after resume, then normal new actions, supports
+  bounded stale PCM retention. Persistent delay on freshly requested sounds
+  needs a different/additional explanation.
+- First-mix rows missing with dropped>0 mean incomplete telemetry; do not treat
+  a missing row as proof of missing audio. A sound halted before mixing also
+  legitimately lacks a first_mix row. Multihalf doors can request two sounds.
+
+DECISION BEFORE ANY FIX
+
+If B alone fails: investigate foreground load, synth/mixer locks, resource
+loading and output buffer/route changes independently of lifecycle.
+If C/E fails while B stays good: correlate exact stop/focus/lock and backend
+events, bounded old PCM, queue position and system track state.
+If D worsens each cycle: inspect persistent backend/system changes, failed or
+duplicated transitions, and device generations; do not assume accumulation
+just from the number of resumes.
+If only auxiliary or music state fails: fix that subsystem's lifecycle with
+evidence, preserving normal SDL device ownership.
+Only after those results choose a small reversible experiment. Device reopen,
+queue flush and extra pause calls can drop sounds/reset music and are not
+justified by the present source evidence. Any resulting fix must pass the
+full repeated-resume and lock/unlock matrix, including volume/music/SFX state.

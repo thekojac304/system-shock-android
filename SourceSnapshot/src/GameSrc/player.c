@@ -80,6 +80,10 @@ ushort init_questvars[NUM_INIT_QV][2] = {
 #define REACTOR_COMBO_QVAR (0x1F)
 
 errtype init_player(Player *pplr) {
+#ifdef RP5NP_QA_TOOLS
+    extern void qa_tools_reset(void);
+    qa_tools_reset();
+#endif
     int i, j;
     char tmp[sizeof(pplr->name)];
     long tmpdiff;

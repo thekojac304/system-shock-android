@@ -1,0 +1,172 @@
+HORROR-AUTHOR1C / RUNTIME-SAFETY, EMISSIVE-MASK AND GLES GATE
+2026-10-03
+
+VERDICT
+AUTHOR1C offline runtime-safety gate: FAIL. The repeatable two-level inference,
+door-plane audit and reviewed emissive-mask subgates pass, but generated tile
+receivers still admit partially hidden floor/ceiling fragments and have no
+stable renderer draw/face identity. The bounded GLES integration gate was not
+entered. This is the requested stop condition, not a generated-visual failure.
+No new APK, selector, runtime loader, in-game comparison or frame-time result.
+
+1. STARTING TREE AND BOUNDARY
+Starting HEAD: 497d47dccabf7d4fe83597ae41524c5518262e6f. The working tree
+already held unrelated AUDIO edits and untracked reports/tests; none of that
+work was changed or staged for AUTHOR1C. Medical level 1 and Executive level 6
+were the only generated levels. Owned ARCHIVE.DAT, TEXTPROP.DAT, OBJPROP.DAT,
+TEXTURE.RES, palette and all derived images/profiles remain ignored in dist/.
+The established 17-tile Medical reference is read only by the review script
+after generation. Generator and gate do not read old VIS1/VIS1B/GPU proof light
+positions, cold/warm labels or named Healing Suite region data.
+
+2. DOOR EXTENT AND STATE
+The explicit portal diagnostic now records ID, object and paired-half IDs,
+connected inferred regions, exact object plane, terrain-edge plane, cardinal
+heading axis, panel span, static aperture span in tile and world coordinates,
+baseline frames/state, source and confidence. The one-tile collision panel
+width comes from faceobj.c's fixed +/-0.5 local X half-width. Terrain aperture
+width comes from the renderer face_obstruct table. Object pitch/bank and
+heading axis must agree with a boundary; unverified doors fail closed.
+Both Medical paired-door pairs link to real door objects. Frames 0,1,2 block;
+frame >=3 may transmit only if every linked half has reached that threshold,
+following doorparm.h and faceobj.c. This conservatively handles partial-open
+animation without guessing the changing bitmap silhouette. It changes no
+gameplay door code, save state, collision or serialized map.
+
+58/63 Medical and 54/58 Executive doors have a validated collision-plane and
+static terrain-aperture record. The remaining 5/4 interior or unsupported
+doors remain unresolved. Actual render-bitmap panel width, transparent pixels
+and opening direction/shape per animation frame are not certified. The
+offline generator still treats every portal as closed, including baseline
+doors whose frame is open; live-state light propagation was not implemented.
+Thus the record is a useful conservative portal foundation, not a completed
+live door-light solution.
+
+3. SURFACE/FRAGMENT RECEIVER AUDIT
+An offline audit now checks nine points on each flat floor/ceiling receiver
+face for each generated light, using the existing edge-height ray test and
+closed portal set. It reports full, partial and no visibility separately.
+This tests the existing tile-mask assumption; it does not pretend that nine
+samples prove every fragment or identify the renderer's emitted wall draw.
+
+Medical light-to-flat-face pairs: floor full 754, partial 454, none 27;
+ceiling full 692, partial 296, none 247. There are also 475 complex-tile
+receiver/light pairs with unverified draw geometry. Executive: floor full
+763, partial 332, none 17; ceiling full 682, partial 267, none 163; 280
+complex-tile pairs. A focused synthetic case proves the failure: the center
+of a receiver tile is visible while a corner of that same tile lies behind
+an adjacent solid tile. Applying the current tile list to a whole draw would
+light that hidden fragment. The accepted GPU renderer currently assigns
+receivers at draw granularity from tile metadata; it has no generated stable
+source-face ID or per-fragment portal test. No independent map mesh was made.
+
+Because these failures are substantial, no runtime light-list compiler was
+introduced. The needed bounded structure remains tile/face -> light list plus
+stable emitted draw identity and conservative fragment-safe clipping or split
+at a true visibility boundary. The existing four-light receiver budget stays.
+
+4. REVIEWED EMISSIVE PIXEL MASKS
+The shared rules carry explicit original palette-index sets for exactly the
+ten luminous texture resources assigned across Medical and Executive:
+20,35,36,82,101,144,185,215,216,217. Source TEXTURE.RES is pinned by SHA256
+c277956df8a90e9d2d3b8941313f58d37b2c44328c1cc3d3a3e63768924bef48.
+The audit decodes the original 128x128 indexed frames, checks selected and
+housing pixel evidence, and rejects a different texture file. Local previews
+visually confirm, for example, that 35/36 omit their dark border, 215/216
+omit the dark lattice, and Executive 82/101/144/185/217 select their bulb or
+panel pixels while retaining the housing. No replacement pixels or global
+brightness threshold were used. Palette-index membership stays fixed if the
+palette color values cycle; palette-cycle appearance was not tested in-game.
+
+Emissive masks and local-light casting remain separate. These textures can
+still propose local lights under the pre-existing surface rules. Their whole
+texture emissive flag remains FALSE so the accepted GLES shader cannot make
+the housing glow. The new mask metadata has not been compiled into that shader.
+Other mixed art remains non-emissive pending review.
+
+5. MEDICAL HELD-OUT RE-RUN
+AUTHOR1B -> AUTHOR1C: regions 434 -> 434; singleton regions 224 -> 224;
+lights 265 -> 265; receiver tiles 780/1184 -> 780/1184 (65.88%). The eight
+held-out regions, six independently generated affecting lights (three ceiling,
+three floor), and 14/17 reference receiver tiles persist. The uncovered tiles
+remain 1370 (closed portal), 1438 and 1502. The nine luminous assignments and
+review-only displays 699/718 remain detected. No amber supply-room styling
+was inferred or copied from the manual proof.
+
+At flat-face level in the holdout, 8 of 12 distinct flat faces have at least
+one sampled visible source; 6 have at least one fully sampled visible source.
+Five distinct faces have a partially visible source. Eighteen complex-tile
+receiver/light pairs cannot be certified by this flat-face audit. These are
+sampled offline quantities, not rendered surface coverage.
+
+6. EXECUTIVE TRANSFER
+The same rules, without Executive room exceptions, retain 225 regions, 81
+singletons, 179 lights and 693/1227 receiver tiles (56.48%). All six named
+chandelier objects still emit. Repeated-fixture cluster suppressions remain
+113. Of 506 tiles whose original floor and ceiling darkness are both >=10,
+288 have no proposed local light. No deck-wide ambient increase or fog was
+introduced. All five Executive luminous texture resources now have reviewed
+index-mask metadata. Its partially visible and complex faces still block the
+runtime safety gate; darkness and leakage cannot be judged visually offline.
+
+7. GATES, TESTS AND PERFORMANCE
+Sixteen focused tests pass, including door heading/extent, closed/partial/open
+paired state, hidden-fragment counterexample, signature rejection, strict
+schema, deterministic output and manual overlay survival. The two-level gate
+passes byte-identical regeneration, unchanged owned inputs, existing
+receiver-sample checks and mask-source audit. Generation took about 0.25s
+Medical and 0.15s Executive on this host. These are offline generation times,
+not Android load times or frame times.
+
+Offline structural inference: PASS, unchanged from AUTHOR1B. AUTHOR1C
+runtime-safety gate: FAIL because partially hidden faces and complex/wall draw
+membership remain unsafe. Door render silhouettes/opening direction are also
+unverified. GLES integration gate: FAIL / not entered. Therefore there is no
+runtime compiler, signature-checked GLES loader, fallback test, GPU GENERATED
+mode, QA overlay, Medical or Executive generated screenshot, door-light live
+sequence, lighting-event live test or frame-time delta. The accepted neutral
+GPU renderer, Original/proof modes and whole-view software fallback were not
+changed. No APK was built. No GPU-RENDER6 or full-station authoring began.
+
+8. REMAINING ERRORS AND NEXT PHASE
+False positives: tile receiver inclusion may illuminate a hidden part of a
+flat face; complex and wall faces have no certified draw correspondence;
+floor strips may cast too widely; reviewed color/radius/energy remain seeds.
+False negatives: 1438/1502 lack Medical holdout light; unresolved interior
+doors and partial terrain may reject valid spill; unreviewed displays and
+special state color remain excluded. Strong aesthetic contrast, story cues,
+navigation highlights and named lighting changes still need human direction.
+
+Planning estimate remains 65-75% automatic ordinary-area setup and 25-35%
+substantive rule/manual review, LOW confidence from two levels. Every area
+still needs visual review. This is not a measured station-wide completion
+rate. Next phase should attach stable original terrain surface IDs to emitted
+draws, make per-fragment or provably whole-face receiver exclusion, validate
+dynamic door silhouette against that same draw geometry, and rerun this gate.
+Only after it passes should Medical/Executive generated profiles be compiled
+for bounded GLES visual review. Broader visual authoring is premature.
+
+9. CENTRAL QUESTIONS
+1. Door extents/state accurate enough? Collision plane and frame threshold yes
+   for 58/54 boundary doors; animated rendered aperture and 5/4 doors no.
+2. Receiver constraints safe at surface/draw granularity? No; many partial
+   faces and complex draws remain.
+3. Mixed textures safe without glowing housing? Reviewed source-index masks
+   exist for all ten assigned fixtures; renderer application is not certified.
+4. Medical independently useful? Structurally yes: six sources, 14/17 tiles.
+5. Executive shared rules useful? Structurally yes; six chandeliers retained.
+6. Safe to load in GLES? No.
+7. GPU GENERATED useful horror first pass? Unknown; no generated runtime mode.
+8. Receiver boundaries/leaks? Offline audit demonstrates a real leak risk;
+   rendered severity is unmeasured.
+9. Human direction? Still substantial, estimated 25-35% substantive work.
+10. Ready for real visual authoring? No; finish receiver safety first.
+
+10. FILES, COMMIT AND PUSH
+Changed: scripts/horror_author.py, scripts/review-horror-profile.py,
+scripts/test-horror-author.py, profiles/horror-author1/rules.json,
+profiles/horror-author1/profile.schema.json,
+tests/visuals/test_horror_author.py, this report. Generated profiles, previews,
+logs and QA images are ignored under dist/horror-author1c/. The commit hash is
+reported in the final task response because a commit cannot contain its own
+hash. Nothing was pushed.

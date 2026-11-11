@@ -35,6 +35,11 @@ int main(int argc, char **argv);
 void InitSDL();
 void SetSDLPalette(int index, int count, uchar *pal);
 void SDLDraw();
+#ifdef RP5NP_GPU_WORLD
+int SDLPresenterReady(void);
+void SDLRequestPresenterReset(void);
+void SDLInjectPresenterReset(void);
+#endif
 void CaptureMouse(bool capture);
 bool CheckArgument(char *name);
 

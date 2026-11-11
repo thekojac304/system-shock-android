@@ -1,0 +1,188 @@
+QA1 - Android touch QA tools
+Validated 2026-10-02. No commit or push.
+
+1. TOUCH ACCESS
+Enter a live game, tap the existing SET overlay button, then QA TOOLS.
+This uses existing touch settings space rather than adding an overlapping
+gameplay control. God Mode, Full Health / Energy, all destinations, and Close
+are large touch buttons. Opening the panel cancels held gameplay controls;
+the modal owns touch input until closed. The world continues simulating.
+Closing restores the existing input mode and control layout.
+
+2. VISIBILITY AND BUILD ISOLATION
+The qa Gradle variant enables RP5NP_QA_TOOLS. CMake defaults it OFF.
+The preference qa_cheats = true is also required; its default is false.
+Normal builds exclude the command implementation and guarded engine hooks.
+The existing touch UI renderer contains dormant QA panel definitions, but
+normal builds cannot enable or execute QA tools.
+
+To opt in on a device: launch the QA app once, save and stop it, then run:
+  ./scripts/set-qa-cheats.ps1 -Enabled $true
+Use -Enabled $false to disable, and -Serial when multiple devices are attached.
+The helper targets only io.github.raposomiguel50.systemshock.qa, backs up prefs,
+preserves other preferences, refuses to interrupt a running app, and verifies
+the write. Relaunch, enter a game, then SET > QA TOOLS.
+
+3. GOD MODE
+An early return in damage_player suppresses normal player damage while both
+the QA preference and in-memory God flag are enabled. Enemies and simulation
+remain active. The menu explicitly displays ON/OFF. State survives opening
+and closing the menu, and resets on new game, load game, and process restart.
+It is not stored in savegames. Contamination can still accumulate; disabling
+God while contaminated can rapidly kill the player. Scripted outcomes that
+do not use damage_player are not guaranteed to be prevented.
+
+4. HEALTH AND ENERGY
+Sets current hit_points to PLAYER_MAX_HP and energy to MAX_ENERGY, then marks
+vitals for redraw. Does not modify maxima, inventory, or contamination.
+Hardware logging confirmed hp=255 and energy=255 after the action.
+
+5. TELEPORT IMPLEMENTATION
+Touch commands are queued and handled after uiPoll unwinds. Before transition,
+the destination's map metadata and tiles are read from CurrentGame.dat and
+validated. Failure leaves the current deck unchanged. Successful requests
+clear physics controls and call trap_teleport_func, the existing transition
+path through go_to_different_level. This saves the old deck, loads the target,
+restores inventory/art/physics, runs level-entry triggers, and moves the player
+through obj_move_to. No separate music path or direct level-global rewrite.
+Selecting the current deck is a no-op. The transition closes the QA panel.
+
+6. SAFE SPAWNS
+Spawns are selected from the actual saved destination geometry, not assumed
+fixed coordinates. Only open tiles without object references, with standing
+headroom and a same-height open cardinal exit qualify. Radiation/biohazard
+tiles are excluded except Beta Grove, which requires God Mode ON. Prefer the
+most available exits, then proximity to map center. Z uses floor height plus
+the engine's standing pelvis offset. The archive must be a supported 64x64
+non-cyber map with validated fixed resource sizes and zshift 0..5.
+
+Owned classic archive candidates (tile X,Y and engine teleport Z):
+  Destination    Level ID   X,Y      Z
+  Medical             1    24,25    55
+  Research            2    31,49    79
+  Reactor             0    44,26   151
+  Maintenance         3    34,39    87
+  Storage             4    17,48    75
+  Flight Deck         5    34,43   123
+  Executive           6    23,34   103
+  Alpha Grove        12    32,23   175
+  Beta Grove         13    32,28   127
+  Delta Grove        11    30,30    79
+  Engineering         7    20,35    87
+  Security            8    33,41   149
+  Bridge              9    38,31    87
+
+All 13 entered successfully on hardware, with short movement after entry.
+The visited Medical save selected 42,24 Z=79 on return, demonstrating that
+selection follows saved geometry. Grove IDs follow the engine level_to_floor
+mapping. Level 10 is special endgame cyberspace and intentionally excluded.
+Geometry safety does not guarantee freedom from nearby enemies, locked rooms,
+story prerequisites, or later level-entry trigger changes in arbitrary saves.
+
+7. PASSIVE ENEMIES
+Not added. The existing robot_antisocial control affects physics construction;
+it is not a clean reversible aggro switch. QA1 does not redesign AI.
+
+8. QA1 FILE CHANGES (repository-relative paths)
+  AndroidProject/app/build.gradle
+  AndroidProject/app/jni/CMakeLists.txt
+  AndroidProject/app/jni/touch/qa_tools.c (new)
+  AndroidProject/app/jni/touch/qa_tools.h (new)
+  AndroidProject/app/jni/touch/qa_spawn.h (new)
+  AndroidProject/app/jni/touch/touch_controls.h
+  AndroidProject/app/jni/touch/touch_editor.c
+  AndroidProject/app/jni/touch/touch_render.c
+  AndroidProject/app/jni/touch/touch_shock_bridge.c
+  AndroidProject/app/jni/touch/tests/touch_qa_test.c (new)
+  AndroidProject/app/jni/touch/tests/touch_render_test.c
+  SourceSnapshot/src/GameSrc/damage.c
+  SourceSnapshot/src/GameSrc/gamewrap.c
+  SourceSnapshot/src/GameSrc/player.c
+  SourceSnapshot/src/MacSrc/Prefs.c
+  SourceSnapshot/src/MacSrc/Prefs.h
+  scripts/set-qa-cheats.ps1 (new)
+  scripts/test-qa1-archive.py (new)
+  scripts/test-touch.ps1
+  scripts/test-touch-linux.sh
+  docs/QA1_ANDROID_QA.txt (new)
+Pre-existing AUDIO1/AUDIO2/lifecycle changes were retained. Shared build and
+Prefs files received only the QA additions. Other dirty files are existing work.
+
+9. VALIDATION AND BUILD RESULTS
+PASS: Windows touch test runner, including QA gating, every destination action,
+multi-touch ownership/no bleed-through, close/mode restoration, cancellation,
+portrait/landscape geometry, spawn rejection, existing wheels/editor/bridge,
+black-bar transforms, and real SDL input adapter regression coverage.
+PASS: owned archive decoding and C spawn selection for all 13 destinations.
+PASS: audio tests for mixer lifecycle and no-mixer configuration.
+PASS: QA APK with AudioDiagnostics and ordinary debug APK compilation.
+PASS: APK identity/signature/content and 16 KB alignment verification.
+PASS: QA native library exports seven qa_tools symbols; normal debug exports
+none. Normal debug APK was inspected, not installed on the device.
+PASS: whitespace check with existing CRLF convention (cr-at-eol).
+Linux test runner updated but not executed on this Windows host.
+
+Requested validation checklist:
+  1 PASS - preference false: no QA button (hardware and automated).
+  2 PASS - preference true: visible/tappable (hardware and automated).
+  3 PASS - open/actions/close via touch, no controller/keyboard required.
+  4 PASS - modal capture and no gameplay outputs (automated multi-touch).
+  5 PASS - God ON survived Beta Grove hazard with full health (hardware).
+  6 PASS - God OFF restored hazard damage and death (hardware).
+  7 PASS - one-tap full health/energy logged and displayed (hardware).
+  8 PASS - Medical to Research (hardware actual=2, result=0).
+  9 PASS - Research to Reactor (hardware actual=0, result=0).
+ 10 PASS - every listed deck, including three Groves (hardware result=0).
+ 11 PASS - existing transition path; returning to Medical logged AUDIO1
+           playing music/remake/medical.mp3 (looping). Audible listening and
+           a complete AUDIO2 sound-quality pass remain manual checks.
+ 12 PASS - weapon wheel and empty consumable/explosive wheels opened after QA;
+           cancellation restored play. Automated wheel regressions pass.
+ 13 PASS - Home then Recents resumed the same session with QA closed; QA
+           reopened afterward. Launching LauncherActivity again starts the
+           launcher flow and is not a substitute for testing resume.
+ 14 PASS - saved post-QA Research in slot 2 and loaded it; God reset OFF.
+           Original slot 1 was then loaded and restored for the user.
+ 15 PASS - compile/runtime gating and normal-library symbol inspection.
+
+Evidence is under C:\Dev\system-shock-android\dist\:
+  qa1-build.log, qa1-normal-build.log, qa1-apk-verification.log,
+  qa1-touch-tests.log, qa1-device.log, qa1-*.png, qa1-git-status.txt.
+Hardware: connected Samsung SM-S948U1, landscape 2340x1080. This is not an
+RP5 hardware certification. Screenshots and logs substantiate the checks above.
+
+10. QA APK
+C:\Dev\system-shock-android\AndroidProject\app\build\outputs\apk\qa\app-qa.apk
+Package: io.github.raposomiguel50.systemshock.qa
+Version: 1.0.0-qa (10000), ARM64, debuggable QA build with audio diagnostics.
+SHA256: 4d5ef444bb011bd9bd537ad60d28b64f6b2ed083861cdeb297a55e0ae66e4acf
+
+11. DEVICE HANDOFF AND REMAINING HARDWARE CHECKLIST
+With user permission, saved the original active session in the first slot
+(unnamed), backed up data, updated the QA app, and tested it. Original slot 1
+and touch-settings.cfg were compared byte-for-byte and remain unchanged.
+Original session is loaded and PAUSED; God Mode is OFF. qa_cheats remains true
+on this test device. The second slot contains the post-QA Research test save.
+Backup: C:\Dev\system-shock-android\dist\qa1-device-backup\
+
+Remaining manual coverage:
+  [ ] RP5 device: touch-only navigation, safe areas, and hardware controls.
+  [ ] Physical controller/keyboard coexistence (automated regressions passed).
+  [ ] Device rotation and custom layouts on target hardware (synthetic tests
+      covered portrait/landscape; this device was tested in landscape).
+  [ ] Listen to AUDIO1/AUDIO2 across repeated deck changes and lifecycle events.
+  [ ] Longer play sessions and story-progress-dependent/modded save variants.
+
+12. KNOWN LIMITATIONS
+The panel captures touches but does not pause hazards/enemies. Enable God for
+hazardous testing. Beta requires God; accumulated contamination is not cleared
+by heal or by toggling God. Teleport does not unlock story progression. Spawn
+preflight rejects unsupported resources, but cannot guarantee all later
+script changes or every modified save. God is a damage guard, not a bypass of
+every scripted death. QA tools are for live, non-cyber gameplay. Existing
+overlay suppression rules, including controller behavior, remain in force.
+
+13. FINAL GIT STATUS
+Exact git status --short is recorded in dist/qa1-git-status.txt alongside this
+report. It includes the pre-existing audio/lifecycle work listed separately
+above and these QA additions. No files were committed or pushed.

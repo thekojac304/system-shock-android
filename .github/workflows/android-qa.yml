@@ -37,7 +37,7 @@ jobs:
           if (-not $sdk) { throw 'Android SDK environment variable is not set.' }
           $sdkmanager = Join-Path $sdk 'cmdline-tools\latest\bin\sdkmanager.bat'
           if (-not (Test-Path -LiteralPath $sdkmanager -PathType Leaf)) { throw "sdkmanager not found: $sdkmanager" }
-          & $sdkmanager 'platforms;android-34' 'build-tools;34.0.0' 'ndk;29.0.14206865' 'cmake;3.22.1'
+          & $sdkmanager 'platforms;android-34' 'build-tools;34.0.0' 'build-tools;35.0.0' 'ndk;29.0.14206865' 'cmake;3.22.1'
           if ($LASTEXITCODE -ne 0) { throw "sdkmanager failed: $LASTEXITCODE" }
 
       - name: Install pinned PSScriptAnalyzer

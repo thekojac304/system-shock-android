@@ -459,12 +459,23 @@ void olh_overlay(void) {
                        // update events
 
         tight_loop(FALSE);
+#ifdef __ANDROID__
+        /* Touch uses the existing cursor/mouse queue while help is modal.
+           Let it dismiss startup help so touch-only players can reach gameplay. */
+        if (mouse_next(&me) == OK && (me.type & MOUSE_LDOWN)) {
+            done = TRUE;
+#ifdef TOUCH_DEBUG
+            SDL_Log("RP5NP_TOUCH_HELP_DISMISSED pointer=1");
+#endif
+        }
+#else
         // FIXME It crash on Linux
         /*if (mouse_next(&me) == OK)
         {
           if (me.type == MOUSE_LDOWN)
                   done = TRUE;
         }*/
+#endif
         if (kb_get_cooked(&key)) {
             int i;
             for (i = 0; i < NUM_OVERLAY_KEYS; i++)

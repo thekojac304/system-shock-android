@@ -1,0 +1,183 @@
+HORROR-AUTHOR1B / AUTO-AUTHORING SPATIAL AND FIXTURE GATE
+2026-10-03
+
+VERDICT
+Offline structural inference: materially improved, provisionally PASS.
+Bounded GLES integration gate: FAIL / not entered. The offline masks are useful
+for review but are not yet fragment-safe runtime receiver constraints. This report
+does not claim accepted in-game lighting or visual quality. No fog was enabled.
+
+1. STARTING STATE AND INPUTS
+Starting HEAD: 1817b655bc7d7f9c57896f0db812266c84ea2b72. The tree already had
+uncommitted AUDIO changes and untracked AUTHOR1 generator, rules, tests, profiles
+and report. AUDIO work was left untouched. The original owned input resources and
+their SHA256 values are recorded in HORROR_AUTHOR1_INFERENCE.txt and in the local
+dist/horror-author1b/diagnostic-gate.json. No proprietary resource is committed.
+Only Medical level 1 and Executive level 6 were generated. The 17-tile Medical
+proof mask is accessed only by review-horror-profile.py after generation; neither
+that mask nor VIS1/VIS1B/GPU proof lights, labels, coordinates or room exceptions
+are read by the generator. The same shared rules were used for both levels.
+
+2. REUSABLE INFERENCE CHANGES
+frtables.c face_obstruct is parsed fail-closed as the renderer's authoritative
+edge-width table. The edge calculation combines partial-face widths, map floor
+and ceiling heights, slope parameter and mirror mode following frterr.c's
+edge_get_fandc / mmask_facelet semantics. Regions use multiple edge samples,
+not a single center-wide rectangular slab. Receiver rays check the actual
+crossing point and its vertical open interval. Diagonal corners still fail
+closed. Internal complex tile walls are not fully modeled.
+
+Boundary-mounted door objects are located from their sub-tile position. When
+the position and surrounding aperture identify an edge, that edge is a closed
+default portal and its door-frame runtime gate, object ID, other-half ID,
+heading and confidence are retained in diagnostics. Whole-cell blocking remains
+for ambiguous interior doors. This removes false isolation on 58/63 Medical
+and 54/58 Executive boundary doors. Physical panel width, handedness and exact
+opening animation are unverified; an open portal is a representation, not an
+offline assertion that the door is currently open. No light crosses it by
+default. The region graph distinguishes portal, blocked geometry and visual
+region split edges. Visual splits can transmit when a ray confirms geometry.
+
+Regions grow across verified optical apertures with local darkness and height
+continuity, hazard/music continuity and a bounded footprint. This is visual
+receiving topology, not pathfinding or semantic room naming. It reduced but
+did not eliminate fragmentation. Tile masks now use five target samples and
+edge-height ray checks, avoiding many center-only false negatives. They can
+still include a partially hidden face, so they are diagnostics rather than a
+fragment-level shading guarantee. U-shaped walls, corner ties and closed doors
+are excluded in focused tests.
+
+Shared rules now classify each material surface as emits-normal, emits-low,
+emissive-only or review-only. The neutral material record carries all three
+surface policies, while actual whole-texture emissive stays disabled pending
+pixel masks. Known luminous ceiling textures may emit from sloped surface height, inset
+from the surface. Reviewed 35/36 floor strips and a limited set of exposed
+35/36/20/82 wall assignments emit low energy. Unsupported luminous faces remain
+review-only. Generic wall assignments are checked for an exposed closed edge,
+though face identity remains uncertain. Named object lamps at an exact ceiling
+anchor are inset below it rather than rejected as out of bounds; all six
+Executive chandeliers now generate lights. Positions and RGB remain design
+approximations in map-height units, never meters.
+
+WORDS_TRIPLE 0x70203 with TEXBITMAP render_type 8 is a distinct display
+candidate. Objects 699 and 718 are found, but remain emissive-review; text
+bitmap alone is insufficient evidence for a physical local light. Generic
+text bitmap objects are not promoted. This avoids ordinary signage casting.
+
+No whole mixed texture is marked emissive. Luminous catalog materials carry
+pixel_mask_review and are non-emissive until reviewed source palette-index
+masks can distinguish bright elements from dark housing and track palette
+cycling. This policy preserves original art and avoids a global bright-pixel
+threshold. Reviewed masks themselves were not created in this phase, so
+runtime emissive rendering is an unresolved material task.
+
+Repeated same-resource candidates within 1.4 map units cluster to one source.
+Generated receivers have at most four local lights and 1.8 aggregate source
+intensity budget; low floor/wall sources contribute 28% of ceiling base before
+the original darkness response. Saturated receivers are excluded or the next
+source is suppressed. This bounds proposed energy without globally lifting
+original darkness. It is not an image-space luminance guarantee. Original
+floor/ceiling darkness and live transient lighting remain authoritative.
+
+3. QUANTITATIVE COMPARISON (AUTHOR1 -> AUTHOR1B)
+Metric                              Medical             Executive
+Regions                             592 -> 434          405 -> 225
+Singleton regions                   413 -> 224          271 -> 81
+Local lights                        184 -> 265          130 -> 179
+Receiver tiles                      359 -> 780          371 -> 693
+Receiver tile percentage           30.32 -> 65.88      30.24 -> 56.48
+Fixture cluster suppressions       129 -> 212           91 -> 113
+Other suppressed candidates          0 -> 26             3 -> 8
+Dark tiles without proposed light  210 -> 109          394 -> 288
+Medical holdout regions             10 -> 8             not applicable
+Medical holdout affecting lights     0 -> 6             not applicable
+Medical holdout receiver tiles       0 -> 14/17         not applicable
+
+The coverage increase follows real aperture/door correction, subcell samples,
+and sloped/floor sources; it is not itself proof of better rendering. Some
+newly covered tiles may still have partially occluded faces. Medical emits
+223 ceiling, 31 floor and 11 wall lights. Executive emits 173 ceiling and
+six chandelier object lights. The 1.8 energy cap prevents repeated panels
+from stacking four full-power contributions at one receiver sample.
+
+4. MEDICAL HELD-OUT RESULT
+Nine luminous surface assignments in the 17 reference tiles are detected:
+four ceiling 216 and five floor 35. After clustering and portal gating, two
+suite ceiling sources and three floor sources emit; a sixth sloped ceiling
+source just outside the mask reaches it. Generated masks cover 14/17 tiles.
+The three uncovered reference tiles are 1370 (closed door portal), 1438 and
+1502. Objects 699/718 are detected as review-only text displays. This is a
+useful first-pass cold/low local-light structure, not the hand-directed warm
+alcove staging. No old proof position or label was used as generator input.
+The suite still spans eight inferred regions, and floor-strip pools may be
+too broad on a real wall face. Both accepted proof pools are no longer wholly
+missed, but offline evidence cannot certify their visual match. The dedicated
+post-generation review is dist/horror-author1b/review/medical-holdout-author1b.png;
+white outlines are the reference, yellow points are generated sources, and
+red points are default-closed portals.
+
+5. EXECUTIVE TRANSFER
+The same rules reduce 405/271 regions/singletons to 225/81. All six named
+chandeliers (62, 63, 69, 70, 180, 181) now generate inset object sources.
+Repeated ceiling panels create 113 clustered suppressions. 288 of 506 tiles
+whose two original darkness channels are >=10 remain without a proposed local
+light, down from 394; no deck-wide ambient lift was added. Wall/door leakage
+is improved at sampled rays but not validated in rendered gameplay. No
+Executive room-specific exception or manual light was introduced.
+
+6. DIAGNOSTICS AND TESTS
+The generator emits region, independent original-darkness, fixtures, materials,
+hazard/state, receiver, portal, suppressed, cluster and emissive-status SVGs
+for each level. The review script also emits Medical's dedicated held-out PNG.
+Generated JSON includes exact source candidates, policy/reasons, door portals,
+region graph, masks and source data. All images and generated profiles stay in
+ignored dist/. No screenshots, save data or proprietary assets are tracked.
+
+PASS: 14 focused unittests cover edge apertures, partial/diagonal exclusion,
+height separation, closed boundary door and open geometry representation,
+ambiguous whole-cell door, U-shaped and corner leakage, slope placement,
+low floor/wall emission, text-bitmap positive/negative cases, mixed-emissive
+non-glow, repeated-fixture clustering, receiver energy budget, deterministic
+generation, schema rejection and manual override survival. The two-level
+test-horror-author.py gate passes byte-identical regeneration, overlay
+preservation, every receiver's five-sample visibility check, and unchanged
+input hashes. Generated host times were about 0.25s Medical and 0.15s
+Executive in this run. These are offline host measurements, not frame times.
+
+7. REMAINING FAILURES, HUMAN WORK AND GATE
+False positives: a luminous wall resource may be assigned to a blocked edge
+without proving that its luminous subpanel actually faces the receiver;
+five-sample tile inclusion can light hidden fragments; floor strips may cast
+too widely; door extent and animation are unknown. False negatives: some
+partial interior geometry and off-center apertures still fail closed; 1438
+and 1502 remain uncovered in the suite; unreviewed text displays do not cast;
+mixed-material emitters have no accepted pixel masks. Candidate colors,
+radius and intensity are seeds, not recovered photometry.
+
+Planning estimate revised from AUTHOR1's 60-75% automatic ordinary-area setup
+to roughly 65-75% automatic setup and 25-35% substantive manual/rule review,
+LOW confidence from two levels only. Every area still requires visual review.
+Human art direction remains necessary for warm/cold story contrast, signature
+reveals, emissive pixel masks, fog, named places, dramatic focal balance,
+navigation/readability and plot-state color. The likely workflow remains
+generate -> review -> improve shared rules -> regenerate -> targeted tweak,
+not room-by-room manual setup.
+
+The offline structural gate passes provisionally because the held-out suite
+now has independently inferred local light and Executive improves under the
+same rules. The runtime integration gate fails: door panel extent/state,
+fragment-safe receiver masks and reviewed emissive masks are incomplete.
+No GLES profile loader, selector, QA overlay, device comparison or performance
+measurement was entered. GPU-RENDER6 and full-station authoring were not begun.
+Recommended next phase: validate exact door panel extents/heading and surface
+receiver faces, author reusable source-index emissive masks for a small fixture
+set, then re-run the held-out gate before a bounded GLES review.
+
+8. FILES / COMMIT / PUSH
+AUTHOR1B changes: scripts/horror_author.py,
+scripts/review-horror-profile.py, scripts/test-horror-author.py,
+tests/visuals/test_horror_author.py, profiles/horror-author1/rules.json,
+profiles/horror-author1/profile.schema.json, this report. The local commit
+also includes the previously untracked AUTHOR1 source/report needed to
+reproduce this work. The commit hash is reported in the final task response;
+it cannot be embedded in its own committed contents. Nothing was pushed.

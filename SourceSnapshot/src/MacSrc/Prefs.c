@@ -1,3 +1,4 @@
+#include "GpuWorld.h"
 /*
 
 Copyright (C) 2015-2018 Night Dive Studios, LLC.
@@ -30,6 +31,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //--------------------
 #include "Shock.h"
 #include "Prefs.h"
+#include "ExternalMusic.h"
 
 #include "popups.h"
 #include "olhext.h"
@@ -73,6 +75,8 @@ static const char *PREF_LANGUAGE = "language";
 static const char *PREF_CAPTUREMOUSE = "capture-mouse";
 static const char *PREF_INVERTMOUSEY = "invert-mousey";
 static const char *PREF_MUSIC_VOL = "music-volume";
+static const char *PREF_REPLACEMENT_MEDICAL = "replacement_medical_music";
+static const char *PREF_SOUNDTRACK = "soundtrack";
 static const char *PREF_SFX_VOL = "sfx-volume";
 static const char *PREF_ALOG_VOL = "alog-volume";
 static const char *PREF_VIDEOMODE = "video-mode";
@@ -98,6 +102,10 @@ void SetDefaultPrefs(void) {
     gShockPrefs.prefPlayIntro = 1; // First time through, play the intro
     gShockPrefs.goPopupLabels = true;
     gShockPrefs.soBackMusic = true;
+    gShockPrefs.soSoundtrack = SOUNDTRACK_ORIGINAL;
+#ifdef RP5NP_QA_TOOLS
+    gShockPrefs.qaCheats = false;
+#endif
 #ifdef USE_FLUIDSYNTH
     gShockPrefs.soMidiBackend = 2; // default to fluidsynth when available
 #else
@@ -122,6 +130,12 @@ void SetDefaultPrefs(void) {
     gShockPrefs.doTextureFilter = 0; // unfiltered
     gShockPrefs.goOnScreenHelp = true;
     gShockPrefs.doGamma = 29;    // Default gamma (29 out of 100).
+    gShockPrefs.doHorrorVisuals = false;
+    gShockPrefs.postEnabled = 1;
+    gShockPrefs.postChoice = 0;
+    gShockPrefs.postVignette = 1;
+    gShockPrefs.postGrain = 1;
+    gShockPrefs.postFxMode = 3;
     gShockPrefs.goMsgLength = 0; // Normal
     audiolog_setting = 1;
 
@@ -145,11 +159,11 @@ static char *GetPrefsPathFilename(void) {
 }
 
 static char *trim(char *s) {
-    while (*s && isspace(*s))
+    while (*s && isspace((unsigned char)*s))
         s++;
-    char *c = &s[strlen(s) - 1];
-    while (c >= s && isspace(*c))
-        *(c--) = '\0';
+    char *c = s + strlen(s);
+    while (c > s && isspace((unsigned char)c[-1]))
+        *--c = '\0';
     return s;
 }
 
@@ -167,7 +181,17 @@ int16_t LoadPrefs(void) {
         return SavePrefs();
     }
 
+    /* Explicit soundtrack (even invalid) overrides the legacy boolean,
+     * regardless of line order. Saving migrates the old setting. */
+    int soundtrack_seen = 0, legacy_remake = 0;
+    gShockPrefs.soSoundtrack = SOUNDTRACK_ORIGINAL;
     char line[64];
+    gShockPrefs.doHorrorVisuals = false;
+    gShockPrefs.postEnabled = 1;
+    gShockPrefs.postChoice = 0;
+    gShockPrefs.postVignette = 1;
+    gShockPrefs.postGrain = 1;
+    gShockPrefs.postFxMode = 3;
     while (fgets(line, sizeof(line), f)) {
         char *eq = strchr(line, '=');
         if (!eq)
@@ -177,7 +201,32 @@ int16_t LoadPrefs(void) {
         const char *key = trim(line);
         const char *value = trim(eq + 1);
 
-        if (strcasecmp(key, PREF_LANGUAGE) == 0) {
+#ifdef RP5NP_QA_TOOLS
+        if (strcasecmp(key, "qa_cheats") == 0) {
+            gShockPrefs.qaCheats = is_true(value);
+        } else
+#endif
+        if (strcasecmp(key, "world-post") == 0) {
+            gShockPrefs.postEnabled = is_true(value);
+        } else if (strcasecmp(key, "world-post-preset") == 0) {
+            int choice = atoi(value);
+            if (choice >= 0 && choice <= 6) gShockPrefs.postChoice = choice;
+        } else if (strcasecmp(key, "world-post-vignette") == 0) {
+            gShockPrefs.postVignette = is_true(value);
+        } else if (strcasecmp(key, "world-post-grain") == 0) {
+            gShockPrefs.postGrain = is_true(value);
+        } else if (strcasecmp(key, "world-post-fx") == 0) {
+            int mode = atoi(value);
+            if (mode >= 0 && mode <= 3) gShockPrefs.postFxMode = mode;
+        } else if (strcasecmp(key, "world-visuals") == 0) {
+            gShockPrefs.doHorrorVisuals =
+#ifdef RP5NP_GPU_WORLD
+                strcasecmp(value, "gpu-generated") == 0 ? 4 :
+                strcasecmp(value, "gpu-prototype") == 0 ? 3 :
+#endif
+                strcasecmp(value, "horror") == 0 ? 2 :
+                (strcasecmp(value, "enhanced") == 0 || strcasecmp(value, "conservative") == 0 ? 1 : 0);
+        } else if (strcasecmp(key, PREF_LANGUAGE) == 0) {
             int lang = atoi(value);
             if (lang >= 0 && lang <= 2)
                 gShockPrefs.goLanguage = lang;
@@ -185,6 +234,11 @@ int16_t LoadPrefs(void) {
             gShockPrefs.goCaptureMouse = is_true(value);
         } else if (strcasecmp(key, PREF_INVERTMOUSEY) == 0) {
             gShockPrefs.goInvertMouseY = is_true(value);
+        } else if (strcasecmp(key, PREF_REPLACEMENT_MEDICAL) == 0) {
+            legacy_remake = is_true(value);
+        } else if (strcasecmp(key, PREF_SOUNDTRACK) == 0) {
+            gShockPrefs.soSoundtrack = ExternalMusicMode(value);
+            soundtrack_seen = 1;
         } else if (strcasecmp(key, PREF_MUSIC_VOL) == 0) {
             int vol = atoi(value);
             if (vol >= 0 && vol <= 100) {
@@ -246,6 +300,7 @@ int16_t LoadPrefs(void) {
     }
 
     fclose(f);
+    if (!soundtrack_seen && legacy_remake) gShockPrefs.soSoundtrack = SOUNDTRACK_REMAKE;
     SetShockGlobals();
     return 0;
 }
@@ -266,6 +321,10 @@ int16_t SavePrefs(void) {
     fprintf(f, "%s = %s\n", PREF_CAPTUREMOUSE, gShockPrefs.goCaptureMouse ? "yes" : "no");
     fprintf(f, "%s = %s\n", PREF_INVERTMOUSEY, gShockPrefs.goInvertMouseY ? "yes" : "no");
     fprintf(f, "%s = %d\n", PREF_MUSIC_VOL, curr_vol_lev);
+    fprintf(f, "%s = %s\n", PREF_SOUNDTRACK, ExternalMusicModeName(gShockPrefs.soSoundtrack));
+#ifdef RP5NP_QA_TOOLS
+    fprintf(f, "qa_cheats = %s\n", gShockPrefs.qaCheats ? "true" : "false");
+#endif
     fprintf(f, "%s = %d\n", PREF_SFX_VOL, sfx_on ? curr_sfx_vol : 0);
     fprintf(f, "%s = %d\n", PREF_ALOG_VOL, curr_alog_vol);
     fprintf(f, "%s = %d\n", PREF_VIDEOMODE, mode_id);
@@ -275,6 +334,13 @@ int16_t SavePrefs(void) {
     fprintf(f, "%s = %d\n", PREF_TEX_FILTER, gShockPrefs.doTextureFilter);
     fprintf(f, "%s = %s\n", PREF_ONSCR_HELP, gShockPrefs.goOnScreenHelp ? "yes" : "no");
     fprintf(f, "%s = %d\n", PREF_GAMMA, gShockPrefs.doGamma);
+    fprintf(f, "world-visuals = %s\n", gShockPrefs.doHorrorVisuals == 4 ? "gpu-generated" : gShockPrefs.doHorrorVisuals == 3 ? "gpu-prototype" : gShockPrefs.doHorrorVisuals == 2 ? "horror" :
+            gShockPrefs.doHorrorVisuals == 1 ? "enhanced" : "original");
+    fprintf(f, "world-post = %s\n", gShockPrefs.postEnabled ? "yes" : "no");
+    fprintf(f, "world-post-preset = %d\n", gShockPrefs.postChoice);
+    fprintf(f, "world-post-vignette = %s\n", gShockPrefs.postVignette ? "yes" : "no");
+    fprintf(f, "world-post-grain = %s\n", gShockPrefs.postGrain ? "yes" : "no");
+    fprintf(f, "world-post-fx = %d\n", gShockPrefs.postFxMode);
     fprintf(f, "%s = %d\n", PREF_MSG_LENGTH, gShockPrefs.goMsgLength);
     fprintf(f, "%s = %d\n", PREF_ALOG_SETTING, audiolog_setting);
     fprintf(f, "%s = %d\n", PREF_MIDI_BACKEND, gShockPrefs.soMidiBackend);
@@ -551,7 +617,7 @@ HOTKEYLOOKUP HotKeyLookup[] = {
     {"\"arm_grenade\"", DEMO_CONTEXT, arm_grenade_hotkey, 0, 0, ALT('\''), 0},
     {"\"use_drug\"", DEMO_CONTEXT, use_drug_hotkey, 0, 0, ALT(';'), 0},
     {"\"hud_color\"", DEMO_CONTEXT, hud_color_bank_cycle, 0, 0, ALT('h'), 0},
-    {"\"showhelp\"", DEMO_CONTEXT, olh_overlay_func, (intptr_t)&olh_overlay_on, 0, ALT('o'), 0},    
+    {"\"showhelp\"", DEMO_CONTEXT, olh_overlay_func, (intptr_t)&olh_overlay_on, 0, ALT('o'), 0},
     {"\"bio scan\"", DEMO_CONTEXT, hw_hotkey_callback, 5, 0, 49, 0},
     {"\"fullscreen\"", DEMO_CONTEXT, hw_hotkey_callback, 10, 0, 50, 0},
     {"\"360 view\"", DEMO_CONTEXT, hw_hotkey_callback, 2, 0, 51, 0},

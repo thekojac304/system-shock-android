@@ -145,10 +145,23 @@ public final class LauncherActivity extends Activity {
     }
 
     private void dismissBusyDialog() {
-        if (busyDialog != null) {
-            busyDialog.dismiss();
-            busyDialog = null;
+        AlertDialog dialog = busyDialog;
+        busyDialog = null;
+        if (dialog == null || !dialog.isShowing()) {
+            return;
         }
+        try {
+            dialog.dismiss();
+        } catch (IllegalArgumentException detached) {
+            // The dialog's window is already gone (the activity was torn down while importing).
+            Log.w(TAG, "BUSY_DIALOG_ALREADY_DETACHED");
+        }
+    }
+
+    @Override
+    protected void onDestroy() {
+        dismissBusyDialog();
+        super.onDestroy();
     }
 
     private CopyStats importFromTree(Uri treeUri) throws IOException {

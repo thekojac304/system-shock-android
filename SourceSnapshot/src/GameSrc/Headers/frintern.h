@@ -49,6 +49,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 int fr_prepare_view(frc *view);
 int fr_start_view(void);
 int fr_send_view(void);
+void fr_render_stars(void);
 
 #ifdef __FRTYPES_H
 extern fauxrend_context *_fr, *_sr;

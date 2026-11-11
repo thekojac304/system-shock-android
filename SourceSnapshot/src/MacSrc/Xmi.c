@@ -3,6 +3,7 @@
 #include "Xmi.h"
 #include "MusicDevice.h"
 #include "Prefs.h"
+#include "ExternalMusic.h"
 
 unsigned int NumTracks;
 char ChannelThread[16]; // 16 device channels
@@ -677,6 +678,7 @@ int GetTrackNumChannels(unsigned int track) {
 }
 
 void StartTrack(int thread, unsigned int track) {
+    if (ExternalMusicActive()) return;
     int num, trackChannel, deviceChannel;
     int can_start = 0;
     int assigned_channels = 0;
@@ -776,6 +778,7 @@ void StopTrack(int i) {
 }
 
 void StopTheMusic(void) {
+    ExternalMusicSuspend();
     int i;
 
     for (i = 0; i < NUM_THREADS; i++)
@@ -993,6 +996,7 @@ void GetOutputNameXMI(const unsigned int outputIndex, char *buffer, const unsign
 void UpdateVolumeXMI(void) {
     // global volume has been changed
     extern uchar curr_vol_lev; // 0-100
+    ExternalMusicVolume(curr_vol_lev);
     INFO("UpdateVolumeXMI(): Global music volume change to %d percent", curr_vol_lev);
 
     // tell the music driver

@@ -1,3 +1,4 @@
+#include "GpuWorld.h"
 /*
 
 Copyright (C) 2015-2018 Night Dive Studios, LLC.
@@ -592,6 +593,7 @@ int draw_tmap_common(int n, g3s_phandle *vp, grs_bitmap *bm) {
         }
     }
 
+    gpu_world_face(n, _vbuf2, bm, light_flag);
     if (!light_flag) {
         ((void (*)(grs_bitmap * bm, int n, grs_vertex **vpl, grs_tmap_info *ti)) tmap_func)(bm, _n_verts, p_vpl, &ti);
         return CLIP_NONE;

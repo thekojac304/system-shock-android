@@ -40,6 +40,14 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "adlmidi.h"
 #include "Xmi.h"
+#include "ExternalMusic.h"
+#include "mainloop.h"
+
+#ifdef RP5NP_AUDIO_DIAGNOSTICS
+#include "transition_trace.h"
+#else
+#define TRANSITION_TRACE(stage, target) ((void)0)
+#endif
 
 #ifdef AUDIOLOGS
 #include "audiolog.h"
@@ -148,6 +156,22 @@ void mlimbs_do_ai() {
     // extern uchar mlimbs_semaphore;
     extern ObjID damage_sound_id;
     extern char damage_sound_fx;
+
+    /* Deck eligibility is independent of tile music zones (including the
+     * elevators). Do not swallow the SFX work below when overriding. */
+    extern uchar curr_vol_lev;
+    int gameplay = music_on &&
+                   (_current_loop == GAME_LOOP || _current_loop == FULLSCREEN_LOOP ||
+                    _current_loop == AUTOMAP_LOOP) && !player_struct.dead && !global_fullmap->cyber;
+    int external = ExternalMusicUpdate(gShockPrefs.soSoundtrack,
+                                       player_struct.level, gameplay, curr_vol_lev);
+    if (external) {
+        if (damage_sound_fx != -1) {
+            play_digi_fx_obj(damage_sound_fx, 1, damage_sound_id);
+            damage_sound_fx = -1;
+        }
+        return;
+    }
 
     if (!IsPlaying(0)) gReadyToQueue = 1;
 
@@ -438,6 +462,8 @@ int old_score;
 errtype fade_into_location(int x, int y) {
     MapElem *pme;
 
+    TRANSITION_TRACE("music_zone_begin", player_struct.level);
+
     new_x = x;
     new_y = y;
     new_theme = 2;
@@ -460,6 +486,7 @@ errtype fade_into_location(int x, int y) {
         MacTuneStartCurrentTheme();
         new_theme = 0;
     }
+    TRANSITION_TRACE("music_zone_end", player_struct.level);
     return (OK);
 }
 
@@ -482,10 +509,14 @@ void load_score_guts(uint8_t score_play) {
 
     // Get the theme file name.
     sprintf(base, "thm%d", score_play);
+    TRANSITION_TRACE("music_theme_stop_begin", player_struct.level);
     musicai_shutdown();
+    TRANSITION_TRACE("music_theme_stop_end", player_struct.level);
 
     // rv = MacTuneLoadTheme(&themeSpec, score_playing);
+    TRANSITION_TRACE("music_theme_load_begin", player_struct.level);
     rv = MacTuneLoadTheme(base, score_play);
+    TRANSITION_TRACE("music_theme_load_end", player_struct.level);
 
     if (rv == 0) {
         musicai_reset(false);

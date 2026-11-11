@@ -629,6 +629,18 @@ void ui_dispatch_mouse_event(uiEvent* mout)
    int i;
    uchar eaten = FALSE;
 
+#ifdef __ANDROID__
+   if (mout->mouse_data.modifiers & (MOUSE_MOD_TOUCH_TAP | MOUSE_MOD_TOUCH_DRAG))
+   {
+      /* The touch recognizer already separated taps from drags. Completed
+         control taps must reach down-only menus once, without waiting for or
+         becoming a native mouse double-click. Keep native click history. */
+      mout->mouse_data.modifiers &= ~MOUSE_MOD_TOUCH_TAP;
+      uiDispatchEvent(mout);
+      return;
+   }
+#endif
+
    bool altDown = (SDL_GetModState() & KMOD_ALT) != 0;
 
 //   ui_mouse_do_conversion(&(mout->pos.x),&(mout->pos.y),TRUE);
@@ -783,6 +795,7 @@ errtype uiMakeMotionEvent(uiEvent* ev)
    ev->mouse_data.action = MOUSE_MOTION;
    ev->mouse_data.tstamp = mouse_get_time();
    ev->mouse_data.buttons = (ubyte)mouseInstantButts;
+   ev->mouse_data.modifiers = 0;
    return OK;
 }
 

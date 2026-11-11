@@ -1,3 +1,4 @@
+#include "GpuWorld.h"
 /*
 
 Copyright (C) 2015-2018 Night Dive Studios, LLC.
@@ -208,6 +209,7 @@ void do_aa_star_pixel(int x, int y, int fx, int fy, int c) {
         // q is now 0..255, which we rescale back into color range
 
         gr_set_pixel(std_alias_color_table[q], x, y);
+        gpu_world_star_pixel(x, y, std_alias_color_table[q]);
     }
 }
 
@@ -328,13 +330,17 @@ void star_render(void) {
                     do_aa_star(s->sx, s->sy, std_col[i]);
                 } else
 #endif
-                    if (gr_get_pixel(x, y) == 0xff)
-                    gr_set_pixel(std_col[i], x, y);
+                    if (gr_get_pixel(x, y) == 0xff) {
+                        gr_set_pixel(std_col[i], x, y);
+                        gpu_world_star_pixel(x, y, std_col[i]);
+                    }
             } else {
                 for (x1 = x; x1 < x + std_size; ++x1) {
                     for (y1 = y; y1 < y + std_size; ++y1) {
-                        if (gr_get_pixel(x1, y1) == 0xff)
+                        if (gr_get_pixel(x1, y1) == 0xff) {
                             gr_set_pixel(std_col[i], x1, y1);
+                            gpu_world_star_pixel(x1, y1, std_col[i]);
+                        }
                     }
                 }
             }

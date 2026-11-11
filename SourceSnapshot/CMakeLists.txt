@@ -157,6 +157,7 @@ set(MAC_SRC
 	src/MacSrc/Modding.c
 	src/MacSrc/OpenGL.cc
 	src/MacSrc/Xmi.c
+	src/MacSrc/ExternalMusic.c
 	src/MusicSrc/MusicDevice.c
 )
 
@@ -264,6 +265,8 @@ set(GAME_SRC
 	src/GameSrc/status.c
 	src/GameSrc/target.c
 	src/GameSrc/textmaps.c
+	src/GameSrc/horror_profile.c
+	src/GameSrc/horror_visuals.c
 	src/GameSrc/tickcount.c
 	src/GameSrc/tfdirect.c
 	src/GameSrc/tfutil.c

@@ -804,12 +804,7 @@ g3s_vector zvec = {0, 0, 0};
 
 extern uchar view360_is_rendering;
 
-int fr_send_view(void) {
-    uchar snd_frm = TRUE;
-    bool ok_to_double;
-
-    // printf("fr_send_view\n");
-
+void fr_render_stars(void) {
     // JAEMZ JAEMZ JAEMZ
     // render the stars, if there were
     // no stars in this scene it simply returns
@@ -820,6 +815,13 @@ int fr_send_view(void) {
     g3_start_object_angles_y(&zvec, QUESTBIT_GET(0x14) ? player_struct.game_time * 3 : player_struct.game_time / 5);
     star_render();
     g3_end_object();
+}
+
+int fr_send_view(void) {
+    uchar snd_frm = TRUE;
+    bool ok_to_double;
+
+    // printf("fr_send_view\n");
 
     g3_end_frame();
 

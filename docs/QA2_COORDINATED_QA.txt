@@ -1,0 +1,383 @@
+COORDINATED MAINTENANCE / MENU / AMMO / LOADOUT PASS
+Date: 2026-10-02 (America/New_York)
+
+RESULT
+B, C and D pass automated validation and user-reported hardware acceptance.
+A remains intermittent / not reproduced on retest, with root cause unknown.
+The original hardware freeze report remains valid historical evidence; no
+elevator behavior fix is claimed and the issue is not definitively fixed.
+Existing AUDIO2 Remake pack hardware results and QA1 acceptance are preserved.
+The validated batch includes AUDIO2, QA touch tools, menu taps, AMMO radial,
+Full QA Loadout and elevator/lifecycle diagnostics.
+
+HARDWARE ACCEPTANCE (USER REPORT)
+Menu taps: PASS. Ordinary selections reliably respond to one normal tap;
+spam-tapping is no longer required and no obvious regressions were noticed.
+AMMO radial: PASS. Short tap, hold to open, selection and cancel work; the
+feature is usable through touch as intended.
+Full QA Loadout: PASS. The touch action works and the granted loadout behaves
+normally; no obvious corruption or repeated-use problem was observed.
+Maintenance elevator: the previously reported freeze was NOT reproduced
+during this retest. Diagnostics remain useful; root cause remains unknown.
+No cause is inferred from the non-reproduction.
+
+Acceptance does not certify unreported save/load, lifecycle, exact elevator
+routes/modes/repetition counts, weapon edge cases or input-device matrices.
+Those detailed checks remain pending below. Closeout changes documentation
+only, includes the existing validated implementation/tests in the authorized
+commit, and performs no push. The diagnostics APK was installed as an update
+at the user's request before their hardware pass, preserving app data.
+
+A -- ELEVATOR HANG
+Historical investigation: retained logs confirm Reactor -> Maintenance QA arrival at
+tile 34,39 z=87 and Remake maintenance.mp3 playback, but contain no elevator
+activation stages. Root cause remains undetermined.
+Current hardware retest: freeze NOT reproduced. Classification: intermittent /
+not reproduced on retest. The original report is retained, instrumentation
+remains available and no elevator behavior fix is claimed.
+
+Trace: QA and normal elevator travel share trap_teleport_func ->
+go_to_different_level, including inventory/deck save, destination load,
+art/physics restore, schedule advancement, entry triggers and obj_move_to.
+Elevators additionally close their panel, preserve player offset, resolve
+destination panels, run arrival cleanup and open the destination door.
+QA instead chooses a validated empty flat terrain tile with standing clearance.
+These differences are logged rather than presumed to cause the hang.
+
+Audio: Remake ownership is based on deck. Stock elevator-zone changes still
+run fade_into_location/load_score_guts(7), StopTheMusic/ExternalMusicSuspend
+and theme load; the next eligible AI update resumes the same decoder.
+MacTuneQueueTune is a stub in this fork. No audio ownership, fallback,
+stop/suspend, elevator algorithm or teleport behavior was changed.
+
+Instrumentation: diagnostics-gated markers around doors, music-zone/theme
+changes, elevator panel setup, selected floor, rendering, shared transition,
+save/load, schedule/entry triggers, placement, janitor and arrival SFX.
+QA before/after markers include destination spawn, loop, panel reference,
+music score/bits, external ownership and god state. Existing lifecycle
+instrumentation remains intact. See MAINTENANCE_ELEVATOR_QA.txt for details.
+
+Validation: production ExternalMusic with mocked mixer passes Original and
+Remake routes, 20 Maintenance route cycles, 260 theme suspend/resume events,
+no duplicate decoder/start, no permanent silence at that boundary and
+no-mixer fallback. Owned pristine archive and two CurrentGame snapshots each
+pass all 25 elevator panels / 52 destination links, bounds, active destination
+panels and acyclic tile object-reference chains. Diagnostics on/off ARM64
+compilation passes. These do not execute real hardware transitions.
+
+Maintenance lower-deck elevator: panel 225, tile 37,25, serves Reactor (0),
+Research (2), Maintenance (3). Medical (1) requires continuing via Research.
+Other Maintenance cars: panel 7 tile 32,34 to Storage/Flight Deck;
+panel 129 tile 36,38 to Executive.
+
+Files: objuse.c, musicai.c, saveload.c, trigger.c, qa_tools.c,
+audio_diag/transition_trace.h, elevator tests and investigation document.
+
+B -- MENU TAP RELIABILITY
+Root cause: setup assigns the title menu root to _current_view. The touch
+target query classified parts of it as WORLD, generating two press/release
+pairs. Legacy UI buffering turned them into LDOUBLE, ignored by title handlers
+which accept LDOWN. Ordinary control taps also entered that double-click delay
+and could be delayed/coalesced across rapid taps.
+
+Before: completed control tap -> ordinary down/up mouse queue -> double-click
+buffer; misclassified title taps -> two pairs -> LDOUBLE.
+After: completed UI control/NONE tap -> one source-aware marked down/up pair,
+immediately dispatched in order without double-click buffering. TAP metadata
+is stripped before callbacks. World/object tap double-clicks retain their
+existing path. Physical mouse/controller click history and aggregate button
+ownership remain intact; keyboard behavior is unchanged.
+
+Drags: movement beyond existing slop starts marked native drag edges.
+Title/wrapper buttons and list actions ignore drag-down activation, while
+sliders keep down/move/up. Shift is explicitly masked in all relevant game
+consumers. Cancel/background cleanup retains release provenance and never
+releases an overlapping physical/controller hold.
+
+Timing: stationary ordinary-menu taps permit up to 1000 ms; gameplay cursor
+and movie thresholds remain 350 ms. Slop, anchoring and gameplay sensitivity
+are unchanged. Raw input timestamp domains were not redesigned.
+
+Automated PASS: real SDL adapter + real uiPoll/region dispatch tests cover same-frame
+single/rapid taps, one activation per tap, native mouse double-click buffering,
+cancellation releases, marked drags and overlapping physical holds. All prior
+touch suites pass. Visual QA and full ARM64 builds pass.
+Hardware PASS: ordinary menu selections respond to a normal single tap without
+spam-tapping; no obvious regressions were observed. Per-menu enumeration,
+slow-tap limits, drag/slider and physical-input checks were not individually
+reported and remain pending rather than inferred from this broad acceptance.
+
+Files: touch_controls.c, bridge APIs/implementation, INPUT mouse.h and
+sdl_events.c/.h, UI event.c, GameSrc input.c classifier, setup.c, wrapper.c,
+mfdgames.c and focused touch tests.
+
+C -- RELOAD / AMMO RADIAL
+Control: a new editable AMMO touch button near the existing top-row wheels.
+The baseline had no dedicated reload touch control. Existing keyboard and
+controller ammo-cycle actions remain unchanged.
+
+Short tap: native reload_weapon_hotkey(..., data=0), reload current ammo with
+native fallback. This also reloads single-ammo weapons correctly. The stock
+controller data=1 ammo-cycle behavior remains on its existing control.
+Hold: 320 ms, the same shared wheel threshold. No action occurs on opening.
+Release on a valid sector invokes exactly one native reload or ammo selection;
+center/outside/disabled-sector release cancels. Rapid taps remain single actions.
+
+Population: equipped weapon only, RELOAD plus compatible ammo with reserve or
+loaded rounds. Current ammo is marked even when only its magazine remains.
+Counts show loaded + reserve rounds; unavailable alternates are hidden initially
+and disabled by live refresh if depleted while held. IDs bind both weapon slot
+and gun definition; stale/replaced weapon choices are rejected on release.
+
+Specific ammo: native unload_current_weapon then change_ammo_type, matching the
+weapon MFD. Quantities, clips, heat, energy settings and balance stay owned by
+native routines. Byte-counter overflow on returning a magazine is rejected
+before mutation. Empty/invalid slots are rejected. Beam and hand-to-hand
+weapons have no ammo choices. Beam-projectile weapons retain their native
+setting/heat semantics; a setting value is never interpreted as an ammo ID.
+
+Context: works in LOOK and gameplay CURSOR. A held cursor/attack gesture
+prevents acquisition. Mode/UI/controller/lifecycle interruptions cancel;
+other wheels retain their context rules. Existing settings/control IDs and
+keys are preserved; old v3 settings gain the default new button placement.
+The layout editor can move and resize AMMO.
+
+Automated PASS: focused tap/hold boundary and timestamp-wrap tests, short taps,
+reload/alternate/cancel, one/multiple ammo types, empty magazine, absent or
+depleted alternate, stale slot/gun, LOOK/CURSOR and interruptions all pass.
+Tests execute unchanged production native reload/ammo routines and prove
+total-round conservation plus overflow rejection. Renderer/editor/settings
+tests pass, and LOOK/CURSOR previews were visually reviewed.
+Hardware PASS: AMMO short tap, hold opening, selection and cancel work and
+the feature is usable through touch. Exact timing, individual ammo/weapon
+edge cases, LOOK/CURSOR matrix and interruption checks were not reported.
+
+Files: controls/settings/editor/render/radial header, bridge, GameSrc input.c
+native adapter, INPUT touch action dispatch and focused tests.
+
+D -- FULL QA LOADOUT
+Access: touch SET -> QA TOOLS -> FULL QA LOADOUT, with existing QA runtime
+opt-in. Deferred until uiPoll unwinds; no keyboard needed.
+
+The native inventory has seven weapon slots. Existing weapons are retained.
+Missing candidates fill empty slots in this deterministic priority order:
+  1 Magnum (MAGNUM_TRIPLE, 0x002)
+  2 Magpulse (MAGPULSE_TRIPLE, 0x200)
+  3 Railgun (RAILGUN_TRIPLE, 0x201)
+  4 Phaser/Sparq beam (PHASER_TRIPLE, 0x400)
+  5 Flechette (FLECHETTE_TRIPLE, 0x100)
+  6 Plasma beam (PLASMABEAM_TRIPLE, 0x501)
+  7 Minipistol (MINIPISTOL_TRIPLE, 0x000)
+  8 Dart pistol (DARTPISTOL_TRIPLE, 0x001)
+  9 Assault rifle (ASSAULTRFL_TRIPLE, 0x003)
+ 10 Riot gun (RIOTGUN_TRIPLE, 0x004)
+ 11 Skorpion (SKORPION_TRIPLE, 0x101)
+ 12 Baton (BATON_TRIPLE, 0x300)
+ 13 Laser rapier (LASERAPIER_TRIPLE, 0x301)
+ 14 Blaster (BLASTER_TRIPLE, 0x401)
+ 15 Ion beam (IONBEAM_TRIPLE, 0x402)
+ 16 Stun gun (STUNGUN_TRIPLE, 0x500)
+An empty inventory gets entries 1-7; a retained baton with six empty slots gets
+entries 1-6. Existing candidates are skipped, allowing later missing entries
+to fill remaining space. A full inventory retains its seven guns. This is the
+largest safe grant without replacing guns or expanding saved inventory.
+
+Ammo: at least 50 full cartridges for each of the 15 native ammo types:
+SP/TEF pistol; normal/tranquilizer needle; HT/HS/RB magnum;
+MR/PR rifle; HN/SPL flechette; SLG/B automatic; MAG/RG projectile.
+Existing larger counts, partial cartridges and loaded magazines are retained.
+New weapons start with empty magazines and native-compatible ammo/settings.
+
+Also: at least 10 each of the seven player grenade types (fragmentation, EMP,
+gas, concussion, land mine, nitro, earth shaker) and seven patch types
+(stamina, sight, LSD, medi, ninja, genius, detox). Internal object-explosion
+grenades are excluded by the native player count. Health and energy become
+255, their existing maxima; maximum stats are never increased.
+No access cards, key/quest items, hardware, software or progression flags.
+
+Mechanism: obj_create_base -> inventory_add_object -> native weapon pickup.
+World-object autodeletion is temporarily disabled during each allocation and
+restored immediately. Successful pickup destroys its temporary object through
+the native inventory code. Failed admission destroys only the newly allocated
+object. Full slots are checked before allocating. Duplicate owned candidates
+are skipped. Byte counters use bounded top-ups, not addition.
+Logs list successful gun triples and a concise summary. Object-limit failures
+are reported as a partial loadout. No save routine is called and unrelated
+save slots are untouched; an explicit normal save records the active loadout.
+
+Automated PASS: tests cover empty and partially occupied inventories, seven-slot
+capacity, existing gun preservation, repeated byte-identical grants, high
+counter preservation, disabled/cyber/dead/no-map gates, failed allocation,
+failed admission cleanup and restoration of autodelete. Allocation/admission
+boundaries use doubles; full native QA compilation also passes. UI touch
+workflow tests and rendered button review pass.
+Hardware PASS: the touch action and granted loadout work normally; no obvious
+corruption or repeated-use problem was observed. Exact stock audits and live
+save/load after granting remain pending, not implied by this acceptance.
+
+FILES AND TESTS
+Initial pass-only file list: dist/coordinated-pass-files.txt (relative to the
+saved initial dirty-tree snapshot); patch: dist/coordinated-pass.diff.
+Initial pre-closeout dirty paths, including AUDIO2/QA1/lifecycle work:
+dist/coordinated-git-status.txt and the historical status appended below.
+Untouched pre-existing files remain byte-identical to the snapshot. Touched
+files keep their existing work and receive only the coordinated changes.
+
+PASS scripts/test-touch.ps1: 13 suites (QA1, controls, Alpha11, Alpha2, surface,
+bridge, Alpha3, Alpha4, ammo, target, input, menu, renderer).
+PASS scripts/test-touch-game.py: production native ammo/loadout safety tests.
+PASS scripts/test-audio1.ps1: mixer playback/lifecycle/fallback and no-mixer.
+PASS scripts/test-audio2.py: production preferences, deck IDs, pack installer,
+encoding and failure preservation.
+PASS scripts/test-elevator.ps1: music ownership routes and three archives.
+PASS scripts/test-qa1-archive.py: 13 owned-archive teleport destinations.
+PASS scripts/test-movie.ps1: synthetic decoder cases at O0/O2; owned intro
+SVGAINTR.RES, 1106 frames at both levels, identical hash 193a869034748168.
+PASS full ARM64 QA builds and verify-apk.ps1, diagnostics enabled and disabled.
+PASS git -c core.whitespace=cr-at-eol diff --check (preserved CRLF files).
+The Linux runner is updated; it was not executed in this Windows session.
+No standalone save/load suite exists in the repository. Saved-deck resource
+validation passes; real in-game save/load after loadout has not been tested.
+Logs: dist/coordinated-*.log. Compiler: retcomm gcc/Clang 22.1.8.
+An initial build found missing wrapper/help extern declarations, now fixed.
+An initial movie invocation lacked its runtime directory on PATH; corrected.
+Final checks pass. Existing trigger.c abs(unsigned) compiler warning remains.
+
+Closeout rerun: all automated suites listed above passed again; both existing
+diagnostics/control APKs passed verification again. Production code was unchanged
+during this documentation closeout, so the prior full ARM64 builds were retained.
+PowerShell parsing passed for 18 scripts; optional PSScriptAnalyzer was not
+installed and did not run. Rerun evidence: ignored dist/closeout-*.log.
+Whitespace and the staged file/diff review are required before the commit.
+
+APK
+For elevator reproduction, use the verified diagnostics QA APK:
+C:\Dev\system-shock-android\dist\SystemShock-QA2-Coordinated-arm64-v8a.apk
+SHA256 2049ab1b10982d3c94eee2c6fb76da22f9abc2767ddd446246c353549289b6bc
+Ordinary QA control APK (diagnostics disabled):
+C:\Dev\system-shock-android\dist\SystemShock-QA2-Control-arm64-v8a.apk
+SHA256 80b8342903a9b69187df98527b18c11a26b4c2be4bdbad6cfc9441c4dfb2c947
+Both: io.github.raposomiguel50.systemshock.qa, ARM64, version 10000/1.0.0-qa,
+debug-signed; native ELF/APK 16 KB alignment verification passes.
+The Gradle app-qa.apk currently contains the diagnostics-disabled control build.
+
+HARDWARE CHECKLIST
+Acceptance reported (these are the only newly checked outcomes):
+[x] Ordinary menu selections work reliably with one normal tap; no spam-tapping
+    required and no obvious regressions noticed during the hardware pass.
+[x] AMMO short tap works; hold opens the radial; selection and cancel work.
+[x] Touch-accessible Full QA Loadout works and behaves normally; no obvious
+    corruption or repeated-use problem observed.
+[x] Maintenance elevator freeze not reproduced on retest; intermittent issue
+    remains unresolved, with original report retained and no behavior fix claimed.
+
+Detailed coverage not individually reported (left pending):
+Elevator -- Original AND Remake:
+[ ] Normal Research -> Maintenance -> Research -> return.
+[ ] QA teleport -> Maintenance -> lower-deck main car (tile 37,25) -> Research
+    -> return; continue to Medical via Research if desired.
+[ ] Repeat five QA/elevator cycles. If a different car originally hung,
+    reproduce that exact car/floor too.
+[ ] Identify stall stage (door, entering car, panel, floor choice, deck load,
+    arrival door); capture diagnostics logcat. No duplicate music/silence/hang.
+
+Menu taps:
+[ ] Title, load/save, options/settings and inventory/UI: one deliberate tap
+    works repeatedly, including slower stationary taps.
+[ ] Drag across menu buttons/lists without activating them; sliders drag.
+[ ] Keyboard/controller/mouse, gameplay touch and layout editor still work.
+
+Ammo radial:
+[ ] Short AMMO tap reloads once. Hold opens at 320 ms without doing an action.
+[ ] Choose reload/current/alternate; center release cancels.
+[ ] Single/multiple ammo types, empty magazine, missing alternate, depleted
+    reserve, beam/melee/projectile weapons; rapid repeated use.
+[ ] LOOK and CURSOR; mode switch/background/other-wheel cancellation.
+[ ] Verify counts conserved and no duplicate action.
+
+Loadout:
+[ ] On a disposable QA save, trigger once and verify actual retained/granted
+    guns, all 15 ammo stocks, seven grenade/patch stocks, max health/energy.
+[ ] Trigger again; no duplicates, overflow, lost guns or corruption.
+[ ] Explicitly save to a QA test slot, load it, verify loadout and normal
+    gameplay. Existing unrelated saves remain unchanged.
+
+REMAINING LIMITATIONS
+Elevator root cause is unresolved and no behavior fix is claimed. Data/mixer
+tests cannot prove live physics, MIDI callbacks or device transitions are safe.
+Menu/wheel/loadout broad physical-touch acceptance passes. Live save/load,
+lifecycle and the detailed special-case matrices remain pending. The elevator
+is intermittent / not reproduced on retest, not definitively fixed.
+Only seven weapons fit; all 16 cannot be held simultaneously without changing
+the native inventory/save format. Full slots are preserved, so the exact newly
+granted subset depends on existing inventory. Optional key items are excluded.
+Existing tightly packed portrait layouts can overlap; AMMO can be repositioned
+with the preserved layout editor. No broad layout redesign was made.
+
+PRE-CLOSEOUT GIT STATUS --SHORT (HISTORICAL SNAPSHOT)
+ M AndroidProject/app/build.gradle
+ M AndroidProject/app/jni/CMakeLists.txt
+ M AndroidProject/app/jni/touch/tests/touch_alpha11_test.c
+ M AndroidProject/app/jni/touch/tests/touch_bridge_test.c
+ M AndroidProject/app/jni/touch/tests/touch_input_test.c
+ M AndroidProject/app/jni/touch/tests/touch_render_test.c
+ M AndroidProject/app/jni/touch/touch_controls.c
+ M AndroidProject/app/jni/touch/touch_controls.h
+ M AndroidProject/app/jni/touch/touch_editor.c
+ M AndroidProject/app/jni/touch/touch_radial.h
+ M AndroidProject/app/jni/touch/touch_render.c
+ M AndroidProject/app/jni/touch/touch_settings.c
+ M AndroidProject/app/jni/touch/touch_settings.h
+ M AndroidProject/app/jni/touch/touch_shock_bridge.c
+ M AndroidProject/app/jni/touch/touch_shock_bridge.h
+ M AndroidProject/app/src/main/java/com/rp5np/systemshock/ShockolateActivity.java
+ M SourceSnapshot/CMakeLists.32bit.txt
+ M SourceSnapshot/CMakeLists.txt
+ M SourceSnapshot/src/GameSrc/damage.c
+ M SourceSnapshot/src/GameSrc/digifx.c
+ M SourceSnapshot/src/GameSrc/gamewrap.c
+ M SourceSnapshot/src/GameSrc/input.c
+ M SourceSnapshot/src/GameSrc/mfdgames.c
+ M SourceSnapshot/src/GameSrc/musicai.c
+ M SourceSnapshot/src/GameSrc/objuse.c
+ M SourceSnapshot/src/GameSrc/player.c
+ M SourceSnapshot/src/GameSrc/saveload.c
+ M SourceSnapshot/src/GameSrc/setup.c
+ M SourceSnapshot/src/GameSrc/trigger.c
+ M SourceSnapshot/src/GameSrc/wrapper.c
+ M SourceSnapshot/src/Libraries/INPUT/Source/mouse.h
+ M SourceSnapshot/src/Libraries/INPUT/Source/sdl_events.c
+ M SourceSnapshot/src/Libraries/INPUT/Source/sdl_events.h
+ M SourceSnapshot/src/Libraries/UI/Source/event.c
+ M SourceSnapshot/src/MacSrc/Prefs.c
+ M SourceSnapshot/src/MacSrc/Prefs.h
+ M SourceSnapshot/src/MacSrc/SDLSound.c
+ M SourceSnapshot/src/MacSrc/Xmi.c
+ M scripts/build.ps1
+ M scripts/test-touch-linux.sh
+ M scripts/test-touch.ps1
+?? AndroidProject/app/jni/audio_diag/
+?? AndroidProject/app/jni/touch/qa_spawn.h
+?? AndroidProject/app/jni/touch/qa_tools.c
+?? AndroidProject/app/jni/touch/qa_tools.h
+?? AndroidProject/app/jni/touch/tests/touch_ammo_test.c
+?? AndroidProject/app/jni/touch/tests/touch_menu_test.c
+?? AndroidProject/app/jni/touch/tests/touch_qa_test.c
+?? SourceSnapshot/src/MacSrc/ExternalMusic.c
+?? SourceSnapshot/src/MacSrc/ExternalMusic.h
+?? docs/AUDIO1_MEDICAL_QA.txt
+?? docs/AUDIO2_SOUNDTRACK_QA.txt
+?? docs/AUDIO_LIFECYCLE_QA.txt
+?? docs/MAINTENANCE_ELEVATOR_QA.txt
+?? docs/QA1_ANDROID_QA.txt
+?? docs/QA2_COORDINATED_QA.txt
+?? scripts/install-qa-soundtrack.py
+?? scripts/set-qa-cheats.ps1
+?? scripts/test-audio1.ps1
+?? scripts/test-audio2.py
+?? scripts/test-elevator-archive.py
+?? scripts/test-elevator.ps1
+?? scripts/test-qa1-archive.py
+?? scripts/test-touch-game.py
+?? tests/audio/
+?? tests/touch/

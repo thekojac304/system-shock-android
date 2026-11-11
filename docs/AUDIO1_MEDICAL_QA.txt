@@ -1,0 +1,239 @@
+AUDIO1 — Medical deck replacement music prototype
+2026-10-02
+
+STATUS
+
+Implemented, default off. No copyrighted audio was downloaded or included.
+No commit or push. No gameplay, maps, save format, touch controls, Java
+lifecycle, mixer device configuration, or dependency sources were changed.
+The pre-existing uncommitted audio-lifecycle/build files were preserved
+byte-for-byte (hash inventory: dist/audio1/preexisting-hashes.json).
+
+ARCHITECTURE INVESTIGATION
+
+1. Selection is by tile music zone, not a deck-to-file table. musicai.c:
+   load_score_for_location reads me_bits_music; cyberspace substitutes its
+   score base. fade_into_location changes the theme when the tile zone
+   changes, with special handling for continuous elevator music.
+   Medical is player_struct.level == 1 (player.c:init_player). HOSPITAL_ZONE
+   is also 1, but zone and deck are distinct concepts. AUDIO1 uses the deck.
+
+2. musicai.c:load_score_guts calls musicai_shutdown then MacTuneLoadTheme.
+   SDLSound.c:MacTuneLoadTheme stops XMI, frees the previous XMI, loads
+   res/sound/<sblaster or genmidi>/thmN.xmi and res/sound/thmN.bin. Named
+   title/end themes use titloop.xmi/endloop.xmi instead of the theme tables.
+
+3. airupt.c:grind_music_ai/check_asynch_ai and musicai.c:mlimbs_do_ai decide
+   pieces/layers. make_request and MacTuneStartCurrentTheme call StartTrack.
+   Xmi.c parses/sequences events on its worker, uses atomic track commands
+   and a synth mutex, and implements StartTrack, StopTrack, StopTheMusic,
+   InitReadXMI, ReloadDecXMI, ShutdownReadXMI and UpdateVolumeXMI.
+   Many historical MacTune functions, including MacTuneQueueTune and
+   MacTuneShutdown, are now stubs: do not assume their names imply playback.
+
+4. MusicDevice.c provides ADLMIDI (Android's default OPL synthesis), native
+   MIDI (Windows/ALSA when available), optional FluidSynth, and a null device.
+   Android disables FluidSynth and SDL_mixer MIDI; the engine owns MIDI.
+   Xmi.c:MusicCallback renders the synth through Mix_HookMusic.
+
+5. SDLSound.c:snd_start_digital owns the Android mixer device: 48 kHz,
+   signed 16-bit stereo, 1024 frames. VOC/SFX use Mix_Chunk channels.
+   The Android auxiliary postmix drains cutscene_audiostream for movies/
+   audiologs. Desktop retains its separate raw SDL auxiliary-device path.
+   The Android SDL build includes OpenSL ES, AAudio and Java AudioTrack;
+   actual device driver selection requires hardware logs.
+
+6. AndroidProject/app/jni/CMakeLists.txt explicitly sets SDL2MIXER_VORBIS="".
+   OGG/Vorbis is NOT supported in this build. MP3/minimp3 and WAVE are on.
+   SDL_mixer 2.8.1's minimp3 CreateFromRW uses read/seek callbacks and a
+   bounded PCM buffer. It may scan/index the compressed file when opening;
+   it does not decode a whole long soundtrack into an in-memory PCM chunk.
+   Mix_LoadMUS/Mix_PlayMusic are the existing suitable streaming facility.
+
+7. Existing lifecycle, and AUDIO1 treatment:
+   - New game: init_player starts level 1; gamewrap.c loads the location
+     theme. AUDIO1 starts on the first eligible music update in gameplay.
+   - Load: gamewrap.c:load_game reads the saved level then reloads location
+     music. AUDIO1 checks that actual level; saves contain no AUDIO1 state.
+   - Deck transition: saveload.c retains elevator music in some paths;
+     the first destination music update releases AUDIO1 even when no new
+     tile theme load occurred. Stock requests then play the current theme.
+   - In-game pause: gameloop.c explicitly keeps calling mlimbs_do_ai.
+     Stock music continues; AUDIO1 also continues, with no new play call.
+   - Background/foreground: SDLActivity/native pause semaphores and SDL's
+     blocking Android event pump pause/resume backend devices. The mixer
+     and its music object survive. No AUDIO1 Java/event resume handler or
+     second audio device was added. Process death naturally starts fresh.
+   - Death: damage.c:player_dies calls mai_player_death, which stops music
+     and requests the stock death transition. AUDIO1 suspends its stream;
+     player_struct.dead excludes replacement playback. Resurrection resumes
+     the retained stream on the next eligible Medical update.
+   - Menu/cutscene: setup.c/cutsloop.c stop the theme. AUDIO1 suspends and
+     restores the synth hook. Menu/death/cutscene music remains stock.
+     GAME_LOOP, FULLSCREEN_LOOP and AUTOMAP_LOOP are eligible; other loops
+     cannot activate the replacement through tight_loop calls.
+   - Exit: AUDIO1 registers cleanup after the sound system's atexit handlers,
+     so its stream is halted/freed before mixer teardown. Restart rereads
+     prefs and starts from the beginning, with no saved decoder position.
+
+8. Future AUDIO3 hooks: WALKING_SCORE, PERIL_SCORE, COMBAT_SCORE;
+   mai_attack/mai_combat_length/mlimbs_combat; mai_monster_nearby and defeated;
+   in_peril/mlimbs_peril; health and accumulated damage/layer_danger;
+   success, machine and transition layers; track/transition/layer/key tables.
+   These are music heuristics, not a normalized intensity API. AUDIO1 skips
+   stock music sequencing while overriding (but still flushes damage SFX).
+   A future dynamic replacement controller must deliberately consume/update
+   these signals; it should not assume that the stock sequencer keeps running.
+
+9. Clean interception: ExternalMusic.c owns only external music and the
+   music-hook swap. mlimbs_do_ai supplies level/context/enable/volume.
+   StopTheMusic suspends the override; StartTrack excludes concurrent stock
+   MIDI; UpdateVolumeXMI forwards music-volume/audiolog ducking changes.
+   No mixer channel, postmix callback or device lifecycle is replaced.
+
+10. Storage: LauncherActivity imports owned data to getFilesDir()/res.
+    Shock.c changes cwd to SDL_AndroidGetInternalStoragePath (app files/).
+    Prefs.c prefers cwd/prefs.txt then SDL_GetPrefPath; on Android the latter
+    is the same internal files directory. There is no general public-folder
+    music importer today. Use QA run-as/ADB for this developer prototype.
+
+DESIGN AND LIMITS
+
+Only mapping: level 1 -> music/remake/medical.mp3, including Medical's
+elevator while still on level 1. Every other deck and cyberspace remain stock.
+Configuration: replacement_medical_music = true/false in prefs.txt.
+Default false. Recognized true values follow existing prefs: true, yes, 1.
+Normal music must also be enabled (music-volume greater than zero).
+
+The decoder is opened before suppressing stock music, and looped with -1.
+Repeated updates never call PlayMusic again. Theme reloads suspend/resume
+the same object; departure/disable frees it. No crossfade is implemented.
+Load, unsupported-type and play failures restore/retain the stock callback;
+unexpected stream termination also falls back on the next update. One
+concise AUDIO1 fallback diagnostic is emitted per attempt; failed attempts
+are latched until deck departure, disable or process restart to avoid spam.
+Adding/fixing a file after failure therefore requires one of those actions.
+
+Only MP3 is accepted by this prototype, even if a desktop mixer supports
+other formats. Renaming OGG/WAV to .mp3 does not make it supported. The fixed
+MP3 choice reuses the current decoder and avoids editing the already-dirty
+Android build configuration. OGG/Vorbis can be enabled deliberately later.
+MP3 encoder padding may produce a small loop gap; assess the supplied track.
+
+Volume follows the existing independent music volume, including audiolog
+ducking; SFX and speech volume controls are unchanged. A separate pack-volume
+preference is deferred. Restoring the synth hook restores its established
+full mixer gain; stock volume remains controlled by MIDI controllers.
+
+The module is portable C with no Android APIs. A no-SDL_mixer build uses
+no-op stubs. Both primary and legacy 32-bit CMake source lists include it.
+AUDIO2 can replace the one mapping with a pack lookup without changing
+playback ownership. AUDIO3 simultaneous ambient/combat streams will need a
+deliberate multi-stream mixing design: SDL_mixer's one music slot is enough
+for AUDIO1, not a complete crossfade/layer engine.
+
+EXACT PATH AND ENABLE STEPS
+
+QA absolute path (usual Android primary user):
+  /data/user/0/io.github.raposomiguel50.systemshock.qa/files/music/remake/medical.mp3
+Equivalent app-relative path: files/music/remake/medical.mp3.
+Desktop: music/remake/medical.mp3 relative to the game's working directory,
+next to res/; edit the prefs.txt that the desktop game actually uses.
+
+Install the separate QA APK, open it, import your OWN compatible res folder,
+and start once so prefs.txt exists. Then stop QA before editing/copying.
+The following commands are for WINDOWS COMMAND PROMPT (cmd.exe), with adb
+on PATH. Use cmd.exe binary redirection, not a PowerShell text pipeline for
+the MP3. Replace only the local music path with your own MP3.
+
+  adb install -r "C:\Dev\system-shock-android\AndroidProject\app\build\outputs\apk\qa\app-qa.apk"
+  adb shell am force-stop io.github.raposomiguel50.systemshock.qa
+  adb shell run-as io.github.raposomiguel50.systemshock.qa mkdir -p files/music/remake
+  adb shell -T "run-as io.github.raposomiguel50.systemshock.qa sh -c 'cat > files/music/remake/medical.mp3'" < "C:\MyMusic\medical.mp3"
+  adb exec-out run-as io.github.raposomiguel50.systemshock.qa cat files/prefs.txt > audio1-prefs.txt
+  notepad audio1-prefs.txt
+
+Edit the existing key (or add it once), preserving all other settings:
+  replacement_medical_music = true
+Keep music-volume above zero. Save the local file, then:
+
+  adb shell -T "run-as io.github.raposomiguel50.systemshock.qa sh -c 'cat > files/prefs.txt'" < audio1-prefs.txt
+
+Launch QA from its icon; start a new game or load a Medical save.
+Inspect logs with: adb logcat -s SDL
+Look for "AUDIO1 playing:" or "AUDIO1 fallback:".
+Disable by stopping QA, setting the same key to false, copying prefs back,
+and restarting. The normal res importer does not copy music/. run-as needs
+the debuggable QA package; these instructions are not a release importer.
+ADB transfer instructions still need confirmation on the target hardware.
+
+FILES CHANGED FOR AUDIO1 (excluding pre-existing user work)
+
+  SourceSnapshot/CMakeLists.txt
+  SourceSnapshot/CMakeLists.32bit.txt
+  SourceSnapshot/src/GameSrc/musicai.c
+  SourceSnapshot/src/MacSrc/Prefs.c
+  SourceSnapshot/src/MacSrc/Prefs.h
+  SourceSnapshot/src/MacSrc/Xmi.c
+  SourceSnapshot/src/MacSrc/ExternalMusic.c (new)
+  SourceSnapshot/src/MacSrc/ExternalMusic.h (new)
+  tests/audio/external_music_test.c (new)
+  tests/audio/external_music_smoke.c (new)
+  scripts/test-audio1.ps1 (new)
+  docs/AUDIO1_MEDICAL_QA.txt (new)
+
+VALIDATION
+
+PASS: scripts/test-audio1.ps1 with the local retcomm gcc/clang toolchain;
+production module compiled -Wall -Wextra -Werror in mixer and no-mixer modes.
+Tests cover disabled/no calls, Medical activation, non-Medical load/departure,
+1000 repeated updates, missing/unsupported/play-failure fallback with retry
+latching, unexpected termination, repeated suspend/resume, menu/death return,
+volume ducking, disable, resource cleanup and stock hook restoration.
+These use a deterministic mixer boundary; save scenarios supply the loaded
+level, rather than loading commercial game saves into a running engine.
+
+PASS: real SDL 2.32.10 + SDL_mixer 2.8.1 Windows dummy-device smoke test,
+using locally built pinned sources with the Android decoder choices and a
+generated 440 Hz, 0.25-second MP3. It exercises actual MP3 loading, multiple
+loop points, callback handoff, pause/resume, device pause, missing-file
+fallback, continued SFX-channel activity and continued auxiliary postmix.
+The fixture and host libraries are ignored dist/audio1 outputs, not assets
+in the repository or APK. Source: tests/audio/external_music_smoke.c.
+Log: dist/audio1/runtime-smoke.log. This is not Android lifecycle validation.
+
+PASS: scripts/test-touch.ps1 (all 10 executables), scripts/test-movie.ps1
+(O0 and O2). Logs in dist/audio1/touch-tests.log and movie-tests.log.
+PASS: PowerShell parse/lint helper; PSScriptAnalyzer is not installed.
+PASS: QA Android ARM64 build and scripts/verify-apk.ps1, including identity,
+debug signature, embedded-resource checks and 16 KB ELF/APK alignment.
+Existing unsigned-abs C warning and deprecated Java API note remain.
+Build command: scripts/build.ps1 -Variant qa -SkipGitCleanCheck
+  -JavaHome 'C:/Program Files/Eclipse Adoptium/jdk-17.0.20.101-hotspot'
+Logs: dist/audio1/build.log and apk-verification.log.
+
+APK: AndroidProject/app/build/outputs/apk/qa/app-qa.apk
+Named copy: dist/audio1/SystemShock-AUDIO1-Medical-qa.apk
+SHA256: dff7670034bf023f7893efb69c0eabff8598217c032d723efc10f0eca0a11024
+Package: io.github.raposomiguel50.systemshock.qa
+Version: 1.0.0-qa / 10000
+This APK includes the preserved current working tree plus AUDIO1, with the
+pre-existing optional audio diagnostics disabled by the normal QA build.
+
+HARDWARE QA STILL REQUIRED
+
+No device was connected (adb devices was empty). Verify on the Retroid:
+- disabled baseline; valid long owned MP3; missing/truncated/unsupported file;
+- new game; Medical and other-deck saves; Medical elevator departure/return;
+- repeated tile-zone changes without track restarts, death/resurrection;
+- game pause, automap, settings, title menu, cutscenes, music mute/unmute;
+- repeated background/foreground, surface recreation, screen lock/unlock,
+  focus-only overlays, process kill/relaunch, and prolonged playback;
+- no overlap, permanent silence or resume latency accumulation;
+- weapons/doors/UI SFX, speech/audiolog intelligibility and volume ducking;
+- real loop seam and first-open/indexing latency for a long supplied track.
+
+The existing audio-lifecycle investigation remains unresolved; AUDIO1 does
+not claim to fix it. Full desktop game builds (including legacy 32-bit,
+native MIDI and FluidSynth) were not run; the portable module/no-mixer builds
+and real Windows SDL_mixer smoke passed.

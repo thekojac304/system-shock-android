@@ -1,0 +1,222 @@
+HORROR-HYBRID4 / DECKS1 + DOOR-SPILL1 -- BOUNDED QA REPORT
+Date: 2026-10-04 (America/New_York)
+Phone: Samsung SM-S948U1, authorized ADB serial <device serial redacted>
+Result: AUTO MAPPING AND CONSERVATIVE PRESET DATA PASS; ALL-DECK VISUAL
+ACCEPTANCE INCOMPLETE. DOOR-SPILL1 REJECTED BEFORE RUNTIME IMPLEMENTATION.
+
+1. STARTING STATE AND SCOPE
+Started at c85e656961cdaf54f9bc72ff20fd7321cc8a2b91 on touch-controls.
+The checkout contained pre-existing unrelated AUDIO modifications, docs and
+untracked files. They were preserved and excluded from the visual diff. The
+QA APK necessarily builds that shared dirty AUDIO source tree; this report
+does not validate AUDIO work. Broad inference, exact animated-door aperture,
+room segmentation, new renderer effects and asset changes were not resumed.
+
+2. FRAMEWORK REUSE AND AUTO SELECTION
+GpuPost.h now maps archive levels 0..9 to ten existing/new archetype rows:
+0 Reactor->7; 1 Medical->1; 2 Research->8; 3 Maintenance->9;
+4 Storage->10; 5 Flight->11; 6 Executive/Groves->4;
+7 Engineering->12; 8 Security->13; 9 Bridge->14.
+Level >=10 and invalid levels retain neutral handling, including cyber and
+unsupported paths. Medical choices 1..3 and Executive choices 4..6 remain
+available for QA; cross-deck manual choices resolve to that deck's Auto row.
+The same Post Auto pass, distance packing, tone zones, tints, haze, fog, grain,
+drift and software fallback are reused. The live POST comparison notice now
+names the Auto deck. Normal Enhanced play still needs no manual preset change.
+
+CRITICAL LIMIT: The accepted GENERATED1 lighting compiler and runtime have
+compiled source/receiver profiles only for levels 1 and 6. Other levels still
+take GENERATED1's neutral GPU lighting path before the new Post Auto grade.
+Their generated-light and emissive multipliers are therefore neutral 1.00.
+The new preset rows are complete Post Auto data, but they are NOT a reviewed
+source-driven generated-light solution for the eight remaining decks. Producing
+that would require the forbidden broad inference work or separately accepted
+profile data. Do not interpret this report as a station-wide lighting PASS.
+The final APK's live POST button was toggled Off then Auto on Flight Deck;
+"AUTO FLIGHT" appeared briefly and Post Auto remained selected afterward.
+
+3. ANCHORS
+Medical row is byte-for-byte unchanged: exposure 1.02, contrast 1.13, toe
+.035, shoulder .12, saturation .94; shadow (.78,.90,1.05)/.10,
+highlight (1.02,1.02,1.00)/.025; vignette .10/.72/.25, grain .007;
+haze (.53,.63,.68) 2..9/.070, far desat .070, far contrast .030,
+shadow bias (-.020,.004,.025), drift 18/.004; rolloff/lift/nearblack 0;
+emissive/light 1/1; height fog off. Slot07 fresh-start camera showed the
+expected cyan beds, violet panels and dark ceiling on the new APK.
+Executive row is also unchanged: exposure 1.02, contrast 1.17, toe .04,
+shoulder .17, saturation .94; shadow (.85,.91,1.02)/.10,
+highlight (1.07,1.01,.89)/.08; vignette .11/.74/.25, grain .006;
+haze (.47,.42,.38) 3..12/.080, far desat .050, far contrast .025,
+shadow bias (.005,-.010,.012), drift 26/.003; rolloff .55, lift .030,
+nearblack .08; emissive/light .88/1.05; height fog 1.55/.9/.045/.04,
+color (.45,.42,.39). Slot02 Gamma Grove wall/door/corridor retained the
+HYBRID3 dark warm/cool treatment. The separate white-panel and chandelier
+views remain unreviewed as before.
+
+4. NEW AUTO PARAMETER DATA
+Notation: grade=exposure/contrast/toe/shoulder/saturation;
+sh=shadow RGB/strength; hi=highlight RGB/strength;
+vignette=amount/radius/softness; haze=RGB/start/end/strength;
+far=desaturation/contrast; bias=shadow RGB; drift=seconds/strength;
+tone=rolloff/midtone-lift/nearblack; mult=emissive/generated;
+fog=base/falloff/density/cap/RGB. All values are unitless except distance,
+height and seconds. FX FULL selects the atmosphere terms.
+
+REACTOR (level 0, row 7): grade 1.01/1.16/.04/.16/.91;
+sh (.98,.91,.86)/.08; hi (1.06,1.01,.93)/.055;
+vignette .10/.74/.25; grain .006;
+haze (.49,.41,.35)/2.5/10/.085; far .045/.03;
+bias (.012,-.006,-.008); drift 23/.003; tone .38/.018/.045;
+mult 1/1; fog 1.55/.9/.055/.05/(.48,.40,.34).
+MAINTENANCE (level 3, row 9): grade 1.01/1.14/.04/.15/.88;
+sh (.91,.95,.85)/.09; hi (1.02,1.00,.93)/.035;
+vignette .11/.72/.25; grain .007;
+haze (.45,.47,.39)/2.5/9/.07; far .055/.025;
+bias (.004,.002,-.010); drift 27/.002; tone .32/.022/.05;
+mult 1/1; fog 1.55/.9/.025/.025/(.43,.45,.39).
+STORAGE (level 4, row 10): grade 1.02/1.15/.04/.15/.91;
+sh (.86,.93,1.02)/.09; hi (1.00,1.02,1.02)/.03;
+vignette .11/.72/.25; grain .006;
+haze (.44,.52,.58)/3/11/.065; far .06/.025;
+bias (-.010,.001,.014); drift 29/.002; tone .34/.016/.055;
+mult 1/1; fog off.
+RESEARCH (level 2, row 8): grade 1.03/1.11/.03/.11/.96;
+sh (.83,.98,1.02)/.08; hi (.98,1.04,1.02)/.04;
+vignette .08/.74/.25; grain .005;
+haze (.50,.62,.63)/2.5/10/.06; far .045/.02;
+bias (-.012,.012,.014); drift 24/.002; tone .25/.012/.03;
+mult 1/1; fog off.
+FLIGHT DECK (level 5, row 11): grade 1.03/1.11/.03/.12/.96;
+sh (.88,.96,1.03)/.075; hi (1.02,1.04,1.02)/.045;
+vignette .08/.76/.25; grain .005;
+haze (.48,.57,.63)/3.5/13/.075; far .055/.025;
+bias (-.007,.004,.013); drift 31/.002; tone .30/.018/.035;
+mult 1/1; fog off.
+ENGINEERING (level 7, row 12): grade 1.02/1.17/.04/.16/.93;
+sh (.88,.94,1.01)/.085; hi (1.06,1.02,.92)/.06;
+vignette .10/.73/.25; grain .006;
+haze (.46,.45,.42)/2.5/10/.065; far .045/.025;
+bias (.001,-.005,.004); drift 22/.003; tone .42/.025/.05;
+mult 1/1; fog 1.55/.9/.03/.03/(.43,.42,.39).
+SECURITY (level 8, row 13): grade 1.01/1.19/.045/.18/.90;
+sh (.89,.91,.98)/.08; hi (1.07,.97,.94)/.05;
+vignette .12/.71/.25; grain .006;
+haze (.42,.44,.49)/3/11/.06; far .05/.02;
+bias (.004,-.008,.008); drift 21/.002; tone .46/.018/.055;
+mult 1/1; fog off.
+BRIDGE (level 9, row 14): grade 1.02/1.20/.045/.18/.94;
+sh (.85,.92,1.02)/.09; hi (1.06,1.04,1.01)/.06;
+vignette .115/.73/.25; grain .005;
+haze (.42,.48,.54)/3/12/.07; far .05/.025;
+bias (-.009,.001,.013); drift 30/.002; tone .50/.022/.06;
+mult 1/1; fog 1.55/.9/.03/.03/(.41,.47,.53).
+
+5. REPRESENTATIVE HARDWARE REVIEW AND LIMITS
+Medical: slot07 fresh start (30.5,22.625), stable anchor, PASS for that view.
+Executive/Gamma Grove: slot02 (4.25,40.68), anchor retained, PASS for that view.
+Research: slot01 (31.5,49.5) faces a red structural wall and combat interrupts
+long comparison. Mapping and render load PASS; artistic review INSUFFICIENT.
+Reactor: QA switch from Medical to (30.5,22.625), close cyan machinery panel.
+No red wash or crash; depth/fixture balance INSUFFICIENT.
+Maintenance: QA switch at (30.5,22.625), gray utility recess. Material detail
+stays readable and muted; one ordinary view PROVISIONAL PASS.
+Flight Deck: slot04 (31.47,33.38), blue-panel long room and central crates.
+Matched Post Off/Auto captures show darker structure with the blue panels and
+navigation silhouettes intact; one representative view PASS. This benefited
+most clearly among the new decks sampled.
+Storage: attempted QA switch at (30.5,22.625) enters a slope with no useful
+geometry from that inherited camera; NO VALID VIEW.
+Engineering: attempted QA switches from Executive and Medical positions; one
+was void and the other inherited invalid height after a void transition;
+NO VALID VIEW.
+Security: no valid saved position or direct QA route; NOT REVIEWED.
+Bridge: no valid saved position or direct QA route; NOT REVIEWED.
+These attempts do not count as representative visual acceptance. The built-in
+adjacent-level cheat preserves coordinates and can put the player in void; it
+is not an all-deck review tool. No original save slot was rewritten.
+
+6. DOOR-SPILL1 BOUNDED EXPERIMENT AND VERDICT
+Offline source-association check used the accepted Medical generated profile
+and its starting-area portal L1:P5 at (26.5,21.996,1.0). The nearest strong
+sources are texture 216 RGB(.4,.4,1.0) at (26.5,22.5) and (26.5,20.5),
+each intensity 1.5; the nearby texture 35 source is cyan RGB(.18,.85,1.0)
+and intensity .3. No accepted warm generated fixture near this doorway can
+produce the GPU PROOF amber spill. GPU PROOF's warm alcove light is a separate
+hardcoded proof source at (26.5,20.5), not a GENERATED1 fixture identity.
+Reusing the actual generated source would make a cool spill, failing the
+specific desired case; assigning amber would violate source association.
+The candidate was rejected at this fail-closed gate. No runtime door-state
+code, synthetic source, toggle, draw, light or door-material tint was added.
+Closed/open behavior, unrelated Medical/Research/Executive doors, door-slab
+color and active spill count are therefore NOT TESTED as a retained feature.
+Door spill remains disabled/absent globally; no false-color spill is created.
+
+7. TESTS, PERFORMANCE AND PACKAGE
+Focused ARM64 visual logic test PASS: deck mapping, invalid/special fallback,
+existing fog/tone bounds. Python deck test PASS: all eight rows present,
+parameter bounds, anchor values. Full existing touch suite PASS, including
+Auto switching and new deck labels. Final QA Gradle build PASS; package
+io.github.raposomiguel50.systemshock.qa, version 10000/1.0.0-qa, signer
+SHA256 6dc6baad4199aaa7637cbbe2af679156eb48731b0eacdeabc0ffaa78adcd9924.
+All three ELF PT_LOAD alignments 0x4000 and native ZIP alignment PASS.
+Final Flight stationary 300-frame windows: Post Auto CPU submission mean
+.015-.017 ms, p95 .016-.029; GPU2 submission .045-.049 ms mean. The Post
+Off comparison has no post pass. No obvious presentation hitch was seen.
+GPU execution time and longer thermal behavior are unknown. Door spill cost
+is zero because no feature was retained. Other deck timing was not sampled
+systematically; station-wide performance acceptance is provisional.
+
+Final APK: dist/horror-hybrid4/SystemShock-HORROR-HYBRID4-DECKS1-qa-arm64-v8a.apk
+SHA256: 7a8f13d3f54d2654c95b96f2b0574d973c8bdfafddf51fda56254bbecd59e61f
+adb install -r returned Success. Pulled installed base.apk hash matches the
+above SHA256. All eight savgam00-07.dat files and touch-settings.cfg remain
+byte-identical to the preinstall backup; prefs.txt also matches the backup
+(GPU GENERATED, Post Auto, FX FULL, vignette/grain On). CurrentGame was used
+by ordinary QA level switching and is not claimed byte-identical. Phone is
+Awake, game foreground, normal Flight Deck slot04 view, live MODE/POST visible;
+final capture is ignored dist/horror-hybrid4/final-flight-handoff.png.
+
+8. DELIVERABLE DECISION AND NEXT WORK
+Recommended default remains GPU GENERATED, Post Auto, FX FULL, vignette On,
+low grain On, Door Spill absent, bloom off. Medical/Executive retain their
+accepted generated-light and Post Auto behavior. Other decks now select a
+conservative Auto grade, but are still neutral-lit and four were not sampled
+in valid hardware views. Full all-deck Auto authoring is FAIL/INCOMPLETE as an
+art acceptance claim. Engineering, Storage, Security and Bridge need the most
+future review; Engineering has no useful view and includes mixed-material and
+fog assumptions. Do not stop visual-system work and declare normal spot-fix
+mode yet. The next bounded step is to obtain one valid saved view on each
+unreviewed deck and accepted generated-light profiles if source-driven
+lighting is required, without reopening the frozen renderer research.
+
+Exact visual files changed in the working tree:
+  SourceSnapshot/src/MacSrc/GpuPost.h
+  SourceSnapshot/src/MacSrc/GpuWorld.c
+  AndroidProject/app/jni/touch/touch_visual_compare.h
+  AndroidProject/app/jni/touch/tests/touch_qa_test.c
+  tests/visuals/horror_hybrid_test.c
+  tests/visuals/test_horror_decks.py
+  docs/HORROR_HYBRID4_DECKS1_DOORSPILL1_QA.txt
+No local commit was made because the requested all-deck visual acceptance gate
+did not pass. No push occurred. APKs, screenshots, logs, saves, proprietary
+assets and unrelated AUDIO changes were not staged or committed.
+
+9. CENTRAL QUESTIONS
+1. Every ordinary deck has a reviewed Auto archetype? NO; all ten map, but
+   four new decks lack valid hardware views and eight lack generated profiles.
+2. Distinct yet shared Citadel language? Preliminary YES for Flight and
+   Maintenance; station-wide visual verdict unavailable.
+3. Medical preserved? YES in the fresh-start view and unchanged anchor data.
+4. Executive preserved/improved? Preserved; no new Executive improvement
+   claimed in this phase.
+5. Biggest observed benefit? Flight Deck Auto in the saved blue-panel room.
+6. Most tuning needed? Engineering/Storage/Security/Bridge unresolved;
+   Engineering is the highest-risk mixed-material hypothesis.
+7. Warm Medical doorway spill recovered? NO.
+8. Door orange glow avoided? No synthetic spill exists, so no new door glow.
+9. Unrelated doors sensible? Not tested; feature was rejected before runtime.
+10. Door spill worth keeping globally? NO under the accepted source data.
+11. Cheap enough for default Enhanced? Flight CPU smoke YES; station-wide GPU
+    execution cost and profile-backed lighting are unverified.
+12. Ready to stop visual-system work? NO; valid deck views and lighting-profile
+    coverage remain before a station-wide art acceptance call.

@@ -71,6 +71,15 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "trigger.h"
 #include "verify.h"
 
+#ifdef RP5NP_AUDIO_DIAGNOSTICS
+#include "Prefs.h"
+#include "mainloop.h"
+#include "mapflags.h"
+#include "transition_trace.h"
+#else
+#define TRANSITION_TRACE(stage, target) ((void)0)
+#endif
+
 
 // INTERNAL PROTOTYPES
 // -----------------
@@ -174,6 +183,8 @@ uchar go_to_different_level(int targlevel) {
     uchar retval = FALSE;
     errtype rv;
 
+    TRANSITION_TRACE("level_begin", targlevel);
+
     dynmem_mask = DYNMEM_ALL;
     if ((targlevel >= FIRST_CSPACE_LEVEL) || (targlevel == SECRET_VOODOO_ENDGAME_CSPACE)) {
         if (!in_cyber) {
@@ -208,19 +219,23 @@ uchar go_to_different_level(int targlevel) {
     // KLC - if changing levels via the elevator, we need to make sure the elevator music
     //                    continues playing.  We'll do this by queueing up 3 additional chunks of music.
     else if (music_on) {
+        TRANSITION_TRACE("level_queue_music_begin", targlevel);
         for (int t = 0; t < 3; t++) {
             MacTuneQueueTune(mlimbs_boredom);
             mlimbs_boredom++;
             if (mlimbs_boredom >= 8)
                 mlimbs_boredom = 0;
         }
+        TRANSITION_TRACE("level_queue_music_end", targlevel);
     }
 
     // make a note of when we left;
     level_gamedata.exit_time = player_struct.game_time;
 
     // Zap the player to there...
+    TRANSITION_TRACE("level_store_inventory_begin", targlevel);
     store_objects(&buf, player_struct.inventory, NUM_GENERAL_SLOTS);
+    TRANSITION_TRACE("level_store_inventory_end", targlevel);
     if (!in_cyber) {
         EDMS_get_state(objs[PLAYER_OBJ].info.ph, &player_state);
         LG_memcpy(player_struct.edms_state, &player_state, sizeof(fix) * 12);
@@ -228,21 +243,28 @@ uchar go_to_different_level(int targlevel) {
         early_exit_cyberspace_stuff();
     }
 
+    TRANSITION_TRACE("level_save_begin", targlevel);
     rv = write_level_to_disk(ResIdFromLevel(player_struct.level), TRUE);
+    TRANSITION_TRACE("level_save_end", targlevel);
     if (rv)
         critical_error(CRITERR_FILE | 4);
 
+    TRANSITION_TRACE("level_load_begin", targlevel);
     rv = load_level_from_file(targlevel);
+    TRANSITION_TRACE("level_load_end", targlevel);
     // Hmm, should we criterr out on this case?
     restore_objects(buf, player_struct.inventory, NUM_GENERAL_SLOTS);
     obj_load_art(FALSE);
+    TRANSITION_TRACE("level_restore_inventory_end", targlevel);
 
     // reset renderer data
     game_fr_reparam(-1, -1, -1);
 
     // move the level to the present
+    TRANSITION_TRACE("level_schedule_begin", targlevel);
     if (!in_cyber && !global_fullmap->cyber)
         update_level_gametime();
+    TRANSITION_TRACE("level_schedule_end", targlevel);
 
     // exit cyberspace
     if (in_cyber) {
@@ -250,7 +272,9 @@ uchar go_to_different_level(int targlevel) {
     }
 
     // Now do any level-entry triggers
+    TRANSITION_TRACE("level_entry_triggers_begin", targlevel);
     do_level_entry_triggers();
+    TRANSITION_TRACE("level_entry_triggers_end", targlevel);
 
     // Set the current target to null.
     player_struct.curr_target = OBJ_NULL;
@@ -283,6 +307,7 @@ uchar go_to_different_level(int targlevel) {
     */
     dynmem_mask = DYNMEM_ALL;
     mfd_force_update();
+    TRANSITION_TRACE("level_end", targlevel);
     return (retval);
 }
 

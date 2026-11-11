@@ -77,6 +77,7 @@ extern void side_icon_expose(ubyte side_icon);
 extern void init_all_side_icons();
 void init_side_icon_popups(void);
 extern void screen_init_side_icons(LGRegion *root);
+bool touch_side_icon_at(const LGRegion *region, int x, int y);
 errtype side_icon_load_bitmaps();
 errtype side_icon_free_bitmaps();
 void side_icon_language_change(void);

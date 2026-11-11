@@ -1,0 +1,786 @@
+SYSTEM SHOCK ANDROID: HORROR VISUAL FEASIBILITY
+
+HISTORICAL PHASE REPORT: statements below describe that phase only.
+Current GPU-RENDER1B acceptance/closeout: see GPU_RENDER1B_QA.txt.
+The GPU Medical visual continuation gate has since passed; this does not
+retroactively certify indexed VIS enemy QA or full renderer parity.
+
+Investigation date: 2026-10-03
+Source baseline: fa57a8b04af804e9698e585722dc83ee90273f2c, plus the existing local working tree.
+Status: investigation and proposed design; no renderer implementation or visual acceptance claim.
+
+DECISION
+
+A substantial change in atmosphere is feasible using the existing geometry and
+textures. The best first investment is authored light distribution, restrained
+area-specific palette remapping, preserved emissive colors, and event-driven
+visual states. This can retain the indexed software renderer and original art.
+
+The current Android build does NOT use Shockolate's OpenGL world renderer.
+It rasterizes the world in software into an 8-bit indexed image, then uses SDL's
+GLES2 presentation backend. Editing the existing GLSL files will not change it.
+
+The practical limit is color precision and lighting granularity, not the ability
+to establish a horror mood. Clean, continuously blended RGB lighting, arbitrary
+colored haze, and independently colored overlapping lights exceed the existing
+8-bit pipeline. Those need a deliberate color-output extension or a GPU world
+renderer port. Dynamic shadows, SSAO, normal maps and physically based materials
+would be a much larger renderer/art project and are poor initial investments.
+
+Crucially, map lighting also affects enemy detection. Cosmetic atmosphere must
+use render-only overrides, not rewrite gameplay lighting fields.
+
+Evidence conventions:
+- OBSERVED: source read in this checkout or a read-only data inspection.
+- PROPOSED: design recommendation, not an existing feature.
+- ESTIMATE: relative cost inferred from architecture; no measured frame-time claim.
+
+Scope and verification:
+- Traced the Android build, indexed rasterizers, map lighting, objects, palette,
+  presentation, triggers, save layout and special vision.
+- An authorized Android device reported model SM_S948U1. Its QA application's
+  SHADTABL.DAT was read through run-as, analyzed in memory, and not modified.
+  Device identity/serial and proprietary resource bytes are not included here.
+- Reviewed the existing dist/qa1-medical-return.png for presentation context.
+  It is a historical QA image, not a capture from a new experiment.
+- No app install, game launch, preference/save change, renderer build, performance
+  benchmark or new screenshot was performed. No before/after pair exists.
+- Existing unrelated audio edits were left alone. Nothing was committed or pushed.
+- The stable preservation policy remains the documented default. This requested
+  direction is an optional experimental presentation mode, not a silent stable
+  fidelity change. The user explicitly authorized this investigation.
+
+
+1. CURRENT RENDERING ARCHITECTURE
+
+World data to displayed pixels
+
+  MapElem geometry + local texture slots + object locations
+        |
+  render_run -> fr_rend -> clipping / traversal / object sorting
+        |
+  fr_draw_tile -> floor, ceiling, walls + object drawing
+        |
+  scalar corner darkness + transient light + camera lamp/global modifiers
+        |
+  CPU texture rasterization: source index + shade row -> output palette index
+        |
+  indexed world canvas -> game effects, weapon art, HUD/UI -> drawSurface
+        |
+  SDL palette / gamma -> converted RGB(A) texture -> SDL_RenderCopy
+        |
+  Android touch overlay -> SDL_RenderPresent -> physical display
+
+Build/backend. AndroidProject/app/jni/CMakeLists.txt:48 forces ENABLE_OPENGL OFF.
+SourceSnapshot/src/MacSrc/Shock.c:182 requests SDL's opengles2 render driver.
+SDL is accelerating presentation, not the tile renderer's lighting or geometry.
+The existing architecture notes corroborate this distinction [S1, S2].
+
+Geometry/visibility. render_run calls fr_rend. fr_rend prepares the view, calls
+fr_pipe_start, fr_clip_cone, fr_clip_tile, fr_pipe_go_3 and fr_pipe_end, then
+fr_send_view. frpipe.c traverses the tile grid; frterr.c emits walls, floors and
+ceilings and then parses objects. This is a specialized grid renderer with
+clipping and draw ordering, not a deferred renderer with normal/depth attachments.
+No reusable screen-space depth/normal buffer was found in the active software
+path. Coordinates/depth available while drawing are not a retained depth image.
+
+Textures. textmaps.c resolves the level's loved_textures slots into resource IDs,
+loads indexed BMT_FLAT8 bitmaps, and supports 128, 64, 32 and 16 pixel texture
+sizes. Map entries reference local wall/floor/ceiling slots. TextureProp includes
+animation/family and gameplay properties, not a modern material definition.
+Objects include sprites, interpreted polygon models, textured panels, translucent
+polygons and special representations. A texture pointer alone is not a reliable
+material ID: get_texture_map reuses bitmap descriptors [S3, S8].
+
+Lighting. Each tile stores independent four-bit floor and ceiling darkness.
+The renderer samples neighboring entries at tile corners; wall vertices use the
+floor/ceiling samples. _fr_do_light_val starts from permanent darkness minus
+transient light, clamps the bright end, applies the camera lamp where relevant,
+then global lighting and special full-bright flags. Values run in the opposite
+direction to a conventional light intensity: 0 is bright; 15 is dark. Geometry
+receives interpolated scalar shading, not RGB lighting [S4, S5].
+
+The lamp has radius/base endpoints and a linear falloff segment. It is a
+camera-centered distance contribution, not a shadow-casting cone light. Muzzle
+flashes reuse that mechanism. Some effects/creatures force four adjacent map
+samples bright using rend3 flags. This is limited dynamic lighting, not a general
+list of RGB point lights with attenuation and occlusion [S10].
+
+Shading model. Init_Lighting loads 16 x 256 bytes from shadtabl.dat. Each lit
+texture sample goes through a table such as ltab[fix_light(i) + source_index].
+Intensity is interpolated during rasterization, but the result is a discrete
+palette lookup. This is per-pixel shade-table evaluation, NOT per-pixel normal-
+based lighting. There are no conventional baked lightmap textures. Names such as
+g3_light_lmap are legacy mapper terminology, not proof of lightmap assets [S6, S7].
+
+Object shading. Sprites normally use one shade row derived from their location;
+they do not receive the same across-surface gradient as large world polygons.
+Polygon models have a CLUT lighting path and the 3D library also contains legacy
+diffuse/specular routines. Neither supplies a modern material/light system for
+the Android world. LIGHT_TYPE/UNLIT_FLAG and screen-specific exemptions matter:
+normal monitor panels can deliberately bypass dimming [S8].
+
+Palette/color. init.c loads gamepal.res into ppall. palfx.c installs cycling
+banks at 0x03..0x07, 0x0b..0x0f, 0x10..0x14, 0x15..0x17, 0x18..0x1a and
+0x1b..0x1f. Fades, special effects and infrared vision also use palette/table
+mechanisms. Init_Lighting loads bwtabl.dat; infrared_turnon switches the active
+shade table. fr_set_cluts exposes four named table slots, but initialization
+passes the same BW table for the three alternatives. These are NOT four existing
+independently authored area grades [S6, S9].
+
+Actual table probe. The installed QA data contains a 4096-byte SHADTABL.DAT.
+Unique output indices by row, bright to dark:
+  255, 233, 208, 192, 177, 159, 136, 122,
+  113, 96, 83, 67, 56, 46, 35, 27.
+Indices 1, 3..7 and 11..31 remain identity-mapped in every row in this data.
+These are 27 entries, not every entry below 32. The probe describes source data;
+Init_Lighting additionally replaces each row's source-index-0 entry with 255.
+Deep darkness therefore collapses detail before final gamma is applied. A
+presentation-stage brightness lift cannot reconstruct the lost distinctions.
+Table contents should be validated per supported data version, not assumed.
+
+Fog/translucency. Existing init_pal_fx builds colored and gray translucent
+lookup tables explicitly labelled fog and force fields. gameobj.c can render
+translucent polygon/cube objects through this machinery. This permits authored
+translucent sheets/volumes represented by geometry, with sorting/overdraw limits.
+It is NOT continuous camera-distance fog, height fog or volumetric scattering.
+No general depth-dependent fog stage was found [S11].
+
+Ambient/modulation. There is no independent RGB ambient parameter. Tile scalar
+darkness acts as the authored base illumination. RGB texture modulation is not
+part of the active world mapper. A global SDL texture multiplier could tint the
+already-composited picture, but would also tint UI and would not create local
+light pools. SDL color modulation only multiplies channels; it is not a full
+color grade [E2].
+
+Gamma/post effects. SetSDLPalette applies a precomputed gamma lookup to palette
+channels. Preferences clamp gamma to 10..100 (default 29); the software path uses
+a factor of 2.2 in this mapping. This is a global display adjustment shared by
+world and UI, not an area-lighting control. Legacy static, vertical-hold and
+other special effects exist in gamesys_draw_func; there is no general HDR,
+bloom, SSAO, tone-map or programmable post-processing chain [S2, S12].
+
+Framebuffer. ShockBitmap.c creates drawSurface and offscreenDrawSurface as 8-bit
+SDL surfaces. SDLDraw creates a texture from drawSurface every frame, copies it,
+destroys it, draws the touch overlay and presents. SDL converts the indexed
+surface to a renderer-supported format. The bundled GLES2 backend supports
+32-bit color textures; exact selected texture format should be logged with
+SDL_QueryTexture rather than confused with the 8-bit software framebuffer.
+The actual window/EGL display format was not measured. The stable logical
+presentation is 1024 x 768 at 4:3 [S2, S13, E1].
+
+Shockolate's optional additions. OpenGL.cc and shaders provide a separate desktop
+GL path with GPU texture sampling/filtering, interpolated scalar lighting,
+emissive alpha encoding, special vision approximations and UI composition.
+texture.frag squares Light and clamps against emissive minimum brightness.
+The shaders are GLSL 1.10 and the code uses desktop facilities including glBegin
+and gl_Vertex. Enabling the build option is not a GLES2 port. These additions
+are useful reference code, not a ready Android colored-light backend [S14].
+
+
+2. EXISTING SPATIAL GRANULARITY
+
+Scope          Existing capability                  Needed for horror authoring
+-------------  -----------------------------------  ----------------------------
+Entire level   player_struct.level; loaded map and   Default visual profile keyed
+ / map         per-level texture-slot assignments.  by level and data version.
+Named region   No general named visual-region       External names and tile masks;
+               registry found. Music zones exist.   explicit overlap precedence.
+Room           A room spans tiles, not a uniform    Authored tile set, optionally
+               first-class lighting object.         with a height range.
+Tile/sector    Floor/ceiling 4-bit darkness,         Render-only scalar overrides
+               transient light, corner sampling.    and grade ID per tile/surface.
+Wall/floor/    Separate texture slots, heights and  Independent face grade/bias
+ ceiling       floor/ceiling light samples. Walls   requires added metadata and
+               use those corner samples.            draw-context propagation.
+Texture        Indexed colors, animation/family;    Visual response keyed by real
+               no roughness/emissive-mask field.    resource ID and frame.
+Object         Position-based shading, unlit flags, Object/class exceptions and
+               screen exceptions, animations.       matching area-color handling.
+Light source   Lamp, flashes, bright effect cells,  Authored sources/footprints;
+               scalar scripted gradients.           RGB components are new work.
+Global only    Display palette/gamma and several    Leave user calibration global;
+               legacy table/effect switches.        don't misuse it for regions.
+
+Finest practical existing illumination authoring: the tile-grid corner samples,
+independently for floor and ceiling. It is finer than a whole room, but not an
+arbitrary lightmap texel or an independently adjustable RGB light per wall.
+Shared corners help gradients but constrain independent adjoining face values.
+The new color-table choice can initially be per draw/tile; smooth RGB transitions
+inside a polygon require more than selecting a single lookup-table pointer.
+
+Region hooks [S4, S15]: level index, tile x/y, floor/ceiling height, texture slot
+and resolved resource ID, object ID/location/type, hazard bits, trigger locations,
+quest state, and tile music zones. Music uses three bits (eight categories),
+including hospital, industrial, executive, bridge and elevator. These are useful
+hints, not reliable semantic room boundaries or guaranteed visual identities.
+
+A: Entire-level profiles are straightforward.
+B: Named regions are straightforward after adding an external region registry.
+C: Rooms/sectors are practical via tile masks; per-face or vertical distinctions
+   need explicit extra authoring, especially around slopes, doors and ledges.
+D: Dynamic state is practical using existing quest/trap state as inputs; add a
+   cosmetic resolver rather than assume every intended event has a named hook.
+
+
+3. COLORED LIGHTING OPTIONS AND THEIR LIMITS
+
+The current image stores only one of 256 indices per pixel. Two instances of the
+same final index share the same RGB color. Changing the global palette cannot
+make one instance green and another red at the same time. Spatial remapping can
+choose DIFFERENT existing indices, which enables local color at finite precision.
+
+Method / implementation cost / Android cost / recommendation
+
+1) Per-area indexed shade-table banks: MEDIUM / LOW incremental runtime cost.
+   Precompute table[profile][shade][source_index] into the existing palette.
+   Bind the appropriate bank for terrain and object drawing. This fuses tint,
+   desaturation and brightness response into the lookup already being done.
+   Strong art compatibility if grades are restrained. Simultaneous colored
+   areas are possible; smooth hue blending and neutral texture detail are limited
+   by palette coverage. Sprites/models need their own CLUT plumbing, not just
+   the terrain pointer. No save-format change if profiles remain external.
+   RECOMMENDED first color route.
+
+2) RGB sector/ambient metadata with indexed output: MEDIUM / LOW to MODERATE.
+   Store artist-friendly RGB targets externally, then quantize into a small bank
+   of the tables above. This is authored color tinting, not continuous RGB light
+   accumulation. Floor/ceiling and local light-pool profiles can differ. Avoid
+   allocating a unique table per tile or recomputing nearest colors per pixel.
+   Same art/object/save caveats as option 1.
+
+3) Global palette replacement: LOW / LOW.
+   Can give an entire level a distinct palette but changes UI, sprites and every
+   shared palette entry. Cycling colors, inverse-color tables and translucency
+   must remain coherent. Does not show two differently graded rooms correctly
+   in one view. Useful as a diagnostic; not the recommended product architecture.
+
+4) Per-texture index remapping/cached variants: MEDIUM / LOW after preparation.
+   Can adjust grime color, saturation or contrast without repainting the source
+   art. Key by resource ID plus region/variant, preserving animation and all
+   supported texture sizes. Cannot distinguish a painted highlight from a lamp
+   solely by its color. Objects require equivalent treatment to avoid mismatch.
+   External replacement metadata avoids save changes; asset cache size grows.
+
+5) World-only RGB grading at presentation: MEDIUM to HIGH integration / LOW to
+   MODERATE runtime, depending on conversion and composition.
+   Convert the world with an alternate RGB palette/grade before composing the
+   original UI. A camera-region profile produces clean RGB output cheaply but
+   colors everything visible alike, including the room through a doorway.
+   Smooth camera transitions disguise popping, not this spatial limitation.
+   UI isolation is mandatory; a rectangle at SDLDraw is insufficient because
+   fullscreen HUD/weapon pixels already occupy that rectangle. Sprites naturally
+   share the grade but emissive/color exceptions need explicit handling.
+
+6) Indexed world plus profile-ID buffer, expanded to RGB: HIGH integration /
+   MODERATE runtime. A one-byte per-pixel tag records the final visible world
+   profile; expand palette[index] through that profile during presentation.
+   Enables independently colored areas without changing geometry traversal or
+   replacing the original textures. All raster paths must write tags consistently,
+   including sprites, models, clipping, transparency and secondary cameras.
+   A single tag cannot represent two differently graded translucent layers;
+   those need earlier RGB composition or a documented approximation. This is
+   a bounded renderer extension, not a quick post-process. Already collapsed
+   shade detail remains lost. Keep this as the fallback if indexed grades fail.
+
+7) RGB dynamic lights: HIGH to VERY HIGH / MODERATE to EXPENSIVE.
+   A few quantized sources can select precomputed area tables or modify scalar
+   grid samples; that is a fake local lighting system. Arbitrary overlapping RGB
+   sources require RGB interpolation/output or a GPU world backend. Object
+   normals, transparent sorting and light occlusion remain separate problems.
+   Start with bounded authored footprints, not an unlimited per-pixel light loop.
+   Saves can stay compatible if effects derive from existing persistent state;
+   genuinely new persistent light state would require optional versioned storage.
+
+8) Lightmap tint / shader tint: NOT currently a simple available switch.
+   There are no lightmap textures to tint, and no active world shaders on Android.
+   Baked scalar grid illumination is practical; texture lightmaps require a new
+   data and sampling path. A custom GLES presentation shader could grade the
+   final image, but cannot infer surface position, normal, material or region.
+
+
+4. AREA PROFILES AND ART DIRECTION
+
+PROPOSED starting treatments, subject to in-game comparison:
+
+Medical: cool cyan/green shadows, relatively neutral bright panels and readable
+skin tones; sparse warm emergency islands. Keep several clinical spaces bright.
+Research: blue/purple shadow accents, neutral machinery labels, sharper contrast
+around active displays. Avoid washing every texture in saturated blue.
+Maintenance: muted olive/ochre midtones, dark ceiling recesses, navigable floor
+paths and isolated service lights. Rust colors should remain distinguishable.
+Reactor: restrained warm base with localized orange/red danger pools. Keep
+warning signs readable and ordinary corridors separate from hazard treatment.
+Executive: warmer neutral occupied areas; dirty/cool desaturation in damaged
+areas. Use the contrast between these states for storytelling.
+Security/Bridge: harsher light pools and alert red accents, with sparse SHODAN
+green/cyan contamination. Persistent full-screen red would erase useful cues.
+Groves: handle separately; vegetation and organic palette ranges need their own
+review. Cyberspace stays on its original special rendering path initially.
+
+A level baseline should be subtle. Stronger intent belongs to named regions and
+specific pools. A terminal/recovery space may retain a calm, readable light pool
+without promising it is mechanically safe. Do not imply safety solely by color.
+
+PROPOSED external profile data:
+- version and compatible map/resource fingerprint;
+- level default;
+- named region: tile mask/rectangles, optional z range, explicit priority;
+- surface class: floor/ceiling/wall and optional orientation;
+- darkness response curve, visible shadow floor, tint/grade ID;
+- protected animated/emissive entries and explicit material exceptions;
+- state predicates referencing existing quest/trap/object state;
+- optional sparse cosmetic source footprints and transitions.
+
+Resolve defaults -> region -> surface/material exception -> state override.
+Resolve spatial profiles from the surface/object being drawn, not just where
+the player stands. Precompute tile lookups on map load; update only dirty regions.
+Use original resource IDs for material rules because local texture slots vary by
+level. Object IDs must be qualified by level/data version. Bad or missing profile
+data falls back to original visuals. No region list or production coordinates
+were invented during this investigation.
+
+
+5. DEPTH, SHADOWS, FALLOFF AND ATMOSPHERE
+
+Technique                         Assessment
+--------------------------------  --------------------------------------------
+Authored scalar light pools        Highest value. Existing corner sampling can
+                                  express gradients. Add render-only overrides.
+Nonlinear darkness response        Cheap small LUT/curve. Preserve highlights and
+                                  a shadow floor. Quantization can cause bands.
+Stronger local falloff             Cheap for a few cached grid sources. Distinguish
+                                  source distance from the camera lamp's radius.
+Vertex/tile darkening              Native fit; useful ceiling/floor separation.
+                                  Shared corners constrain independent walls.
+Fake AO / baked corner darkening   Moderate offline/load-time analysis plus cheap
+                                  vertex bias. Requires extra per-corner/per-face
+                                  data to exceed native sampling. Avoid treating
+                                  door openings and diagonal tiles as solid.
+Contact shadows                    Small authored/blob shadows are possible but
+                                  need placement, clipping and sorting. Not free
+                                  shadow support; test slope/door/elevator cases.
+Distance fog                      Moderate mapper work, not a fullscreen wash.
+                                  Quantized depth/table banks can approximate it;
+                                  need independent distance and shade dimensions.
+Height fog                        Harder: needs height/position at sample or span
+                                  level. Defer; existing translucent objects can
+                                  fake a few carefully placed haze patches.
+Vignette                          Cheap arithmetic but adds image work/composition.
+                                  Optional, restrained, world-only; low priority.
+Per-pixel normal lighting          Major addition. Scalar shading interpolation
+                                  already exists; normals/material lighting do not.
+SSAO                              Poor fit: no retained depth/normal buffers and
+                                  new passes; can exaggerate grid artifacts.
+Shadow-casting lights              Major renderer/visibility work and expense.
+                                  Existing dynamic light flags cast no shadows.
+Volumetrics / screen-space rays    Poor return and likely clash with the artwork.
+
+Do not call corner darkening physical AO or promise that a fake source respects
+doors automatically. Pre-baked masks can stop light at walls for static spaces;
+moving doors need recomputation or authored states. Lamp/muzzle behavior and
+existing full-bright effects must remain understandable in the new presentation.
+
+
+6. TEXTURES, MATERIALS AND EMISSIVE DETAIL
+
+No replacement assets required:
+- Profile/texture-specific contrast and tint through lookup tables.
+- Scalar orientation/corner bias for a rough, matte impression. This is not
+  view-dependent roughness or a specular BRDF.
+- Preserve existing bright palette banks and monitor unlit behavior; improve
+  the adjacent light pool to sell emission without bloom.
+- Use existing animated textures/screens and palette cycles for activity.
+- Select existing texture variants per visual region using render-only rules,
+  with an explicit mapping and checks across animation/mip sizes.
+- Desaturate/tint damaged regions based on known game state.
+
+Additional authored metadata or assets required for precision:
+- A true per-texture emissive mask cannot be inferred reliably from pixel
+  brightness. Use hand-authored masks/UV regions or explicit palette-index rules.
+- New cracks, blood shapes, corrosion patterns and grime cannot be created by
+  color grading. Reuse suitable existing art if present, or author small overlay
+  assets. A new texture variant with new detail is asset work, even if generated.
+- Decal placement requires surface/UV/position/orientation data and clipping/
+  sorting or precompositing. Existing textured polygon objects provide building
+  blocks, not a general arbitrary decal system.
+- Flickering a panel's animation does not automatically light neighboring tiles;
+  synchronize a cosmetic light state explicitly.
+- Actual bloom needs extra image processing. Prefer bright panel + local pool;
+  optional small halo sprites need an asset/placement and transparent ordering.
+
+Map editing versus sidecars:
+- Level grades, render-only tile masks, curves and material response can live in
+  external profiles with no game archive edits.
+- Reusing the original map's slots/lighting/traps is possible through map editing,
+  but lighting/texture properties may affect gameplay and saves. It is not the
+  preferred route for a cosmetic mode.
+- New physical light fixtures, changed geometry or world objects require map/
+  object content work unless implemented as separate visual-only decorations.
+- External region/overlay authoring is still content work; it avoids archive
+  mutation, not the need for someone to place and review it.
+
+
+7. DYNAMIC ATMOSPHERE AND SAVE COMPATIBILITY
+
+Existing hooks [S10, S16]:
+- trap_main_light_func / trap_lighting_func support alternating values, E/W and
+  N/S gradients, radial gradients, floor/ceiling selection and eight-step timed
+  transitions. They operate on transient scalar map light, not RGB color.
+- The scheduler supports timed trap/light events.
+- Quest bits/variables and qdata_get provide persistent game-state inputs.
+- Object animation, destruction/damage state, lamp/muzzle state and level loads
+  provide other inputs. SHODAN-specific triggers and screen/static effects exist.
+
+Do not mistake a struct member for a working feature: MapElem has flicker bits,
+but load_current_map explicitly skips the resource 'where flickers once lived'.
+No functioning general tile-flicker system was established from those fields.
+Use the existing scheduler/state hooks plus a new cosmetic modulation layer.
+
+Examples of new cosmetic behavior:
+- Known power-restoration quest state selects a normal/emergency profile.
+- A known event starts a bounded, low-amplitude local flicker sequence.
+- A documented SHODAN event adds a brief local grade/static cue.
+- Existing hazard tile flags select a restrained haze treatment; they do not
+  identify a universal fog volume or an authored room name.
+- Documented damage/quest milestones select increasingly corrupted profiles.
+There is no single generic 'power' or 'corruption' variable suitable for all rooms;
+the content pass must map actual state per level rather than infer from mood.
+
+Keep the original MapElem layout (16 bytes on disk) and archive/save formats.
+Read simulation state, never modify it to achieve a cosmetic effect. newai.c's
+compute_base_visibility reads permanent-minus-transient light and the player's
+lamp value. Cyberspace physics also reads a floor-light field. Rewriting those
+would silently change play [S17].
+
+Reconstruct profiles on level load and save load. Drive flicker from a deterministic
+cosmetic phase/game clock; do not consume gameplay RNG. Pause/restore the visual
+clock consistently. Prefer deriving emergency state from existing saved state.
+If an entirely new lasting visual event is unavoidable, specify a versioned,
+optional sidecar save tied to the save identity, with fallback behavior. That is
+new persistence engineering, not 'automatically save compatible'.
+
+
+8. VISIBILITY, DISPLAY AND ACCESSIBILITY GUARDRAILS
+
+- Retain an Original mode and independent user display calibration. Do not alter
+  global gamma to author horror or quietly reset the user's calibration.
+- Preserve the UI, crosshair, text, cursor and touch overlay colors. World-only
+  grading must be established before HUD composition, including fullscreen HUD.
+- Initially cap cosmetic darkness short of the deepest table rows in navigable
+  spaces. A reasonable TEST starting point is row 10 maximum for essential paths
+  and row 12 for nonessential recesses, not a universal approved threshold.
+  These limits do not guarantee luminance: dark source textures still need review.
+- Preserve emissive panels and recognizable colors of important controls, pickups
+  and warning signage. Do not preserve only white pixels and call it emissive.
+- Review sprites/models alongside the surrounding world. Enemies must not vanish
+  into a hue-matched background or appear pasted on because their shade path was
+  missed. Include dark enemies, bright creatures and translucent enemies.
+- Keep silhouettes, doorway edges, floor steps and the route ahead readable.
+  Use pools and gradients to guide movement without coloring every room uniformly.
+- Do not rely on hue alone for hazards/safety. Preserve luminance separation,
+  shape, motion and original labels; test common color-vision differences.
+- Offer reduced flicker and disabled glitch/vignette options. Avoid bright rapid
+  full-screen pulses; local low-amplitude irregularity is enough for atmosphere.
+- Test at low phone brightness, with OLED black crush and in a normally lit room.
+  Screenshots alone cannot establish phone-panel visibility or finger occlusion.
+- Compare texture detail before and after quantization, particularly dirty gray
+  walls, rusty brown floors and faces. Lift source shade response if information
+  has collapsed; lifting the final black level cannot recover it.
+- Optional interactable emphasis should use existing target/HUD cues or a subtle
+  visual bias with explicit object exceptions. A new through-wall outline system
+  is neither necessary nor present and can change the intended gameplay.
+
+
+9. ANDROID COST AND PERFORMANCE PLAN
+
+These are architecture estimates, not benchmarks. The CPU already rasterizes
+every world pixel. A strong phone GPU does not remove that cost. Existing per-
+frame SDL texture creation/conversion/destruction also matters independently of
+the proposed visual effects.
+
+CHEAP / LOW INCREMENTAL RUNTIME RISK
+- Small darkness curves at corner/object evaluation time.
+- A precomputed table bank selected per surface/object, retaining one indexed
+  texture fetch and one shade-table lookup per pixel.
+- Cached tile masks/default profiles and a few event-driven region updates.
+- Existing emissive banks, restrained palette cycles and monitor exceptions.
+- A small bounded number of cached cosmetic scalar pools or flicker states.
+Low runtime cost does NOT mean trivial integration: global table state and
+multiple object paths need disciplined binding and restoration.
+
+MODERATE
+- Many unique shade banks causing cache churn; spatial transitions and extra
+  dimensions such as fog distance.
+- Load-time corner occlusion analysis, updated door-aware footprints.
+- Decals/translucent haze increasing CPU overdraw and sort work.
+- World-only RGB conversion with separate UI composition.
+- Profile-ID buffer writes and RGB expansion, particularly transparent layers.
+- One simple presentation shader/pass AFTER adding a supported composition path;
+  extra texture fetches and passes add bandwidth even if shader math is small.
+- A few unshadowed RGB vertex lights AFTER an appropriate RGB/GPU path exists.
+
+EXPENSIVE / PROBABLY NOT WORTH IT FOR THIS DIRECTION
+- Software per-pixel loops over many dynamic lights.
+- Normal maps and new material textures for the entire original asset set.
+- Shadow maps (geometry redraw per light), real-time soft shadows or ray tracing.
+- SSAO/deferred rendering infrastructure, multilayer bloom and volumetric fog.
+- Height/volume scattering requiring world reconstruction per pixel.
+- Porting the desktop GL world renderer purely to obtain one atmospheric effect.
+
+Concrete scale estimates:
+- 1024 x 768 indexed image: 0.75 MiB. A 32-bit image: 3 MiB.
+- A 1-byte profile-ID plane: another 0.75 MiB, plus raster writes and conversion.
+- One full 32-bit image transfer at 60 frames/s: 180 MiB/s payload. Actual total
+  traffic includes reads, writes, conversion, overdraw and presentation; this is
+  neither a measured bottleneck nor a complete bandwidth budget.
+- One 16 x 256 indexed shade bank: 4 KiB; 16 profiles: 64 KiB.
+- Eight profiles x eight quantized fog steps: 256 KiB of those banks. Precompute
+  outside the hot path; do not run palette-nearest-color search every pixel/frame.
+
+Suggested acceptance targets (PROPOSED):
+- Use the Retroid Pocket 5 reference AND a non-flagship Android phone, not only
+  the connected SM_S948U1. Record device, mode, build and thermal conditions.
+- Same saves/camera routes, same gamma/resolution/vision hardware, Original vs
+  proposed mode, after warmup and again after a 15-minute sustained session.
+- Measure CPU world draw, conversion/upload, presentation/wait and full frame
+  separately. Record median and 95th/99th percentile, not only mean FPS.
+- Initial table/curve pass: target no more than ~5% worse frame time versus the
+  paired baseline and no new sustained missed-frame pattern. This is an acceptance
+  goal to validate, not a promised performance result.
+- For a nominal 60 Hz target, the total frame envelope is about 16.7 ms; if the
+  unchanged build already exceeds it on a device, report that baseline honestly.
+- Profile texture creation/upload before adding more fullscreen passes. A
+  persistent streaming texture may reduce churn but is a separate measured
+  optimization, not assumed necessary to implement local atmosphere.
+
+
+10. RECOMMENDED ARCHITECTURE
+
+Stage-one architecture: optional indexed atmosphere module.
+
+1. Load/version-check external profiles against level and resource identity.
+2. Resolve a render context for each terrain draw and each object draw. Keep it
+   distinct from MapElem's gameplay state and from the global display palette.
+3. Evaluate cosmetic scalar changes from original computed darkness; clamp to
+   authored readability limits. Keep existing lamp/vision/emissive rules explicit.
+4. Select an indexed shade bank generated from original shade results and a mild
+   color transform, constrained to the original palette. Protect transparency,
+   emissive/cycling semantics and special reserved colors. Never interpolate
+   numeric palette indices as if they were RGB values.
+5. Bind tables consistently for terrain rasterizers, bitmap CLUTs and model fills;
+   restore previous state at each scope. _fr_clut_list and grd_screen->ltab are
+   related global mechanisms, not a single universal material binding API.
+6. Bypass cosmetic grading for picking, cyberspace and cutscenes initially.
+   Give infrared/drug/damage effects an explicit composition/override policy.
+   Secondary cameras resolve their own view/world context, not the main camera's
+   grade. Account for cached/shared vertices when introducing boundary overrides.
+7. Restore base state before HUD/UI. Validate nested draws and all early returns.
+
+The table generator should operate against a canonical palette and preserve
+cycling index semantics rather than freeze today's animated RGB values. Keep
+global user gamma at its existing stage and avoid applying it twice. If display
+palette effects temporarily change colors, define how the cosmetic bank composes
+with them; a nearest-color map built for a different palette is not automatically
+valid. Translucency/inverse-palette tables also need explicit compatibility tests.
+
+There is a sensible escalation boundary: if real rooms cannot retain acceptable
+color detail with indexed remaps, keep the authoring/resolver layer and prototype
+world-only RGB output. First test a simple whole-world RGB grade for composition;
+then use profile tags or a truecolor raster path only if simultaneous local color
+is worth the coverage work. This avoids coupling content authoring to one output
+backend, while recognizing that truecolor expansion is real renderer engineering.
+
+
+11. PRIORITIZED ROADMAP
+
+HORROR-VIS1: prove basic controls in one Medical room
+Priority: highest. Engineering scope: small-to-medium, with all object paths
+covered before declaring success. Keep runtime/build toggle default off.
+- Render-only darkness response and one cold room profile; neutral protected
+  panels and a warm small light pool form the contrast.
+- Exact level/tile mask from an inspected map; no guessed production coordinates.
+- If color-bank plumbing is too wide for a first patch, first prove just the
+  scalar pool plus emissive preservation, then add the bank in the same experiment.
+- Exit: identical gameplay/save state, all UI unaffected, enemies/pickups readable,
+  no major palette collapse, correct infrared/picking and measured low overhead.
+
+HORROR-VIS2: per-level and named-area visual profiles
+Priority: high. Engineering: medium; authoring starts small.
+- External profile schema/validation, default/region precedence, resolved material
+  IDs, object exceptions, tile visualizer/debug identification and boundary tests.
+- Test two differently graded regions visible simultaneously through a doorway.
+- Exit: Medical and one contrasting level demonstrate intentional differences;
+  doorway/height boundaries do not produce distracting seams or camera-wide pops.
+- Decision gate: stay indexed or investigate bounded truecolor output. Do not
+  proceed to blanket content authoring until this quality gate passes.
+
+HORROR-VIS3: emergency, flicker and corruption states
+Priority: high after static profiles. Engineering: medium.
+- Bind a few documented quest/trigger states to cosmetic region transitions.
+- Bounded local flicker, power-state variants, reduced-flicker option, deterministic
+  clock, no gameplay RNG consumption, rebuild from saved state.
+- Exit: repeated save/load and area revisit produce correct states; no effect on
+  detection, lamp energy/gameplay, original triggers or scheduler behavior.
+
+HORROR-VIS4: atmosphere and emissive polish
+Priority: selective. Engineering: medium; depth fog may be higher.
+- Start with panel-adjacent pools and restrained baked corner darkening.
+- Test one haze patch or a quantized distance-fog proof, only where it adds depth.
+- Defer height fog/bloom unless evidence favors them over cheaper authoring.
+- Exit: readable paths, correct transparencies/doors/slopes, acceptable sustained
+  frame time on reference and non-flagship devices.
+
+HORROR-VIS5: content authoring across the game
+Priority: after the above gates. Engineering: lower; content/QA effort: large.
+- Medical, Research, Maintenance, Storage, Reactor, Executive, Engineering,
+  Security, Bridge and groves reviewed room by room, not merely one hue per level.
+- Inventory power/damage/quest hooks; record which states are supported.
+- Preserve bright unsettling rooms, navigation cues and deliberately different
+  visual rhythms. Review original-art identity and reduced-effects settings.
+- Exit: full playthrough visual QA, old/new saves, display checks and Original-mode
+  equivalence with the feature disabled.
+
+No calendar estimates are claimed: palette quality, raster path coverage and
+content authoring are the uncertainties that determine effort. The first room
+should settle those before committing to a game-wide conversion.
+
+
+12. WHAT NOT TO DO
+
+- Lower global gamma/brightness as the main horror treatment.
+- Edit unused desktop GLSL and call it an Android implementation.
+- Turn on ENABLE_OPENGL and assume desktop immediate-mode code supports GLES2.
+- Rewrite gameplay light fields or repurpose packed map bits for cosmetic colors.
+- Apply a final fullscreen tint and claim per-room colored lighting or UI isolation.
+- Treat saved music zones as exact room boundaries, or camera location as every
+  visible surface's region.
+- Clamp all dark pixels to black, then try to recover detail in post-processing.
+- Grade terrain while forgetting sprite, model, monitor and transparency paths.
+- Treat arbitrary bright colors as emissive; preserve semantic exceptions.
+- Rebuild all shade banks or scan all source-to-palette matches each frame.
+- Introduce specular plastic surfaces, glossy PBR or soft photorealistic shadows
+  that visually contradict painted highlights and grid-based original geometry.
+- Use expensive effects to compensate for unconsidered light placement.
+- Promise measured Android performance or before/after improvement without tests.
+
+
+13. OPTIONAL PROTOTYPE FINDINGS AND EXACT NEXT DEVICE TEST
+
+No runtime prototype was created. The source trace and actual table probe answer
+the feasibility question without changing rendering. A meaningful local-color
+prototype must cover terrain, objects, table-state restoration and UI separation;
+a quick final-screen tint would prove a different, less useful technique. The
+report therefore specifies one bounded first experiment rather than leaving an
+unverified partial renderer change in this investigation.
+
+The connected device and readable QA data mean hardware access is available;
+device absence is NOT the reason for deferral. No comparison image is presented
+as renderer output, and the historical QA image was not recolored into a mockup.
+
+When HORROR-VIS1 is implemented, build a separate QA APK with an Original / Room
+Preview runtime toggle, default off. Use the same saved Medical room, exact camera
+position/direction and gamma for both captures. Capture these pairs on device:
+1. Bright panel plus nearby dark wall/floor: detail survives, panel stays bright.
+2. Doorway showing cold room and warm pool together: colors belong to surfaces.
+3. Enemy + floor pickup + wall control together: all are identifiable at original
+   engagement/interaction distance.
+4. Fullscreen HUD and framed HUD: text/cursor/crosshair colors are unchanged;
+   touch menus and finger placement do not hide the only readable route.
+5. Lamp off/on, muzzle flash, infrared on/off: original functional cues survive.
+6. Camera crossing the region boundary, door opening, elevator/height change:
+   no grade pop, seams, wrong sprite profile or apparent light through walls.
+7. Palette cycling, translucent enemy/field, security camera view, pause/menu,
+   cutscene and cyberspace: no stale lookup table or unwanted grade leakage.
+8. Save/load, room exit/return, background/resume: state restores consistently.
+
+Use ADB screencap from the game for actual before/after PNGs, plus matched video
+for boundary/flicker behavior. On the physical display repeat at normal and low
+brightness with automatic brightness disabled during comparisons; record settings
+and ambient conditions. Test the Retroid Pocket 5 and a non-flagship phone as well
+as the available device. Pair this with section 9's frame-time captures. Screenshots
+do not replace sustained performance, OLED readability or interactive play tests.
+
+
+14. ANSWER TO THE CENTRAL QUESTION
+
+We can change the game's atmosphere substantially before replacing either the
+renderer or the art: authored contrast, ceiling/floor separation, local pools,
+restrained spatial color, preserved glowing displays, limited haze and meaningful
+state changes can make the existing station feel deliberately hostile, clinical,
+industrial or corrupted. This is compatible with the original visual language.
+
+The existing renderer is strongest at scalar gradients and palette effects. It
+will not deliver arbitrary smooth RGB lighting, colored overlapping transparent
+volumes or convincing dynamic shadows just by adding settings. The first hard
+boundary is palette precision and consistent local-color coverage. Crossing it
+requires a bounded color-output renderer extension; modern shadow/material
+features cross a much larger boundary and often demand new art as well.
+
+Highest-value transformation: keep the geometry and textures, author the light
+distribution, add modest per-area shade-table color profiles, protect emissive and
+interactive detail, and tie a small number of visual states to actual events.
+Prove one room, then two contrasting regions, before pursuing more rendering tech.
+
+
+SOURCE INDEX
+
+Line numbers refer to the investigated working tree. Paths below are relative to
+C:/Dev/system-shock-android/. Function names remain useful if line numbers move.
+
+[S1] AndroidProject/app/jni/CMakeLists.txt:45-51 (ENABLE_OPENGL OFF).
+     docs/ARCHITECTURE.md:7 (rendering distinction and fidelity baseline).
+[S2] SourceSnapshot/src/MacSrc/Shock.c:182 (GLES2 driver), :276 (SDL renderer),
+     :334 (SetSDLPalette), :383 (SDLDraw); MacSrc/Prefs.c:128-131, :244-249.
+[S3] SourceSnapshot/src/GameSrc/textmaps.c:134-168 (texture buffers/access),
+     :170-250 (load_textures and loved_textures); Headers/textmaps.h:90-120.
+[S4] SourceSnapshot/src/GameSrc/Headers/map.h:100-147, :232-295;
+     Headers/mapflags.h:237-252 (music and light bit widths).
+[S5] SourceSnapshot/src/GameSrc/frterr.c:237-349 (_fr_do_light_val and falloff),
+     :500-550 (floor/ceiling corner lighting), :610-666 (wall lighting),
+     :1510-1517 (floor, ceiling, objects), :1581 (fr_terr_frame_start).
+[S6] SourceSnapshot/src/GameSrc/textmaps.c:285-314 (Init_Lighting);
+     frsetup.c:297-302 (fr_set_cluts), :673-711 (mapper selection).
+[S7] SourceSnapshot/src/Libraries/2D/Source/Flat8/fl8lf.c:63-107;
+     fl8lw.c:82-147; fl8lop.c:45-60 (indexed lit raster loops).
+[S8] SourceSnapshot/src/GameSrc/gameobj.c:125 (LIGHT_3D_OBJS), :294-315
+     (_fr_draw_polyobj), :458 (_fr_draw_tmtile), :593-600 (sprite CLUT),
+     :836-851 (object shade selection), :1077-1082 (unlit monitor exception).
+     Libraries/3D/Source/Bitmap.c:135-147; Libraries/3D/Source/light.c.
+[S9] SourceSnapshot/src/GameSrc/init.c:620-630 (load_da_palette);
+     palfx.c:50-124 (fades and cycles); wares.c:461-480 (infrared).
+[S10] SourceSnapshot/src/GameSrc/wares.c:516-562 (lamp parameters);
+      effect.c:144-158, :174-209 (bright effect/creature cells),
+      :325-356 (muzzle light); gamesys.c:483 (global light surge).
+[S11] SourceSnapshot/src/GameSrc/init.c:633-705 (fog/forcefield tables);
+      gameobj.c:220-226, :893-930, :1040-1042 (translucent objects);
+      Libraries/3D/Source/polygon.c:107-117 (translucent draw entry points).
+[S12] SourceSnapshot/src/GameSrc/frmain.c:69-129 (fr_rend);
+      render.c:327-352 (render_run); frpipe.c:179, :248, :279;
+      fullscrn.c:264-270 (world view targets);
+      gamerend.c:341-447 (weapon/HUD), :546-561 (gamesys_draw_func).
+[S13] SourceSnapshot/src/MacSrc/ShockBitmap.c:83-104 (8-bit surfaces);
+      .deps/SDL2/src/render/SDL_render.c:1400-1523 (surface conversion),
+      .deps/SDL2/src/render/opengles2/SDL_render_gles2.c (presentation backend).
+[S14] SourceSnapshot/src/MacSrc/OpenGL.cc:1 (compile guard), :404-418
+      (emissive palette), :825-895 (colored translucent polygons);
+      SourceSnapshot/shaders/main.vert; texture.frag.
+[S15] SourceSnapshot/src/GameSrc/Headers/musicai.h:52-59 (eight zone types);
+      Headers/map.h:276-277 (hazard), :340-372 (map access);
+      saveload.c:252-254 (level load), :760 (load_current_map).
+[S16] SourceSnapshot/src/GameSrc/trigger.c:705-738 (timed light transition),
+      :741-920 (scalar lighting patterns), :1149-1177 (quest state),
+      :1395 (SHODAN effect), :2007-2010 (trap dispatch);
+      saveload.c:1235 (obsolete flicker resource skipped); schedule.c.
+[S17] SourceSnapshot/src/GameSrc/newai.c:140-164 (light-based detection);
+      physics.c:547-552 (cyberspace floor-light semantics);
+      archiveformat.c:109-130 (serialized 16-byte MapElem).
+
+External primary documentation checked for SDL API semantics:
+[E1] SDL_CreateTextureFromSurface: format can differ from source; query it.
+     https://wiki.libsdl.org/SDL2/SDL_CreateTextureFromSurface
+[E2] SDL_SetTextureColorMod: channel multiplication during render-copy.
+     https://wiki.libsdl.org/SDL2/SDL_SetTextureColorMod
+
+The feasibility and performance recommendations are inferences from the inspected
+project architecture, not claims that the SDL documentation proves visual quality.

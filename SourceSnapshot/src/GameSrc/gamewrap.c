@@ -316,6 +316,10 @@ errtype interpret_qvars(void) {
 // char saveArray[16];	//Â¥temp
 
 errtype load_game(char *fname) {
+#ifdef RP5NP_QA_TOOLS
+    extern void qa_tools_reset(void);
+    qa_tools_reset();
+#endif
     int filenum;
     ObjID old_plr;
     uchar bad_save = FALSE;

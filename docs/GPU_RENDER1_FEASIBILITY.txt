@@ -1,0 +1,1049 @@
+GPU-RENDER1 -- ANDROID WORLD RENDERER FEASIBILITY
+
+HISTORICAL PHASE REPORT: statements below describe that phase only.
+Current GPU-RENDER1B acceptance/closeout: see GPU_RENDER1B_QA.txt.
+The GPU Medical visual continuation gate has since passed; this does not
+retroactively certify indexed VIS enemy QA or full renderer parity.
+
+Investigation and device capability test: 2026-10-03
+Baseline: fa57a8b04af804e9698e585722dc83ee90273f2c plus existing local work.
+Authority: HORROR_VISUAL_FEASIBILITY.txt, HORROR_VIS1_QA.txt,
+           HORROR_VIS1B_QA.txt and the GPU-RENDER1 request.
+
+DECISION AND DELIVERY STATUS
+
+Pursue an optional GLES 3.0 world backend, keeping the indexed software renderer
+permanently. Prefer a small, clean GPU implementation behind the existing world
+emission boundaries, using the desktop GL integration as a source of contracts
+and reference behavior. Do not port OpenGL.cc mechanically, rewrite traversal,
+convert maps to a new engine, or introduce Vulkan.
+
+The likely visual payoff is substantial: palette lookup can preserve source
+texture identity while RGB light accumulation happens AFTER lookup, before
+truecolor framebuffer output. This removes the palette-remapping ceiling that
+VIS1B exposed. It does not supply shadows, correct occlusion, or good art
+direction automatically.
+
+Difficulty: moderate for terrain rasterization, high for dependable complete
+game coverage. This is a multi-phase renderer integration project, likely months
+of engineering/QA for broad coverage, not an ENABLE_OPENGL switch or a few shader
+edits. No need to replace simulation, collision, maps, original art, or saves was
+found. The long tail is presentation behavior and lifecycle, not triangle drawing.
+
+Delivered here:
+  - source-based architecture analysis, alternatives, complete path matrix,
+    concrete backend contract, prototype specification, roadmap and QA gates;
+  - an isolated native GLES3 capability probe, compiled with the project NDK and
+    run on the connected Android phone, with independent pixel verification;
+  - no production renderer changes, APK install, app launch, save/preference
+    writes, or changes to existing VIS1/VIS1B/audio files. No commit or push.
+
+NOT delivered: a live Medical GPU world renderer or a three-way visual comparison.
+The probe draws synthetic geometry and indexed test texels. It is NOT the Medical
+proof, NOT a screenshot filter, and NOT evidence of gameplay/rendering parity.
+No new GPU runtime selector exists. Original/Conservative/VIS1B remain as before.
+
+Live prototype gate: STOP at investigation/capability proof in this task.
+Source inspection found a viable bounded Medical proof, but not a tiny terrain-
+only insertion that meets the requested interaction/UI requirements. It needs
+an ES3 context integration, an explicit HUD/world boundary, ordered object
+submission, texture lifetime handling, and safe view/mode transitions together.
+These cross frsetup, the 3D library, gameobj, Shock presentation, preferences,
+and Android lifecycle. A terrain image with sprites pasted on top would conceal
+occlusion failures; readback/requantization would defeat the requested truecolor
+image. Treat the live proof as GPU-RENDER1B below, with explicit acceptance gates.
+This is a scope judgment, not evidence that Medical or GLES is unsuitable, nor a
+claim that automatic approval or preservation policy blocked implementation.
+
+Evidence labels throughout:
+  OBSERVED = read in this checkout or measured by the included test.
+  BASELINE = a prior documented VIS1/VIS1B result, not remeasured here.
+  PROPOSED / ESTIMATE = design or effort judgment, not implemented behavior.
+Desktop GL source was inspected; a desktop GL build/playthrough was not run.
+
+
+1. ACTIVE ANDROID SOFTWARE PIPELINE
+
+OBSERVED flow:
+  render_run -> fr_rend -> fr_prepare_view / fr_start_view
+  -> fr_pipe_start -> fr_clip_cone -> fr_clip_tile -> fr_pipe_go_3
+  -> fr_draw_tile: external walls, internal walls, floor, ceiling, sorted objects
+  -> indexed CPU rasterizers -> fr_send_view / game effects / weapon / HUD
+  -> 8-bit SDL drawSurface -> SDL_CreateTextureFromSurface every presentation
+  -> SDL_RenderCopy -> touch_bridge_draw -> SDL_RenderPresent.
+
+Android jni/CMakeLists.txt forces ENABLE_OPENGL OFF. Shock.c chooses the SDL
+opengles2 renderer. GLES accelerates presentation, not current world geometry.
+ShockBitmap.c allocates both indexed draw and offscreen surfaces. Shock.c
+destroys the newly created SDL texture each frame. [S1, S2]
+
+Traversal and clipping:
+  frclip builds cone/tile spans and clipping/visibility bookkeeping. frpipe's
+  radial/quadrant traversal draws from more distant tiles toward the camera.
+  frterr uses tile-type tables, floor/ceiling heights, slope parameters, wall
+  masks, neighboring heights/textures, and texture-lock/flip semantics. This is
+  valuable geometry logic; duplicating it in a separate map-mesh builder would
+  introduce unnecessary parity risk. Library tmap/polygon routines also clip
+  and project polygons before software rasterization. [S3-S5]
+
+Terrain emission:
+  Six mapper function pointers distinguish lit/unlit wall, floor and general
+  perspective mapping. Terrain calls them with g3s_point handles, UVs, scalar
+  intensity and a grs_bitmap. Flat/wire/cyber variants also exist. These are
+  narrow GPU entry points, but bitmap pointers do not carry all semantic IDs.
+  Floors/ceilings use tile tables; slopes already emit suitable triangles/quads.
+  External wall texture selection can come from an adjacent tile. Preserve that
+  decision and resolve the resource ID there, not from the camera's tile. [S4]
+
+Objects and sorting:
+  fr_draw_tile calls _fr_parse_obj after terrain. frobj feeds gamesort, which
+  handles distance scores, door/bridge partitioning and draw-last exceptions.
+  This is more than sorting every object by center distance. gameobj selects
+  render representations, animation, anchors and multiview enemy sprites.
+  Doors and panels use _fr_draw_tmtile; sprites use g3_light[_anchor]_bitmap;
+  model data goes through g3_interpret_object; cubes emit textured/colored faces.
+  FAUBJ_TL_POLY, invisible critters, voxels, tripbeams, force bridges, explosion
+  triangles, lines and screen-generated bitmaps add independent paths. [S6-S8]
+
+Monitors/panels:
+  bitmap_from_tpoly_data, dynamic/custom materials, cached object resources,
+  and screen animation choose the actual pixels. Normal screens have deliberate
+  lighting exemptions (with destroyed-screen/special-vision exceptions). Some
+  monitor imagery is itself software-generated. Keep generation and upload it;
+  do not replace those sources with new painted assets. [S6]
+
+Lighting and indexed output:
+  Map floor/ceiling darkness is 0..15, with 0 bright. _fr_do_light_val combines
+  permanent and transient light, camera lamp contribution, global modifier and
+  rend3 full-bright flags. Terrain vertices store darkness in 8.8 units. CPU
+  rasterizers interpolate intensity then look up a shade row plus texture index.
+  Init_Lighting loads 16x256 SHADTABL; it changes source-index-zero entries to
+  255 and loads BWTABL for special vision. Sprites often receive one CLUT row;
+  models also use CLUT state. This is not a general RGB illumination system.
+  Retain gameplay light fields: the baseline investigation identifies their AI
+  detection role. New presentation lighting must not write those fields. [S4,S9,B1]
+
+Special views and effects:
+  render.c renders hack/security views into their own contexts. Picking and
+  online-help scanning render indexed ID canvases. Infrared switches shade/CLUT
+  behavior. Cyberspace changes terrain functions and object colors/representation.
+  Palette cycling is managed in palfx; fades and gamma update displayed colors.
+  gamesys_draw_func modifies software pixels for vertical hold, static, teleport,
+  shield and SHODAN overlay effects. Some of these run around weapon/HUD drawing,
+  so their exact layer scope cannot be replaced by one generic world shader.
+  Star rendering uses sky masks. These are separate parity requirements. [S10-S13]
+
+HUD composition:
+  fr_send_view invokes callbacks and canvas copies/scaling; weapon/HUD are drawn
+  in software. Framed and fullscreen presentation have different placement and
+  incremental restoration requirements. A rectangle selected at SDLDraw cannot
+  distinguish world pixels from weapon/cursor/HUD already written inside it.
+  Touch draws later through SDL and restores its SDL render state. [S2,S3,S12]
+
+
+2. WHAT THE DESKTOP OPENGL BACKEND ACTUALLY DOES
+
+OBSERVED: OpenGL.cc is a GPU raster backend integrated into the same traversal,
+not an independent scene graph, new map renderer, or game simulation. [S14]
+
+Reuse boundaries:
+  frsetup.c:671 replaces the six terrain mapper pointers and g3_tmap_func.
+  polygon.c:203 dispatches colored model/polygon primitives before CPU clipping.
+  Bitmap.c:395/408 sends projected sprite quads to opengl_bitmap.
+  gameobj.c:539/565 dispatches textured panels/doors.
+  textmaps caches wall textures; cybmem clears caches; star and view360 have hooks.
+  The same frclip/frpipe/frterr/gameobj/model interpreter are still responsible
+  for deciding what geometry and objects are drawn. [S3,S6-S8,S14]
+
+Data reaching GL:
+  Terrain/textured faces: transformed fixed-point XYZ /65536, UV /256,
+  scalar vertex darkness i /4096, bitmap and current fill state. Only 3/4 vertex
+  textured primitives are accepted; other counts return CLIP_ALL.
+  Sprites: four screen-space positions, a bitmap and tmap_info CLUT. GL supplies
+  z=0; useful world position/depth/normal is not part of that sprite API.
+  Flat/model polygons: color, point handles, gour_flag; triangle-strip emission.
+  No explicit region/material/light list travels with these calls. [S14:704-900]
+
+Projection and ordering:
+  GL consumes already camera-transformed/scaled points, flips Z, then uses a
+  hand-tuned 1.00876 projection and -0.01 view offset. Its comments describe an
+  empirical software/sprite alignment. The matrix's depth terms are degenerate
+  for a conventional depth buffer. CreateFrameBuffer allocates RGB color and
+  STENCIL_INDEX8, with NO depth attachment; no GL_DEPTH_TEST setup was found.
+  It relies on existing draw order and stencil for stars. Do not attach depth
+  and enable testing without changing projection and giving sprites real depth.
+  CPU tile visibility is reused; GL performs primitive clipping for intercepted
+  polygons rather than executing the complete software raster clip path. [S14]
+
+Textures/palettes:
+  Indexed FLAT8/RSD8 input is decoded/expanded through SDL to RGBA32, uploaded
+  with glTexImage2D. Cache key ORs bits pointer with dimensions shifted into its
+  upper bits: not a portable resource identity, particularly on 64-bit pointers.
+  Locked terrain textures refresh on palette_dirty; unlocked objects can be
+  copied, converted and uploaded repeatedly. Cache limit is 1024 entries; overflow
+  uses one dynamic texture. This is not a modern lifetime/generation cache.
+  Palette alpha carries BOTH transparency and an emissive minimum. Index 0 is
+  transparent when appropriate; indices 1..31 except 2 are marked emissive.
+  This rule is broader than the actual invariant SHADTABL entries documented in
+  B1/B3 and must not become an unquestioned preservation specification. [S14]
+
+Lighting/shaders:
+  main.vert, texture.frag, color.frag are GLSL 1.10; star.frag is GLSL 1.20.
+  texture.frag uses max(Light*Light, emissive) times sampled RGB. Flat color uses
+  Light directly. It approximates nightsight with a blue grayscale calculation
+  and invisible mutants with alpha 0.2. No local RGB lights, fog or material
+  normals. CLUT lighting is sometimes recovered by subtracting a CLUT pointer
+  from grd_screen->ltab -- unsafe for unrelated VIS banks or alternate tables.
+  No renderer-independent scalar or fullbright field is passed explicitly. [S14,S15]
+
+Transparency/effects:
+  BMF_TRANS changes blend state; desktop alpha test removes low-alpha texels.
+  Fog/forcefield indices 247..255 map to hardcoded RGB/alpha approximations;
+  these are not the original lookup-table blends. Unknown cases can be rejected.
+  Sky uses stencil and point sprites. Direct software line/point/voxel paths
+  have no equivalent blanket GL dispatch and can break ordering as HUD overlays.
+  Therefore existing desktop GL code demonstrates useful coverage, not full
+  parity for every representation. [S6,S8,S14]
+
+Context/UI:
+  Creates a second SDL_GL context shared with the current one; many draw calls
+  call MakeCurrent. Renders world to backupBuffer, composites it, then uploads
+  a software UI surface via SDL. Shock.c makes palette index255 transparent for
+  this UI branch. That branch returns before Android touch_bridge_draw.
+  Directly enabling it would therefore omit the current Android touch draw call.
+  resize creates a new backup FBO without visible old-FBO disposal here. These
+  are reasons to replace lifecycle/composition, not carry it wholesale. [S2,S14]
+
+Explicit source exclusions:
+  use_opengl rejects cyber, PICKUPM and HACKCAM and non-game/fullscreen loops.
+  should_opengl_swap has a different, broader predicate (no PICKUPM/HACKCAM test).
+  sensaround version1 temporarily disables GL. Frame-start/end still use the
+  broader predicate. A new backend needs per-view scoped ownership; copying
+  these two predicates alone does not ensure nested views preserve FBO state.
+
+Reusable: primitive call sites, terrain/object semantics, texture loaders and
+RSD decoder, scalar-light intent, palette notifications, stencil/sky concept,
+unlit screen exceptions, examples of software picking/special-view retention.
+
+Replace: glBegin/glEnd, glVertex*, compatibility gl_Vertex, GL_ALPHA_TEST /
+glAlphaFunc, GL_POINT_SPRITE enable, GL_CLAMP_TO_BORDER, desktop GL/GLEW headers,
+GLSL 110/120 syntax, implicit/current attributes and assumed state, approximate
+projection, packed pointer cache, repeated conversion/uploads, context lifecycle.
+ES3 equivalents: VAO/VBO/EBO, explicit attributes, GLSL 300 es outputs and precision,
+fragment discard, gl_PointCoord or quads, edge clamp plus explicit cutout/border
+behavior, GLES3/gl3.h and libGLESv3. FBOs, shader programs, blending, scissor,
+stencil, texture units and pixel unpack row-length already have ES3 equivalents.
+This is compatibility GL plus shaders, not purely fixed-function lighting.
+
+
+3. ALTERNATIVE COMPARISON
+
+Effort/parity/maintenance are relative estimates, not measured schedules.
+
+A -- Modernize desktop OpenGL.cc in place
+  Complexity: medium-high initially, high for parity. Reuses most interception
+  and GL control flow. Fastest route to a desktop-like ES image in isolation.
+  Android: requires all replacements above plus context/touch/lifecycle work.
+  Performance: immediate draws can become buffered, but palette rebakes and
+  dynamic texture uploads remain unless redesigned. No speed guarantee.
+  RGB/shaders: easy after modernization, but world positions/explicit material
+  state still need adding. Transparency/sprite order inherit approximations.
+  Models: useful dispatch already exists, incomplete effect coverage remains.
+  Picking/cyber: retain software exclusions. Fog/post: straightforward later
+  with true world/view positions and offscreen composition, not present now.
+  Preservation: possible, but more shared ifdefs/state invite accidental changes.
+  Maintenance: highest legacy coupling for an apparently small initial patch.
+  VIS reuse: metadata yes; shade-pointer arithmetic no.
+
+B -- Clean GLES3 draw backend, same traversal and geometry semantics (RECOMMENDED)
+  Complexity: medium terrain, high full coverage. Reuse the narrow interception
+  sites, not OpenGL.cc's storage/state design. No map or simulation rewrite.
+  Parity: preserve ordered command stream first; explicit unsupported-view guards.
+  Android: core ES3 only; one render-thread context integration with SDL.
+  Performance: cache R8UI originals; update palette separately; stream modest
+  vertex buffers; eliminate visible software world conversion. Retained UI and
+  picking work still costs CPU. Many tiny draws need adjacent-only batching.
+  RGB/shaders: explicit coordinates/intensity/semantics make this the best base.
+  Transparency: preserve painter ordering initially; full depth migration later.
+  Objects/models: reuse selection/interpreter; extend sprite depth/position API.
+  Picking: unchanged CPU ID rasterization. Cyber: whole-view software initially.
+  Fog/dynamic lights/post: natural additions to explicit world FBO/positions.
+  Preservation: strongest separation, software selected independently per view.
+  Maintenance: smaller audited backend; platform boundary still substantial.
+  VIS reuse: region/fixture/material/state data, independent RGB interpretation.
+
+C -- Bounded truecolor/GPU assistance around software rasterization
+  C1: upload indexed final frame + shader palette expansion. Low-medium effort,
+  may cut conversion cost, preserves sprite/picking/cyber behavior as-is. Gives
+  global palette effects, NOT local overlapping colored world illumination.
+  Already shaded indices have lost material/color distinctions; a post shader
+  cannot reconstruct them. World/HUD separation is still necessary for grading.
+  C2: keep source index, scalar light, position/depth and material/profile ID
+  attachments from CPU rasterization; GPU shades them. High effort: every mapper,
+  sprite/model/effect needs consistent attachment writes. Translucent layers
+  cannot be represented by a single final index/depth/tag. CPU depth/normal and
+  per-pixel RGB extensions multiply legacy rasterizer maintenance.
+  C3: truecolor CPU mappers also need new blend/effect/UI contracts and potentially
+  more bandwidth. They can do RGB lighting, but are not a cheap bounded extension.
+  Preservation possible with separate paths; parity risk spreads through more
+  low-level code than B. Profile data reusable; shader capability depends on C2.
+  Recommend C1 separately only for presentation performance, not as this solution.
+
+D -- Independent full scene renderer / Vulkan / complete compositor replacement
+  Rebuilding map meshes, visibility and object rules uses least legacy semantics
+  and has highest geometry/parity effort. Vulkan adds explicit synchronization,
+  swapchain and lifecycle complexity without a needed feature here. Neither
+  offers evidence of superior benefit for this project.
+  A dedicated GLES presenter owning HUD/touch composition could eventually remove
+  SDL state coupling; it requires an adapter for current SDL touch primitives.
+  Keep that as a fallback if tested single-context interop fails, not the first
+  project. Dynamic lighting, shaders/fog are not reasons to require Vulkan.
+
+  D2 -- Isolated ES3 offscreen context, RGBA readback into an SDL world texture
+  This is a legitimate lower-risk integration experiment: actual geometry is
+  rasterized by GLES, and truecolor readback is uploaded to the current SDL
+  presenter. The device probe establishes offscreen ES3 availability here. It
+  avoids direct SDL GL-state sharing initially, but needs explicit UI coverage
+  and ordinary object paths just like B. It adds GPU/CPU synchronization and
+  full RGBA readback/upload every frame, so it cannot demonstrate performance
+  savings or be recommended as the final backend. Keep it as a temporary 1B
+  diagnostic bridge if direct interop blocks visual evaluation; do not quantize
+  its result into the indexed canvas. A GL-rendered image carried through a CPU
+  copy is still GPU world rendering; a shader over software world pixels is not.
+
+Why B wins: the stable reusable asset is the game geometry/representation logic,
+not the desktop GL state machine. Reusing those semantics while making texture,
+view, material and layer state explicit bounds the work without preserving the
+wrong abstractions. All options preserve gameplay if kept cosmetic; B provides
+the strongest capability/maintenance balance.
+
+
+4. GLES3 TARGET AND DEVICE FINDINGS
+
+PROPOSED minimum enhanced feature level: OpenGL ES 3.0, GLSL ES 3.00 (#version
+300 es), ARM64 as today. No ES3.1 compute, SSBO, geometry shader, timer-query or
+floating-point framebuffer extension is required. Existing Android minSdk=33
+remains sufficient; Android version alone does not guarantee ES3 hardware. [E1]
+
+OBSERVED device probe (dist/gpu-render1/capability-probe.log):
+  model SM-S948U1, Android 17, ro.opengles.version=196610 (0x00030002)
+  EGL 1.5; Qualcomm Adreno (TM) 840; OpenGL ES 3.2
+  driver V@0842.19.13; GLSL ES 3.20
+  max texture dimension 16384; fragment texture units 16
+  Requested ES client version3; shaders explicitly target GLSL 300 es.
+  R8UI integer sampling + RGBA8 palette -> RGBA8 framebuffer with D24S8: PASS.
+  All six readbacks exactly matched CPU reference (allowed per-channel error2).
+  Two palette states repeated across three destroyed/recreated contexts:
+    initial hash 9bd7f737; updated palette hash 3769afe5.
+  Context recreation here is controlled EGL teardown, NOT Android app resume.
+  The probe does not test linear-light color management; its synthetic palette
+  values intentionally match the CPU arithmetic directly. Production palette
+  decoding/output transfer remains a separate integration requirement.
+
+This verifies these operations on one driver, not an ES3-only handheld or the
+game's SDL surface. Retroid Pocket 5 remains the project's reference device per
+README/preservation documentation; no RP5 was connected/tested here. Run this
+probe and the later live route on RP5 and at least one Mali device before an
+Enhanced compatibility claim. Do not optimize for Adreno 840 limits.
+
+Formats and resources (PROPOSED):
+  - original indexed art: GL_R8UI, GL_RED_INTEGER, GL_UNSIGNED_BYTE;
+    highp usampler2D, nearest filtering, UNPACK_ALIGNMENT=1, correct row stride;
+  - palette: 256x1 GL_RGBA8, texelFetch; separate emissive/semantic lookup or
+    explicit uniforms. Palette alpha must not double as blending and emission;
+  - shaded world: GL_RGBA8 color FBO at existing logical view resolution;
+    GL_DEPTH24_STENCIL8 attachment reserved for validated depth/stencil uses;
+    painter proof can keep depth testing disabled. D24S8 allocation tested;
+    full occlusion/stencil behavior is not certified by the capability test;
+  - dynamic truecolor inputs: optional RGBA8, only when source actually requires;
+  - VBO containing clip/view position, world position, UV, scalar, normal when
+    used; EBO uint16 per bounded batch, split batches before index overflow;
+    VAO; stream/orphan or rotate buffers; no per-face GL allocation;
+  - triangle lists, winding and quad diagonal matched to engine conventions;
+    do not assume arbitrary model polygons are triangle fans;
+  - offscreen world FBO REQUIRED by chosen design for world-only processing,
+    retained menu background and independent HUD. Optional second RGBA8 target
+    for ping-pong post effects later. No HDR requirement for first proof. [E2]
+
+Fallback: keep manifest's existing required ES2 baseline for software presentation.
+Attempt ES3 context at startup in experimental builds; query actual GL version,
+compile/link shaders, check FBOs and resource allocation. If any fails, cleanly
+recreate/reuse the ES2 presenter and disable GPU selection with a reason. Never
+route software preservation through the new world backend to keep it working.
+If renderer init fails mid-session, retain save/state and select software; reset
+UI resources as required. Do not require reinstallation for mode changes.
+
+
+5. BACKEND CONTRACT AND COORDINATES
+
+PROPOSED: introduce a separate backend interface (not implemented here):
+  begin_view(view ID, purpose, viewport, projection, palette generation)
+  emit_textured_face(points, UVs, scalar, material/resource/frame, draw sequence)
+  emit_sprite(projected corners, anchor/world position, scalar, semantics)
+  emit_colored_polygon(points, color/index, blend semantics)
+  end_view -> retained world texture; compose_world -> compose_UI -> touch.
+
+Retain fr_prepare/frclip/frpipe/frterr, gameobj representation selection, model
+interpreter, animation, camera state, sorting and all simulation. Add adapters
+at the existing desktop interception sites and a small explicit material/view
+context. Do not overload gShockPrefs.doUseOpenGL or pretend GLES is desktop GL.
+Do not change the binary layout of MapElem, Player, FullMap or saves.
+
+The existing hooks make a terrain proof tractable, but must be audited together:
+terrain pointers, model g3_tmap_func, colored polygons, sprites, panel bypasses,
+stars, raw lines/points, software effects. Some function pointer declarations in
+frterr use void returns while frsetup declarations use int; normalize only as a
+scoped adapter prerequisite with ABI tests, not as unrelated cleanup. Deferred
+commands must own copied vertex data and resource references: temporary handles,
+reused bitmap descriptors, model cache locks and RSD decode buffers expire.
+
+Projection must derive from points.c / matrix.c / alloc.c, not an assumed 90deg
+camera. Software uses sx=biasx+scrw*x/z and sy=biasy-scrh*y/z, with view zoom/aspect
+already in transformed coordinates. Derive GPU homogeneous XY/W from this and
+canvas viewport; establish positive near distance only with clipping comparison.
+Depth can be introduced later with defined near/far terms. Map z/height uses
+height_step and sign conventions; do not treat raw height units as tile meters.
+For light distance/normals, carry unscaled world position from emission or undo
+the exact view transform including its scale. A normal from scaled view-space
+XYZ is not automatically the correct world normal.
+
+Start with existing painter order and adjacent compatible batching only. Do
+not globally group draws by texture. A z-buffer migration is its own parity
+decision, especially for screen-space sprites, decals, doors and translucency.
+GPU raster coverage/UV interpolation need not be pixel-identical to Original;
+holes, wrong occlusion, misplaced sprites and wrong targeting are unacceptable.
+
+
+6. ORIGINAL TEXTURES AND PALETTE STRATEGY
+
+RECOMMENDED: indexed GPU textures by default, truecolor shader output.
+
+Benefits:
+  Source indices and low-resolution art remain intact. One small palette update
+  animates all users of a cycling range without re-expanding all textures.
+  Source index is available for emissive/transparency/special-vision decisions.
+  RGB lighting is evaluated after palette lookup, so the palette does not limit
+  the resulting colors. No quantization of light back into SHADTABL is needed.
+  R8UI uses one byte/texel versus four for RGBA8, excluding driver overhead.
+
+Costs:
+  Two lookups instead of one; nearest integer sampling only. Normal bilinear
+  sampling of index numbers is meaningless. If filtering ever becomes optional,
+  explicitly fetch/resolve four palette colors then blend colors, not indices.
+  Current art has baked highlights/shading; RGB math cannot make it neutral PBR.
+
+RGBA-expanded alternative:
+  Simple standard filtering and one texture fetch; acceptable for truly static
+  assets or external truecolor sources later. Palette/gamma changes need upload
+  invalidation and animated ranges must not be baked away. Fourfold source
+  storage and conversions can erase the intended presentation savings.
+
+Hybrid:
+  Terrain and ordinary sprites remain R8UI; RSD sprites decode to owned R8UI
+  storage. Software-rendered monitors upload changed indexed pixels and resolve
+  through their palette. RGBA is allowed for sources already truecolor, without
+  globally converting original art. Keep palette generation distinct from pixel
+  generation and texture-resource identity/frame/size/level generation.
+  Do not key only by grs_bitmap* or OR dimensions into a pointer. [S9,S14]
+
+Transparency is DRAW SEMANTICS, not a universal palette property:
+  BMF_TRANS zero texels are cutouts; opaque index 0 is not necessarily a hole.
+  Index255 is used as software UI clear/transparent sentinel in the desktop
+  composition, while other paths use it differently. SHADTABL zero->255 and sky
+  masks need explicit handling. Preserve masks before applying lighting.
+  Keep opacity, emissive minimum/mask and palette RGB independent.
+
+Emissive policy:
+  Use known unlit object/screen flags and material exceptions first. Derive any
+  index-invariant mask from the supported SHADTABL data and validate it; do not
+  copy desktop's blanket low-index heuristic. Medical texture families 35/216
+  are existing fixture exceptions; a proof may preserve their whole-material
+  behavior. Later per-index masks allow the fixture housing to receive light.
+  An emissive pixel does not automatically illuminate nearby surfaces: add an
+  authored local light record for that effect.
+
+Palette cycling/fades/gamma:
+  palfx's banks 03..07, 0b..0f, 10..14, 15..17, 18..1a, 1b..1f must remain live.
+  Preserve the canonical palette and current cycling state separately from user
+  display gamma and global fade. Use linear RGB for new lighting, then a defined
+  output transfer/gamma operation once. Reusing already gamma-adjusted sdlPalette
+  as linear albedo would double/misapply calibration. UI keeps its existing
+  palette behavior. A whole-screen fade also has to fade new RGB light output;
+  changing source palette alone is insufficient for independent emissive terms.
+  First proof should fall back for unimplemented fades/special palettes, not
+  silently display bright world through a black transition. [S2,S9-S11]
+
+
+7. SIMPLE LIGHTING AND PRESENTATION CAPABILITIES
+
+PROPOSED first lighting equation in linear RGB:
+  L = ambientRGB * scalarResponse(originalDarkness)
+      + sum(lightRGB[j] * intensity[j] * attenuation[j] * diffuse[j])
+  output = baseRGB * L + emissiveRGB
+  optionally blend toward fogRGB by distance; encode display output once.
+
+Tint the diffuse illumination, not the underlying palette or neutral material
+colors. Multiplying local diffuse terms by baseRGB is intentional: unmodulated
+RGB added to every surface washes out material identity. Emissive is separately
+masked; do not count its color twice. Clamp/tonemap a bounded exposure for RGBA8.
+Original scalar response needs visual tuning; desktop's square is a reference,
+not an original-game physical intensity calibration.
+
+First proof: 2-4 authored lights, position/radius/intensity/color uniforms; no
+normal maps. Start orientation-independent diffuse if necessary, or face normals
+with max(dot(N,L),0). For sprites initially use their anchor for lighting so the
+billboard's apparent orientation does not change illumination when the player
+turns. Attenuation max(0,1-distance/radius)^2 is adequate and continuous; evaluate
+per fragment on terrain. Sum overlapping lights rather than selecting one bank
+or the strongest corner pool. Light positions must remain fixed in world space.
+
+This creates smooth illumination, NOT cast shadows. Avoid light leaking through
+Medical walls via authored receiver-region/portal restrictions; a radius alone
+cannot establish visibility. Darkness can be authored spatially with ambient
+regions/receiver masks. Accurate dynamic occlusion is a separate expensive step.
+
+Capability after the core backend exists:
+
+  Feature                              Follow-up cost / qualification
+  RGB ambient, area ambient            Small shader/data work; blend boundaries
+  Few overlapping RGB local lights     Small shader; moderate position/data work
+  Smooth falloff                       Small per-fragment math
+  Colored shadow/midtone response       Small artistic response curve; no shadows
+  Emissive surfaces                    Small with explicit semantics/masks
+  Monitor/panel light pools            Moderate authoring + receiver/occlusion rules
+  Colored/distance fog                 Small with view depth; transparency needs QA
+  Emergency light animation/flicker     Small uniform updates; moderate state hooks
+  SHODAN interference                  Small shader patterns; moderate layer/event QA
+  World-only postprocessing            Small passes once FBO/composition exists
+  Area-specific grading                Moderate receiver/region representation
+  Optional quantization/dithering       Small final-world shader; default off
+  Dynamic lights on sprites/models     Moderate explicit position/light integration
+  Portal-aware light restrictions      Moderate geometry/authoring integration
+  Many shadow-casting moving lights    Expensive; not an early target
+  Volumetric fog / physically lit smoke Expensive; not needed for original art
+  PBR/normal maps/ray tracing           Poor fit; requires an asset/remake project
+
+No new geometry, normal maps, PBR, specular reconstruction, high-resolution art,
+automatic smoothing or photorealistic shadows are proposed.
+
+
+8. HUD / SDL / TOUCH COMPOSITION
+
+PROPOSED image order:
+  GPU world -> optional world-only effect -> software weapon/HUD/cursor/menu
+  -> existing SDL touch overlay -> one present.
+
+Keep software HUD and weapon generation. Give their layer explicit coverage,
+or first validate the existing index255 clear convention across framed/fullscreen
+views; do not globally make every index255 transparent without auditing writers.
+Full framebuffer differencing is not a reliable coverage mask: a UI pixel can
+equal the world value beneath it. The original software path continues its exact
+existing framebuffer semantics.
+
+Two viable upload choices: persistent RGBA UI texture updated from indexed UI
+(simplest first integration), or R8UI UI layer plus palette shader to avoid CPU
+expansion. UI bandwidth remains even when world upload disappears. Preserve
+incremental menu/world backups and save/load thumbnails; no black/old GPU frame
+should survive a mode switch or level load. Need an explicit snapshot path for
+features that currently expect a world-containing software canvas.
+
+SDL source evidence changes the feasibility assessment favorably:
+  Bundled SDL2 GLES2_CreateRenderer accepts an ES profile with major>=2 when
+  the window already has SDL_WINDOW_OPENGL; it does not forcibly downgrade an
+  existing ES3 request. Request ES3 before window/renderer creation and verify.
+  Thus keep SDL touch/UI calls and the existing window on a shared single ES3
+  context initially. No new Java surface, second swapchain or Vulkan required.
+  SDL_RenderFlush is for interop ordering, not a full GL-state reset. Its actual
+  implementation just flushes queued commands; GLES2 caches program, texture,
+  viewport, blending, clipping and attributes. Flush before native GL and restore
+  all touched state afterward (including framebuffer, VAO/VBO/attributes,
+  texture units, masks, viewport/scissor, depth/stencil/blend and program).
+  Audit this once per pass boundary; avoid glGet*/MakeCurrent per polygon. [S16]
+
+If a tested state bridge cannot remain reliable, replace presentation ownership
+in a separate phase and adapt touch drawing; do not silently patch SDL internals
+throughout the engine. Desktop's second shared-context approach is not the default.
+
+
+9. PICKING AND INTERACTION
+
+OBSERVED: fr_get_at sets FR_PICKUPM_MASK (and optionally NOTRANS), sets the terrain
+ID callback, renders via fr_rend, restores flags, then calls fr_get_real.
+Terrain writes texture-slot+1; objects allocate temporary byte colors mapped
+through fr_col_to_obj. fr_get_real reads the canvas and check_around performs a
+spiral neighborhood search. The return also encodes negative texture selection.
+olh_scan_objs runs a reduced ID render and scans pixel coverage to choose labels.
+This depends on rasterization and coverage, not just visibility traversal. [S10]
+
+RECOMMENDED: leave these software renders and lookup behavior intact. Explicit
+per-view purpose selects software before GPU resources or world-FBO clearing.
+GPU visible rendering may coexist with CPU ID rendering; no initial GPU ID buffer
+or GPU readback is needed. Preserve transparency-through-gratings and target
+tolerance. Reconstructing CPU ray picking would change semantics unnecessarily.
+
+Visible GPU projection must agree closely with the software ID view. Test tiny
+controls, sprite borders, doors and labels after tilt, zoom and HUD changes.
+An ID buffer is a possible later optimization only after exact ID encoding,
+neighborhood, object coverage and transparency behavior are specified; it risks
+readback stalls. Picking retaining CPU rasterization is not a preservation flaw.
+
+
+10. TRANSPARENCY, OBJECT COVERAGE AND HYBRID LIMITS
+
+Opaque/cutout geometry: preserve ordering first; discard masked texels before
+depth writes if depth is later enabled. Nearest sampling and correct source masks
+avoid halos. Do not apply one alpha threshold to every legacy transparency type.
+
+Translucent polygons/forcefields: keep existing draw sequence and explicit
+blend categories. Desktop RGB/alpha values are starting approximations; compare
+against init_pal_fx tables to establish Enhanced behavior. Full preservation is
+already provided by software, so a documented RGB approximation is acceptable
+only if it does not affect interaction/visibility unfairly.
+
+Later depth strategy: opaque/cutout write depth; translucent sorted back-to-front
+with depth test and no writes; decals need controlled bias. Sorting whole objects
+is not sufficient for intersecting translucent surfaces. Avoid OIT/depth peeling
+until real scenes require them. Sprite geometry needs meaningful view-depth and
+consistent anchoring before depth can replace old painter conventions.
+
+Hybrid warning: software objects rendered over a final GPU terrain image cannot
+be correctly hidden by nearer GPU walls. A single final alpha overlay is wrong.
+Either render ordinary objects through GPU with the same ordered stream, upload
+software object patches at their proper order with a defined mask, or fall back
+the WHOLE view. Per-object software patches add uploads and cannot cheaply solve
+destination-dependent palette translucency. Whole-view fallback is safest early.
+
+Fallback must be selected before side-effectful draw traversal where possible.
+Re-rendering a partially completed frame may repeat RNG/effect or temporary
+object mutations. If command collection is used, it must capture each command
+once without losing source lifetimes. Prefer explicit supported-view/representation
+inventory and bounds checks. Log unsupported class/reason; never quietly omit it.
+
+
+11. SPECIAL RENDERING STRATEGY
+
+Initially retain entire software views for security cameras, sensaround variants,
+cyberspace, cutscenes, infrared, drug views and unsupported screen effects.
+This keeps their gameplay semantics while the world path grows. A software camera
+image may be uploaded as a dynamic indexed monitor texture; its render must not
+clear or steal the primary FBO. Use a scoped view stack, not one global active flag.
+
+Palette animation can be GPU-native from the beginning. Terrain/material animation
+keeps existing source selection and uses content generations. Lamp/muzzle remain
+original scalar contributions initially; avoid adding equivalent RGB terms twice.
+Full-bright creature/effect flags remain explicit. Procedural colored triangles
+can become GPU draws; raw lines, voxels and destination-dependent effects need
+their own audit. Sky needs stencil/coverage, not merely a black background.
+
+World-only SHODAN/fog/grading effects are new Enhanced capabilities. Existing
+static/vertical hold/teleport/shield/SHODAN behavior may cover weapon/HUD differently;
+record that original ordering before replacing any effect. Whole-view fallback
+is better than applying an unrelated fullscreen filter and claiming parity.
+
+
+12. CONCRETE PARITY MATRIX
+
+Classifications describe work needed for the proposed GLES backend. No row below
+claims a Medical GPU path is already implemented. "Already covered" applies only
+to unchanged engine semantics or the separately tested API mechanism. S/M/D/U =
+straightforward/moderate/difficult/unclear. SW = intentionally remains software.
+Desktop entries are source coverage, not new desktop hardware certification.
+
+Path                       Desktop/source status          GLES plan / classification
+Floors                     Mapper hook exists             S; same points/UVs
+Ceilings                   Mapper hook exists             S; winding/sky semantics
+External walls             Mapper; neighbor texture       M; preserve selected material
+Internal walls             Mapper; tile shape tables      M; diagonals/coverage
+Slopes                     Existing tile emission         M; triangulation/UV seams
+Doors                      Textured double-face path      M; motion/cutout/order/picking
+Sprites                    Projected GL quads              M; anchors/RSD/lighting
+Enemies                    Multiview sprite selection      M; invisible variant D
+Pickups                    Bitmap/model selection reused  M; tiny target alignment
+Polygon/model objects      Interpreter + poly/tmap hooks  D; CLUT/flat/textured/order
+Monitor panels             Tpoly + dynamic bitmap source  M; unlit/current frame/lifetime
+Animated textures          Resource selection/cache       M; explicit dirty generations
+Palette cycling            RGBA refresh on palette_dirty  M integration; lookup API covered
+Translucent polygons        Hardcoded GL approximation     D; sorting/blend semantics
+Forcefields                Hardcoded colors/alpha         D; interaction and layering
+Particles/effects          Triangles + raw lines/voxels   D; inventory remaining paths
+Weapon art                 Software canvas                SW; M composition integration
+HUD                        Software canvas                SW; M coverage/incremental copies
+Touch UI                   SDL after software draw        SW generation; M ES3 interop
+Framed HUD                 Software placement             SW; M viewport/menu comparison
+Fullscreen HUD             In-world overlay/cursor        SW; D layer coverage audit
+Picking/cursor targeting    Explicit software ID render    SW; M GPU/CPU alignment QA
+Online-help target labels   Reduced software ID scan       SW; preserve coverage weighting
+Camera/security views       HACKCAM excluded               SW first; D future nested FBOs
+Sensaround/rear view         Version1 software exclusion    SW first; D secondary composition
+Infrared                   Desktop tint approximation     SW first; M/D exact shader semantics
+Lamp                       Original scalar emission       M; preserve strength/energy logic
+Muzzle flash               Original scalar mechanism      M; no doubled RGB contribution
+Cyberspace                 Explicit desktop software      SW; D if ever GPU-converted
+Cutscenes                  Non-game/palette paths         SW; M transition/composition
+Fades                      Global palette/presentation    M; world + HUD consistent output
+Screen/static effects       CPU canvas modifications       SW first; D scope/order migration
+SHODAN overlays             Canvas/masks/custom monitors   SW first; D original effect parity
+Sky/stars                   Stencil + point shader         M; ES quads/stencil, edges
+Voxels                     Separate software draw path     U coverage; D likely adapter
+Elevators/height changes     Live map heights emitted       M; do not cache stale mesh
+Save/load                  Same state/saves               Already covered simulation;
+                                                         M cache/view/thumbnail invalidation
+Background/resume          SDL can recreate EGL context   D resource restoration/hardening
+Runtime renderer switch     Desktop toggle, VIS1 selector  M; frame boundary/UI refresh
+Material index/fullbright   Alpha encoding heuristic       M; explicit validated semantics
+Original mode               Existing software intact       Already covered baseline;
+                                                         must regression-test after hooks
+
+Acceptance remains visual/functional per path, not merely a successful build.
+Rows kept SW do not block an honest Enhanced beta if selection/fallback is clear.
+
+
+13. PERFORMANCE AND MEMORY
+
+BASELINE B3, stationary Medical phone run (not repeated here):
+  Original world mean 1.5118 ms; VIS1B 1.5263 ms.
+  Conversion/upload mean 8.7030 ms / 8.6740 ms.
+  Present call mean about 0.1385 ms; interval mean 16.667 ms.
+  These are CPU windows, not GPU timer measurements; world draws != presents.
+  A ~31-second sample does not establish thermal sustainability. [B3]
+
+PROPOSED gains:
+  World geometry uploads replace the whole indexed-world expansion/upload.
+  R8UI texture cache removes palette-triggered full-art rebakes. Palette changes
+  upload at most ~1KiB of RGBA entries; dynamic screens still update their pixels.
+  Persistent UI resources avoid per-frame SDL texture recreation. If UI remains
+  a full RGBA upload, much of the existing ~8.7ms cost may remain. Do not promise
+  the difference as a frame-rate gain. CPU traversal and occasional software ID
+  rendering remain; buffering/driver submission and overdraw add new costs.
+
+Memory estimates, not measured allocation/RSS:
+  One 1024x768 RGBA8 color target = 3 MiB; D24S8 nominally 3 MiB; an optional second
+  color target adds 3 MiB. One full-size R8UI UI layer = 0.75 MiB, RGBA UI = 3 MiB.
+  Retained software buffers remain. Indexed 128x128 texture = 16 KiB vs RGBA 64 KiB.
+  Vertex buffers/cache metadata/driver tiling/alignment increase these numbers.
+  Allocate to viewport size where practical; do not allocate a target per tile.
+
+GPU-RENDER1 capability probe does NOT measure world CPU submission, frame pacing,
+upload costs, memory RSS, sustained gameplay or presentation. glReadPixels is used
+only to verify output and synchronizes; it is not proposed in the runtime loop.
+No new application performance/thermal claim is made.
+
+Required live measurements:
+  Split CPU traversal, command capture, texture updates, GPU submission, UI
+  conversion, presentation and frame intervals. Record counts/bytes, median,
+  p95/p99, maximum and missed intervals; do not sum overlapping timing domains.
+  GPU timing only if a supported disjoint timer extension is available; poll
+  asynchronously and discard disjoint samples. Otherwise report GPU time unknown.
+  Avoid glFinish/readback in normal timing. Record PSS/RSS and cache target sizes.
+  Compare same camera/settings in all modes after warmup, then a moving doorway
+  route and 10-15-minute sustained run on phone and handheld. Log thermal state,
+  refresh rate and battery/power conditions. Capability, not speed, is the gate.
+
+
+14. REUSING VIS1/VIS1B ART DIRECTION
+
+Keep: Medical signature validation, stable resource IDs, named 17-tile region,
+fixture locations, material exemptions, existing comparison route/cameras,
+special-view scoping and separation from gameplay lights. Keep future concepts
+of level defaults, inferred hints, regions, material exceptions, dynamic state
+and generated external profiles. These are an art-direction system.
+
+Do not transplant: 16x256 bank arrays, nearest-palette searches, strongest-only
+Manhattan lift, CLUT pointer offsets, darkness caps or a bank number as RGB light.
+HvLightPool currently has x/y and separate floor/ceiling strengths in 8.8 darkness
+units. It is useful authoring evidence but is not yet a 3D RGB point-light record.
+It needs height, RGB, intensity/radius, receiver constraints, state and falloff.
+HvTile.bank is also indexed-backend vocabulary despite the header's independent-
+authoring intent. Add a versioned neutral schema, without rewriting VIS1B behavior.
+
+Suggested neutral records:
+  data/level signature; region name + tiles/height bounds + priority;
+  ambient RGB/intensity and response curve; fog RGB/density;
+  local lights {world XYZ, RGB, intensity, radius, receiver mask, state channel};
+  resource/frame material exceptions {emissive mask/gain, grading policy};
+  state overrides derived from quest/game state, with explicit precedence.
+Resolution: level defaults -> inferred rules -> named region -> material/draw
+exception -> dynamic override -> special-view/fallback policy. Specify overlap
+and blending, rather than letting array iteration define them accidentally.
+Indexed backend can compile approximate banks/pools; GPU consumes RGB records.
+Save only user presentation preference; derive state from existing game state.
+External generator/profile loader is not part of GPU-RENDER1 and does not exist
+merely because future data records are proposed.
+
+
+15. FIDELITY AND ENGINEERING RISK REGISTER
+
+Defaults: native original texture sizes, nearest-neighbor sampling, no anisotropy,
+no forced MSAA, no geometry smoothing, original aspect/FOV and sprite selection.
+Use existing 1024x768 logical presentation with 4:3 letterboxing. Any later internal
+resolution or filtering option is explicit and separately compared.
+
+Risk / mitigation / exit evidence:
+  GL state coupling: one owner per pass, flush+complete state restore; stress
+    interleaved touch/menu/world draws, not just an empty FBO sample.
+  Projection/units: derive from software math; compare tilted/near-plane/sloped
+    views and target edges; verify world light centers stay fixed while moving.
+  Cracks/seams: consistent shared coordinates/triangle diagonals and clipping;
+    sweep camera along ramps/door frames at multiple detail modes.
+  Sorting/depth: retain sequence initially; no global batching; test objects
+    through doorway, panels on walls, transparent crossings and sprite corners.
+  Z-fighting: only after depth is introduced, choose sane near/far and targeted
+    bias; do not change geometry to conceal it.
+  Palette semantics: test cycling, source0/255, CLUT, fades, unlit and fullbright;
+    compare material identity and actual dynamic updates.
+  Resource lifetime: copy/lock at capture; stable IDs/content generations; RSD
+    scratch memory and reused grs_bitmap descriptors cannot be retained blindly.
+  Model differences: textured/flat/Gouraud paths, polygon topology and CLUT
+    behavior require fixtures; existing desktop shaders do not prove parity.
+  Hybrid occlusion: prohibit an unrestricted final software-object overlay.
+  Secondary cameras: scoped view/FBO state, source generation and nested restore;
+    never let a CPU picking render clear the GPU world image.
+  Effects/snapshots: CPU pixel effects and menu/thumbnail readers need defined
+    source layers or whole-view fallback, not missing/black world pixels.
+  Context loss: SDL Android restore can emit SDL_RENDER_DEVICE_RESET; rebuild
+    every shader/VAO/buffer/texture/FBO from CPU metadata and invalidate old IDs.
+    Controlled probe teardown does not test this application event path.
+  Surface resize/resume: re-query drawable dimensions, retain 4:3, reclaim old
+    targets; touch coordinate mapping and orientation remain synchronized.
+  Runtime switching: wait for frame boundary and invalidate retained canvases;
+    no save mutation or frame assembled from two different backend modes.
+  Driver quirks: Adreno/Mali/handheld QA, highp where needed, shader logs and
+    FBO checks, core formats only. No flagship-only limits or extension mandate.
+  Light leakage/readability: receiver masks and explicit fixture heights; enemy
+    visibility must be played, not inferred from attractive empty-room screenshots.
+
+
+16. STAGED ROADMAP AND RELATIVE EFFORT
+
+ESTIMATES: engineering person-weeks for someone comfortable with this C engine
+and Android GL; not elapsed-time commitments. Ranges are low-confidence and need
+re-estimation after the live proof. Hardware QA and bug discovery can dominate.
+
+GPU-RENDER1 -- this investigation + isolated API capability proof (delivered)
+  No world-renderer replacement. Decision, source matrix and real-device formats.
+
+GPU-RENDER1B -- Medical live proof / composition gate (medium-high; 2-4 weeks)
+  First milestone: ES3 SDL context + state bridge, software fallback, persistent
+  offscreen world target and HUD/touch composition, scoped view selection.
+  Then use existing mapper hooks for Medical terrain; add ordinary Medical
+  door/panel/sprite/model paths required by the actual visible object inventory.
+  Preserve CPU picking. Add 2-4 lights and original emissive fixtures. Runtime
+  selector adds GPU PROTOTYPE while retaining Original/Conservative/VIS1B.
+  All unsupported views fall back visibly/logged. One existing QA APK.
+  Stop if layer/order correctness cannot be bounded without general renderer work.
+
+GPU-RENDER2 -- terrain and texture parity (medium; 2-4 weeks)
+  All tile types/slopes/internal/external walls, moving heights/elevators, texture
+  locks/flips/animation, door boundaries, near-plane precision and sky. Decide
+  whether painter ordering remains sufficient before considering real depth.
+
+GPU-RENDER3 -- objects/models/transparency (high; 3-6 weeks)
+  Extend sprite position/depth contract, multiview enemies and pickups, model
+  variants, masks, forcefields/translucent sorting, procedural geometry. Inventory
+  all representations and prohibit silent omissions. This is likely the largest
+  rendering implementation phase alongside special effects.
+
+GPU-RENDER4 -- special views/effects (high; 3-6+ weeks)
+  Palette cycles/fades integration, camera screens/sensaround, infrared/drugs,
+  static/SHODAN and snapshots. Keep cyberspace/cutscenes software if parity value
+  does not justify their GPU conversion; complete Enhanced need not mean every
+  game screen uses GPU geometry. Optional cyber GPU work separately estimated.
+
+GPU-RENDER5 -- profile-driven truecolor horror (medium; 2-4 weeks)
+  Neutral schema/loader, regions, ambient/fog, material masks, receiver-limited
+  pools, dynamic overrides, world grading/dither. Initial two-light shader already
+  exists conceptually in 1B; full-game art authoring is a separate content effort.
+
+GPU-RENDER6 -- compatibility, parity QA and performance (high; 3-6+ weeks)
+  Continuous from 1B, with final device matrix, stress/resume/load/switch testing,
+  long routes/full playthroughs, memory bounds and reliable fallback. Do not leave
+  all lifecycle work until this phase. Optimize measured costs only.
+
+Broad estimate: about 15-30+ person-weeks including 1B-6; not a promise and not
+required before judging the Medical proof. Shader arithmetic is a small part of
+that total. A useful experimental subset with explicit SW fallbacks arrives much
+earlier than comprehensive parity. The sensible investment decision is after 1B,
+not an upfront authorization to rewrite the entire renderer.
+
+
+17. EXACT NEXT LIVE PROOF AND RUNTIME TRANSITIONS
+
+Use Medical level 1, medical-healing-suite-v1, same 17 tile signatures from VIS1B.
+Initial camera from the existing fresh-start slot: (30.5,22.625), heading192.
+Scene B: ramp -> gold control 176 at (26.03,22.40) -> supply doorway at (26.5,22).
+Use current runtime geometry, including actual door state and height changes,
+not geometry reconstructed approximately from a screenshot. Draw all visible
+supporting geometry needed for that view; only lighting authorship is restricted
+to the mask. Mask membership alone does not justify cutting holes in visibility.
+
+Suggested lights for later authoring, not new measured fixture parameters:
+  Cold pool by Medical displays near (30,24); warm pool near supply(26.5,20.5).
+  Derive actual Z from fixture/ceiling geometry; tune radius so doorway view
+  contains both pools and a shared receiving surface. Preserve original blue/
+  violet panels and beds (materials 35/216) as emissive anchors. Do not repaint
+  blue fixtures orange; any artistic mismatch of source color is explicitly
+  judged rather than disguised. No normals/roughness/replacement textures.
+
+Required proof acceptance:
+  Live camera motion changes geometry perspective and lighting relationship.
+  Actual triangle submission/texture upload counters identify the GPU path.
+  Same material preserves relative color/detail in neutral, warm, cold and
+  overlap regions. Smooth spatial falloff without shade-row quantization.
+  Gold control works; door moves; pickups and labels align; weapon/HUD/touch
+  remain visible; no objects draw through nearer walls.
+  Same game state toggles Original, VIS1B and GPU in one APK without moving or
+  recalibrating gamma; capture A and B triplets and a short moving demonstration.
+  Unsupported views/classes produce a documented whole-view fallback, not
+  an attractive incomplete frame. A remains same saved camera; B triplet must
+  match internally even if historical B cannot be reproduced exactly.
+
+Mode transition (PROPOSED minimum): latch requested mode at a primary-view frame
+boundary, flush queued draws, clear retained world/UI backups and redraw menu
+background, bind correct mapper/CLUT scopes, lazily rebuild GPU resources if
+generation changed. CPU camera/simulation/save unchanged. With ES3 initialized
+at startup, no level reload should be necessary; this remains untested. ES2-only
+startup exposes GPU unavailable. If surface recreation is necessary, a presentation
+restart may be required, but not reinstall or save conversion. Never promise
+instant switching until that path passes lifecycle and menu tests.
+
+
+18. HARDWARE QA PLAN AND RESULTS IN THIS TASK
+
+Completed:
+  python scripts/test-gpu-render1.py
+  NDK 29.0.14206865 clang, aarch64-linux-android33, C11,
+  -Wall -Wextra -Werror -O2, EGL/GLESv3, 16 KiB max ELF page alignment.
+  Synthetic VBO/EBO triangles -> R8UI+palette shader -> RGBA8/D24S8 FBO.
+  Independent CPU reference over all 64x32 pixels checks two overlapping colored
+  attenuation terms, cutout index 0, emissive index 3 and changed palette entry 1.
+  Three complete context generations; all six comparisons exact; GL error check
+  passes. Executable removed from /data/local/tmp after test.
+  Source/binary SHA256 and actual driver strings are recorded in the log.
+  Repository-wide git diff --check also reports pre-existing musicai.c whitespace;
+  this task did not change that file. No application build/test result is implied.
+
+Not completed:
+  Medical GPU geometry, runtime selector, new screenshots, APK build/install,
+  touch/HUD integration, SDL ES3 context handoff, GPU/CPU projection comparison,
+  real game performance, memory/thermal measurements or Android resume testing.
+  Existing VIS1B A/B screenshots were viewed as baseline evidence only.
+
+Required for 1B:
+  1. Back up existing QA APK, prefs, touch settings, CurrentGame and all saves.
+     Keep stable package untouched; verify package/signing/16KiB alignment.
+  2. Log actual EGL/GL/GLSL, selected formats, shader/FBO status, window/viewport
+     dimensions, enabled backend, fallbacks, uploads and draw counts.
+  3. Load the same fresh-start slot; matched A triplet; traverse normal route,
+     operate gold control and doorway; matched B triplet; original textures only.
+  4. Inspect ramp/ceiling seams, near walls, turn/pitch, doors both sides, tiny
+     pickups, enemy silhouette/animation and label/cursor placement.
+  5. Framed/fullscreen HUD, menu return, weapon art, touch controls/editor/cursor,
+     repeated mode switches (100), same-camera return determinism where animated
+     pixels permit. Gamma and touch settings must not change with backend.
+  6. Exercise lamp/muzzle, infrared, security camera, sensaround, cyber, fades,
+     static/cutscene: supported behavior or explicit correct software fallback.
+  7. Save/load, restart, level/elevator transition, background/resume 20 times,
+     lock/unlock, surface recreation and renderer-reset event simulation.
+     Recover resource generations; no stale pointers/IDs or texture leaks.
+  8. ES3 unavailable/shader compile/FBO failure injection must retain Original.
+     Test Adreno phone, Retroid handheld and Mali; do not infer from OS version.
+  9. Warm stationary and moving timing, long sustained run, memory counters.
+     Distinguish CPU/presentation timing from measured GPU work.
+ 10. Verify save bytes where no intentional save occurred, retained preferences,
+     known unsupported list and rollback. User decides visual acceptance.
+
+
+19. DIRECT ANSWERS TO THE EIGHT CENTRAL QUESTIONS
+
+1. How difficult? Terrain interception is tractable; complete reliable rendering
+   is high effort because of mixed drawing semantics, effects and lifecycle.
+   Think a bounded proof measured in weeks and broader coverage in months.
+2. Desktop modernization or clean backend? Clean GLES3 backend reusing desktop's
+   interception points and original geometry logic. Keep desktop GL as reference.
+3. How much remains? Simulation, map interpretation, tile traversal/visibility,
+   camera logic, representation/animation selection, model interpretation and
+   CPU picking can remain. Emission adapters and presentation/resource management
+   change. A meaningful unchanged-code percentage cannot be justified yet.
+4. Largest effort? Object/model/sprite ordering and transparency; software
+   pixel-effect/HUD composition; secondary views, projection and Android lifecycle.
+5. Better horror capability? Yes: independent RGB lights and smooth falloff with
+   unquantized output directly address VIS1B's limitation. Art/shadow leakage and
+   readability still need validation; no Medical GPU image was produced here.
+6. Permanent Original? Yes. Keep real software rasterization/CLUTs as independent
+   preservation mode, not a GPU emulation that has to match it pixel-for-pixel.
+7. Worth doing? Yes as a gated optional backend with software special-view
+   fallbacks. Do the Medical integration gate before funding broad parity or
+   full-game profile authoring. It is bounded by semantics and fallback policy,
+   not a small universally complete port.
+8. Smallest next step? ES3 SDL context/state bridge and offscreen world/UI
+   composition with runtime Original fallback; then connect existing terrain
+   emission and required Medical object paths to that target. Establish geometry,
+   picking and UI correctness before tuning the two colored lights.
+
+
+20. EVIDENCE INDEX
+
+Line numbers refer to the inspected local working tree; function names remain
+the primary anchors if earlier uncommitted work changes line positions.
+
+B1 docs/HORROR_VISUAL_FEASIBILITY.txt -- architecture, indexed limits, data probe.
+B2 docs/HORROR_VIS1_QA.txt -- Medical map/objects, safeguards, first hardware QA.
+B3 docs/HORROR_VIS1B_QA.txt -- selector, visual evidence, final hardware timings.
+   Viewed dist/vis1b/A-horror.png and B-horror.png; no new comparison generated.
+
+S1 AndroidProject/app/jni/CMakeLists.txt:48; app/src/main/AndroidManifest.xml:3;
+   app/build.gradle:25 -- renderer build, required ES2, minimum Android 33.
+S2 SourceSnapshot/src/MacSrc/Shock.c:180,206,276,334,383;
+   ShockBitmap.c:90 -- driver/window, palette/gamma, SDLDraw, indexed canvases.
+S3 SourceSnapshot/src/GameSrc/render.c:193,327; frmain.c:70;
+   frsetup.c:607,633,671,803 -- views, hook setup, send/callback composition.
+S4 SourceSnapshot/src/GameSrc/frterr.c:291,459-984,1168,1450,1574;
+   frtables.c, frpts.c -- scalar, walls/floors/ceilings/tile/cyber emission.
+S5 SourceSnapshot/src/GameSrc/frclip.c:329,1089; frpipe.c:279;
+   Libraries/3D/Source/tmap.c, clip.c, points.c:99, matrix.c:295, alloc.c:188.
+S6 SourceSnapshot/src/GameSrc/gameobj.c:295,459,575,692,855-1250;
+   textured doors/panels, sprites, models, representations/effects.
+S7 SourceSnapshot/src/GameSrc/frobj.c:89; gamesort.c:88,114,183;
+   per-tile object collection and partition-aware draw order.
+S8 SourceSnapshot/src/Libraries/3D/Source/Bitmap.c:395;
+   polygon.c:202,330,378 -- GPU hooks vs software point/line paths.
+S9 SourceSnapshot/src/GameSrc/textmaps.c:149,168,293;
+   init.c:620,636 -- descriptor lifetime, textures, shade tables, translucency.
+S10 SourceSnapshot/src/GameSrc/frutil.c:75,111,130; frsetup.c:248;
+    olhscan.c:92; gameobj.c:727 -- ID picking/labels/texture targeting.
+S11 SourceSnapshot/src/GameSrc/palfx.c; wares.c:461 -- cycling and infrared.
+S12 SourceSnapshot/src/GameSrc/gamerend.c:546; frsetup.c:803;
+    tools.c:760 -- effects, callbacks, overlays.
+S13 SourceSnapshot/src/GameSrc/star.c:154,283; view360.c:211;
+    render.c:193 -- sky, sensaround, camera rendering.
+S14 SourceSnapshot/src/MacSrc/OpenGL.cc:
+    98 projection;250 FBO;292 context;344 resize;385 exclusions;
+    404 palette/emissive;453 composition;562-702 texture cache;
+    704-818 textured/sprite draws;825-900 flat/translucent;902 sky/stars.
+S15 SourceSnapshot/shaders/main.vert,texture.frag,color.frag,star.frag.
+S16 .deps/SDL2/src/render/opengles2/SDL_render_gles2.c:293,930,1166,2029;
+    .deps/SDL2/src/render/SDL_render.c:288; include/SDL_render.h SDL_RenderFlush;
+    .deps/SDL2/src/video/android/SDL_androidevents.c:70-98.
+    Pinned dependency is SDL 2.32.10 per docs/BUILD.md.
+S17 SourceSnapshot/src/GameSrc/horror_profile.c and Headers/horror_profile.h;
+    horror_visuals.c -- exact region/material/pool data and scoped exclusions.
+S18 AndroidProject/app/jni/touch/touch_render.c; touch_shock_bridge.c;
+    current SDL touch composition, retained by proposal.
+
+External primary references checked 2026-10-03:
+E1 Android Developers, OpenGL ES support / runtime version detection:
+   https://developer.android.com/develop/ui/views/graphics/opengl/about-opengl
+E2 Khronos OpenGL ES 3.0 API reference card / official registry:
+   https://www.khronos.org/files/opengles3-quick-reference-card.pdf
+   https://registry.khronos.org/OpenGL/specs/es/3.0/
+   Core format/API and GLSL 3.00 references; tested subset documented above.
+
+Added files for this task:
+  docs/GPU_RENDER1_FEASIBILITY.txt (this report)
+  tests/rendering/gles3_probe.c
+  scripts/test-gpu-render1.py
+Ignored generated evidence:
+  dist/gpu-render1/build.log
+  dist/gpu-render1/capability-probe.log
+  dist/gpu-render1/gles3-probe
+Nothing here changes or ships a production renderer.

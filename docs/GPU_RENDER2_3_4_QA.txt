@@ -1,0 +1,1648 @@
+GPU-RENDER2 / GPU-RENDER3 / GPU-RENDER4 -- CONSOLIDATED QA
+2026-10-03
+
+FINAL BOUNDED CAMPAIGN ACCEPTANCE -- 2026-10-03
+
+GPU-RENDER2: PASS, bounded normal-terrain/texture gate with safe fallback.
+GPU-RENDER3: PASS, bounded ordinary-object/model/ordering gate with safe fallback.
+GPU-RENDER4: PASS, bounded special-view/transition integration with safe fallback.
+GPU-RENDER5: NOT STARTED; recommended as a separate future phase.
+
+The Medical moving-floor route now has accepted motion evidence: successful GPU
+frames at every floor height8->0, plus earlier ascent and complete observed
+geometry, with transient conservative software fallbacks explicitly recorded.
+Flight animated terrain master237 now has visible original-content animation
+and four distinct128x128 indexed hashes on successfully composed GPU frames.
+The same passage was compared with Original. This closes the final Phase2
+requirement; Phase2 was committed before Phase3 began.
+Phase3 now passes with sections26..29 evidence. Earlier IN PROGRESS statements
+below are historical capture-time status; sections5/6/29 are the current gate.
+Phase4 entered after the focused Phase3 PASS commit; sections30 onward record
+its device evidence. Older NOT ENTERED statements are historical.
+Sections30..35 close Phase4 and record its limits and final artifact. Earlier
+capture-time pending statements are historical; sections2/4/6/8/23/24 are current.
+
+Evidence terminology:
+SOURCE = reviewed implementation, not a hardware parity claim.
+TEST = executable test result in a saved log, with its limited scope stated.
+OBSERVED = primary testing agent's direct gameplay/device observation.
+UNVERIFIED = no sufficient evidence in this checkpoint.
+INHERITED = accepted GPU-RENDER1B evidence, not a new result in this campaign.
+Screenshot/video filenames alone are not evidence of behavior or a passing gate.
+
+Authoritative prior documents:
+  GPU_RENDER1_FEASIBILITY.txt, GPU_RENDER1B_QA.txt,
+  HORROR_VISUAL_FEASIBILITY.txt, HORROR_VIS1_QA.txt, HORROR_VIS1B_QA.txt.
+
+1. EXACT STARTING COMMIT / TREE STATE
+
+HEAD: 8fddd2f2e24ab0cca659235f94408977f18f0a0c
+Title: Add GLES3 Medical world rendering prototype
+Prior commit: fa57a8b04af804e9698e585722dc83ee90273f2c
+
+Recorded before campaign edits in:
+  dist/gpu-render2-3-4/starting-head.txt
+  dist/gpu-render2-3-4/starting-status.txt
+
+Pre-existing modified files, unrelated audio work:
+  SourceSnapshot/src/GameSrc/musicai.c
+  SourceSnapshot/src/MacSrc/ExternalMusic.c
+  SourceSnapshot/src/MacSrc/ExternalMusic.h
+  scripts/install-qa-soundtrack.py
+  scripts/test-audio2.py
+  tests/audio/external_music_smoke.c
+  tests/audio/external_music_test.c
+
+Pre-existing untracked files, unrelated audio work:
+  docs/AUDIO31_RESUME_QA.txt
+  docs/AUDIO3_SOUNDTRACK_QA.txt
+  scripts/test-audio3.ps1
+  tests/audio/dynamic_music_test.c
+
+This work preserves those changes. No wholesale checkout/reset or staging of
+unrelated audio files is authorized by this campaign. Generated APKs, logs,
+screenshots, original resources, saves and device data remain under ignored
+dist/ or normal ignored build output; they must not enter a phase commit.
+
+2. PHASE COMMITS / BUILD PROVENANCE
+
+GPU-RENDER2 commit: bcc842c4bd38a95b5fd4ff6dc8e6598ec854ef84
+  Expand GLES terrain and indexed texture parity with safe fallback
+ 13 renderer/report/helper files only; unrelated AUDIO work remains unstaged.
+GPU-RENDER3 commit: 463e5f1d9a293012674dbe5aa305dc121b402e32
+  Support concave ordinary models and accept bounded GPU object parity
+GPU-RENDER4 commit: b19e5bbd4079158fa1f71acf4513f9198b3897dd
+  Preserve indexed menus and validate GPU special-view transitions
+  Four renderer/report files only; unrelated AUDIO work remains unstaged.
+This documentation-only follow-up records the exact Phase4 commit hash; it
+changes no source or APK. No push has been performed or authorized.
+
+Historical Phase2 renderer manifest (already committed):
+  AndroidProject/app/jni/CMakeLists.txt
+  SourceSnapshot/src/MacSrc/GpuWorld.c
+  SourceSnapshot/src/MacSrc/GpuWorld.h
+  SourceSnapshot/src/MacSrc/GpuGeometry.h
+  SourceSnapshot/src/MacSrc/GpuTextureCache.c
+  SourceSnapshot/src/MacSrc/GpuTextureCache.h
+  SourceSnapshot/src/MacSrc/Shock.c
+  SourceSnapshot/src/MacSrc/Shock.h
+  scripts/inspect-gpu-terrain.py
+  scripts/test-gpu-render2.py
+  tests/rendering/gpu_geometry_test.c
+  tests/rendering/gpu_texture_cache_test.c
+  docs/GPU_RENDER2_3_4_QA.txt
+Confirm the final diff before staging; this is a manifest, not a claim it is staged.
+
+Final built/installed candidate: build13, QA arm64-v8a; sections34/35 record
+the exact hash, verification and final palette test. Build11 provides the
+unchanged production-renderer transition evidence in sections30..33.
+Phase3 focused files: GpuGeometry.h, GpuWorld.c, gpu_geometry_test.c,
+scripts/test-gpu-render2.py and this report. Confirm the actual diff at staging.
+
+Earlier build9 candidate, used for Phase2 and initial Phase3 routes:
+  C:\Dev\system-shock-android\AndroidProject\app\build\outputs\apk\qa\app-qa.apk
+  SHA256 b530bf390250143c18575377329bc46507a316464802ed7b5688246b9f8da836
+  BUILD=PASS in8s; evidence: dist/gpu-render2-3-4/build9.log.
+  APK_VERIFY=PASS; native16-KiB ELF and ZIP alignment PASS for this exact hash.
+  Package io.github.raposomiguel50.systemshock.qa; version1.0.0-qa /10000.
+  Signer SHA256 6dc6baad4199aaa7637cbbe2af679156eb48731b0eacdeabc0ffaa78adcd9924.
+  Evidence: dist/gpu-render2-3-4/apk-verification9.log, completed16:25:57.
+  Installation reported by the primary agent; local verification did not rebuild,
+  install, launch or otherwise operate the phone.
+  Build9 adds the scoped QA-only terrain-animation diagnostic described below.
+  It does not itself establish animated-terrain route acceptance.
+
+Earlier build8 candidate used for the matched performance, controlled context
+replacement and Medical moving-floor evidence:
+  SHA256 8855a0e1e2b182b55de8337720587de207c45153b32d1d75dac4fc7323542774
+  BUILD=PASS; evidence: dist/gpu-render2-3-4/build8.log.
+  APK_VERIFY=PASS; native16-KiB ELF and ZIP alignment PASS for this exact hash.
+  Package io.github.raposomiguel50.systemshock.qa; version1.0.0-qa /10000.
+  Signer SHA256 6dc6baad4199aaa7637cbbe2af679156eb48731b0eacdeabc0ffaa78adcd9924.
+  Evidence: dist/gpu-render2-3-4/apk-verification8.log, completed15:02.
+  Installed controlled context-replacement/retry evidence: sections17/21.
+  A subsequent Shock.h edit only changed the five newly added declaration-line
+  endings; it makes no semantic difference to the installed build8.
+
+Earlier separately verified package/signature/alignment artifact: build5.
+  SHA256 44240b490412211b070af0b30152d4ec615582157a05497d4b7cc6dd28f7401e
+  Package io.github.raposomiguel50.systemshock.qa
+  Version 1.0.0-qa / 10000
+  Signer SHA256 6dc6baad4199aaa7637cbbe2af679156eb48731b0eacdeabc0ffaa78adcd9924
+  BUILD=PASS; APK_VERIFY=PASS; 16-KiB native ELF and ZIP alignment PASS for build5.
+  Evidence: dist/gpu-render2-3-4/build5.log and apk-verification5.log.
+This is a candidate, not a final release or final campaign APK declaration.
+The output path may be overwritten by another build; re-hash at final closeout
+and reverify any later artifact rather than transferring these results to it.
+
+3. GPU-RENDER2 SUMMARY
+
+Implemented, SOURCE:
+- Removed camera/level/Medical-signature dependence from ordinary realspace
+  terrain capture. Existing traversal and emitted runtime polygons remain the
+  geometry source; no separate map mesh or simulation interpretation was added.
+- Kept the old Medical signature only around the existing two authored lights.
+  Other normal receivers use neutral scalar lighting. No new horror profiles,
+  fog/art-direction system or remake materials were introduced.
+- Preserved original indexed GL_R8UI art, separate palette lookup, nearest
+  sampling and original runtime texture/frame selection.
+- Added 512-slot, 16-MiB bounded owned-pixel LRU with current/retained command
+  pinning, deferred GL retirement, collision-safe identity and instrumentation.
+- Added projected convex-boundary validation before fan triangulation, including
+  self-intersections and a small fixed-point clipping tolerance. Unsupported
+  boundaries safely fall back; UVs include the software mapper's inward bias.
+- Build7 normalizes a measured duplicate clip/ordinary projection only in GPU
+  screen-coordinate copies, within formula-derived raw-coordinate caps. It
+  requires exact matching view-space xyz and an unambiguous ordinary point;
+  PF_PROJECTED and the strict convexity check still gate every textured face.
+- Added conservative primary-frame software selection while sensaround or
+  secret framebuffer transitions are active.
+- Fixed failed GL-upload state reuse and world-copy failure handling. Failed
+  native resources are discarded; whole-view software is preserved/restored.
+- Preserved normal display index255 black in the separate GPU palette without
+  changing game data, canonical source resources, gameplay lighting or gamma.
+- Added CPU capture/submission percentile counters and cache/terrain diagnostics.
+- Build8 hardens replaced-context fallback by retiring/recreating the entire SDL
+  presenter safely, selecting Original first, and retaining CPU surfaces/cache.
+  This is necessary Phase2 safety work, not Phase4 lifecycle acceptance.
+- GPU2 TILE logs successful GPU camera-tile/height changes with exact raw camera
+  coordinates. It does not log a GPU success for a rejected whole-software view.
+- Build9 adds a QA-only animation probe for Flight(level5), original terrain
+  master237 with a four-frame animation group. It records the selected original
+  texture slot/master, owned index-content hash, dimensions, polygon bounds and
+  draw number after successful GPU-world SDL_RenderCopy. It stages metadata
+  during terrain capture, excludes objects and1x1 flat colors, follows retained
+  primary commands and clears pending data on the next accepted primary view.
+  Mode selection, level change or save-time rewind rearms a16-sample limit.
+  It neither advances animation nor edits resources/gameplay. Palette changes
+  alone cannot produce transition samples. Distinct index_hash values and a
+  viewed route are still required: group-frame changes alone can log identical
+  content, and successful RenderCopy does not prove final unobscured visibility.
+
+Automated tests, TEST:
+scripts/test-gpu-render2.py compiles the actual production cache and geometry
+helpers for aarch64-linux-android33 with NDK29, C11, -Wall -Wextra -Werror -O2 and
+16-KiB ELF page alignment. It runs temporary executables on the authorized phone
+and removes them. Both saved logs report PASS, exit_code=0, cleanup_exit_code=0.
+These exercise helper correctness, not full application rendering or routes.
+The refreshed fixture run at14:28 on10-03 passed both helpers. The geometry log
+includes the measured duplicate-projection case, both windings/all starts,
+3..32 vertices, clipping bounds, concavity/crossings/stars, repeated/zero-area
+points and int32 extremes. Cache tests include10,000 changing frames, bounds,
+pins, collisions, ownership/stride and allocation failure. Evidence:
+dist/gpu-render2-3-4/cache-test.log and geometry-test.log; both exit0/cleanup0.
+The14:28 runner timing is supplied by the primary agent (file times14:28:08/09);
+the PASS logs contain hashes/results rather than wall-clock timestamps.
+
+Terrain/source review evidence:
+  dist/gpu-render2-3-4/source-audit.txt
+  dist/gpu-render2-3-4/terrain-inventory.json
+The inventory reads owned archives and suggests coordinates; it does not modify
+maps/saves and does not prove that any listed area was reached or rendered.
+
+4. GPU-RENDER2 GATE / CHECKPOINT
+
+Gate: PASS, recorded after build9 Flight animated-terrain acceptance.
+
+Implemented/source-reviewed: general terrain entry, primitive fallback, live
+runtime heights, original UV/resource selection, bounded cache, unchanged
+software picking, Original preservation, diagnostics and safe failure handling.
+
+Confirmed helper tests: cache and geometry PASS.
+Confirmed current candidate failure-control-flow observations: section21,
+including build8 controlled replacement-context recovery and explicit GPU retry.
+Medical moving-floor route: PASS for live-height terrain correctness, using
+the normal GPUR2QA combat0 run and complete software fallback when required.
+GPU success is logged at every descent height8->0; it was not uninterrupted
+GPU presentation. See section21 for the two transient topology rejections and
+the primary agent's reviewed motion/Original comparison. This does not certify
+ordinary-enemy behavior or a separately moving ceiling.
+
+Flight terrain master237, group1: PASS. Visible fan images change in six live
+captures; the diagnostic records four distinct original128x128 indexed hashes
+for masters237..240 and repeats the sequence after successful GPU composition.
+Original/GPU switching at the passage preserves its geometry and art; see21.
+This is terrain-content animation, independently of palette cycling or sprites.
+
+No known fundamental normal-terrain architectural failure remains. Phase2
+accepts dependable supported terrain with explicit whole-view fallback, not
+all-frame GPU coverage. Recorded topology fallbacks, sky/special exclusions,
+separate moving-ceiling and exhaustive viewpoint limits remain in9/13/21/23.
+Cache pressure/eviction is covered by the existing10,000-frame helper test;
+the Phase2 routes stayed below capacity. Later Phase3 device-side eviction is
+recorded separately in section26.
+Existing matched performance and controlled context evidence are reused.
+
+5. GPU-RENDER3 SUMMARY
+
+PASS after the Phase2 commit and build10 model confirmation. Sections26..29
+cover assassin/warrior animation and cutouts, wall/corner and full Flight door
+occlusion, Medical pickup/control alignment, inherited servbot lighting, and
+ordinary flat/textured model geometry. Unsupported output keeps complete-view
+software fallback. This is bounded route acceptance, not every enemy/frame,
+model, translucency class or special transition certification.
+
+Inherited 1B evidence: one normally encountered servbot accepted qualitatively
+by the user in the bounded GPU-lit Medical suite; controls/pickups and door OPEN
+accepted there. This is not broad enemy or whole-game object certification.
+Incidental enemies encountered during Phase2 remain route observations, not a
+substitute for entering and completing the Phase3 object acceptance plan.
+
+6. GPU-RENDER3 GATE / CHECKPOINT
+
+Gate: PASS for bounded ordinary objects/models with explicit safe fallback.
+Sections26..29 establish multiple normal species, pickup/control alignment,
+complete OPEN/CLOSE motion, ordinary flat/textured models, corner/door occlusion,
+and cutouts. No fundamental ordering defect or silent omission was found.
+Unsupported representations still reject the whole view; Original and runtime
+switching remain intact. The focused Phase3 commit follows this gate decision.
+Earlier IN PROGRESS statements below are historical observations at their time;
+this current gate and section29 supersede them.
+
+7. GPU-RENDER4 SUMMARY
+
+PASS after the Phase3 PASS commit. Sections30..34 establish actual primary
+camera takeover/return, Sensaround, infrared, software cyberspace and normal
+cyberdeath return, natural death/static/cutscene/EOF fade, retained GPU palette
+fade/black/restore, complete indexed menus, runtime mode switches and Home/resume.
+The Phase2 controlled context replacement and existing source inventory are reused.
+
+Existing ordinary composition is GPU world, original software weapon/HUD/cursor,
+existing touch pass and one present. Unsupported whole-frame effects remain
+software. Sensaround is conservatively all-software; no nested GPU FBO/view stack
+has been implemented or accepted. A bounded presenter recovery fix and controlled
+replacement-context test were completed as Phase2 fallback hardening. Genuine
+EGL-loss certification remains unverified. Section30 resolves the menu snapshot
+defect and records actual camera, infrared, mode-switch and Home/resume checks.
+
+8. GPU-RENDER4 GATE / CHECKPOINT
+
+Gate: PASS for bounded common transitions and explicit whole-view fallback.
+The menu snapshot defect is corrected; no fundamental view ownership, palette,
+retained-world or restoration defect remains in the exercised routes. Secondary
+views and special effects do not require a new nested GPU framebuffer stack.
+Section12 is a source-support matrix, not hardware certification of every effect.
+Actual shield/endgame SHODAN overlays, portal-based cyber exit and genuine
+EGL_CONTEXT_LOST remain unverified. Exact lit-world black uses the controlled
+palette-zero test; the separate natural movie fade retains its legacy endpoint.
+
+9. SUPPORTED TERRAIN MATRIX
+
+Classification 'CAPTURED' means implementation/source reviewed. Hardware gate
+coverage is tracked separately; not every row below has been exercised.
+All source paths in sections9-18 are relative to SourceSnapshot/src unless noted.
+
+Terrain / behavior                 Current classification / source anchor
+---------------------------------  ------------------------------------------
+Flat floor / ceiling               CAPTURED; GameSrc/frterr.c:785,931.
+Ordinary external walls            CAPTURED; frterr.c:641.
+Internal / diagonal walls          CAPTURED; frterr.c:527,1712.
+Partial walls / doorway boundaries CAPTURED original face lists; :455-480,1173.
+Slopes / ramps                     CAPTURED original emitted vertices.
+Sloped ceilings                    CAPTURED original ceiling/slope helpers;
+                                   frterr.c:931,1818-1837.
+Variable floor / ceiling heights   CAPTURED live map values; :1464-1469.
+Pits / ledges                      CAPTURED emitted boundaries; no static mesh.
+Moving floor / ceiling / elevator  SOURCE live heights; Medical floor8->0 and
+                                   ascent observed, GPU success each height;
+                                   transient whole-view fallback, section21.
+                                   Separate ceiling motion not demonstrated.
+Texture orientation / flips        CAPTURED original UVs; frterr.c:401-480.
+Texture locks                     CAPTURED; frterr.c:1473; emitted UV offset.
+Neighbor-selected wall texture     CAPTURED; frterr.c:1335.
+Animated terrain texture content   PASS Flight237..240; distinct original
+                                   indexed frames and visible motion, section21.
+Palette cycling                    Separate palette upload/replay; section19.
+Sky / stars / open-ceiling stars   Whole-view SOFTWARE; GameSrc/star.c:154-172.
+Gouraud / RGB-effect terrain       Whole-view SOFTWARE; GpuWorld.c polygon guard.
+Non-convex / crossing boundaries   Whole-view SOFTWARE; GpuGeometry.h.
+Invalid format/count/depth/budget  Whole-view SOFTWARE; GpuWorld.c capture guards.
+
+Headers/tilename.h defines ordinary solid/open/diagonal and slope types0..21;
+additional named types22..50 exist, with some code under USE_OCT. Definitions or
+archive inventory alone are not a claim that every named legacy configuration
+is used, enabled, reachable, or GPU-accepted. Engine-emitted unsupported
+representations remain subject to whole-view rejection.
+
+Projection, topology and UV:
+- Libraries/3D/Source/tmap.c:542,596 and polygon.c:275,296 capture after original
+  clipping/projection. MacSrc/GpuWorld.c point_vertex uses software sx/sy and
+  homogeneous z for perspective interpolation, without a second camera model.
+- GpuGeometry.h checks every vertex against every directed projected edge.
+  Two raw16.16 units are 1/32768 pixel, not two pixels. Convex lists become fans;
+  concave/crossing lists reject. Zero-area lists are harmless degenerate fans.
+- Build6 measured a terrain boundary at level1/tile18,19, frame100,
+  camera(18.1114807,18.254715,1.72702026), viewport1024x768. An ordinary point
+  and a clipped point shared exact xyz(-18839,39008,39008), but sx differed
+  17349245 versus17349632:387 raw16.16 units. The duplicate reversed a boundary
+  edge under the strict guard. Original and clip projectors round differently.
+- Build7's GpuGeometry.h:8-52 canonicalizes only a PF_CLIPPNT point with exact
+  xyz equality to an unambiguous ordinary counterpart. Bounds per coordinate
+  are ceil(viewport_dimension/2)+1 raw units:513 horizontal/385 vertical at
+  1024x768, under0.008 pixel. Ambiguous/near-equal/clipped-only/over-cap cases
+  remain untouched and still undergo the unchanged convexity guard.
+- GpuWorld.c:315-369 requires positive depth and PF_PROJECTED. The codes bit16
+  cannot alone mean overflow because clip points use it as CC_OFF_X. Local
+  captured-point copies change sx/sy only; all vertices, UVs and light values
+  survive, and source engine points/software projection remain unchanged.
+- The exact measured fixture and negative cases are in
+  tests/rendering/gpu_geometry_test.c:34-109;14:28 Android helper tests PASS.
+  Source/helper acceptance does not imply the original camera was revisited
+  successfully or that every seam/motion route has passed.
+- GpuWorld.c:485 log_gpu_tile_change reports successful-view tile type, raw
+  floor/ceiling and exact camera only when level/tile/heights change. This adds
+  motion evidence instrumentation without changing game data or simulation.
+- Software scan conversion/perspective approximations are not pixel identical
+  to GPU rasterization. Section21 distinguishes reviewed still-image geometry,
+  successful route samples and the observed moving-floor sequence; none is an
+  exhaustive per-pixel or every-viewpoint proof.
+- tmap.c:573-585 inward UV bias is preserved. Nearest indexed sampling remains.
+
+10. SUPPORTED OBJECT MATRIX
+
+Phase3 SOURCE INVENTORY ONLY. Original representation selection and order remain
+authoritative; captured output is not broad gameplay parity certification.
+
+Representation                     Current classification
+---------------------------------  ------------------------------------------
+Bitmap / anchored pickup sprites   CAPTURED original projected quads.
+Multiview / ordinary enemy sprites CAPTURED after engine angle/frame selection.
+Pickups / controls                 CAPTURED; bounded 1B picking proof inherited.
+Doors / wall panels                CAPTURED runtime textured polygon geometry.
+Monitors / animated panels         CAPTURED current original bitmap content.
+Textured polygon models            Common simple convex/concave outputs CAPTURED;
+                                   validated triangulation, section29.
+Flat-colored polygon models        CAPTURED; 1x1 indexed material.
+Gouraud / colored model polygons   Whole-view SOFTWARE.
+Bridges / pillars / catwalks        Common cube primitives CAPTURED.
+CRT / security-control objects     Common cube primitives CAPTURED.
+Barricades                         Opaque output CAPTURED; unsupported output
+                                   rejects the complete view.
+Explosion / effect representations By emitted primitive; no universal support.
+Invisible critters                 Whole-view SOFTWARE.
+Voxels                             Whole-view SOFTWARE.
+Force bridges / procedural specials Whole-view SOFTWARE unless on the explicit
+                                   ordinary-special whitelist.
+World line / point models          Whole-view SOFTWARE.
+No-object / unknown no-output reps Original engine no-output semantics preserved.
+
+Anchors: GameSrc/Headers/gameobj.h:33-45 representation IDs;
+gameobj.c:640,722 frame selection; :856 bitmap; :866-944 specials;
+:946-1025 multiview/critters; :1029 voxels; :1042 translucency;
+:1045-1156 doors/panels; :1161-1247 models; :1254-1262 GPU object scope.
+MacSrc/GpuWorld.c gpu_world_object rejects unsupported representations before
+rendering; gpu_world_sprite retains engine anchors and uniform anchor lighting.
+Libraries/3D/Source/interp.c:366-382 preserves model polygon point order.
+
+11. SUPPORTED TRANSPARENCY MATRIX
+
+Class                              Current classification / semantics
+---------------------------------  ------------------------------------------
+Opaque FLAT8                       CAPTURED; source index0 stays opaque.
+BMF_TRANS cutout                   CAPTURED; discard source index0 only.
+RSD8 supported bitmap              Decode then owned indexed capture.
+BMF_TLUC8 / BMT_TLUC8               Whole-view SOFTWARE.
+Other unsupported bitmap formats   Whole-view SOFTWARE.
+FAUBJ_TL_POLY / translucent poly   Whole-view SOFTWARE.
+Forcefield / force bridge variants Whole-view SOFTWARE through excluded
+                                   representation or emitted primitive.
+Invisible enemy transparency       Whole-view SOFTWARE.
+Non-original / destination CLUT    Whole-view SOFTWARE.
+Gouraud / colored effect polygon   Whole-view SOFTWARE.
+
+Anchors: MacSrc/GpuWorld.c texture_index, clut_darkness, gpu_world_polygon,
+gpu_world_object and fragment shader. Libraries/3D/Source/polygon.c:334,377
+rejects points/lines. There is no alpha-blend approximation, translucent sorting
+rewrite, or global z-buffer. Common opaque/cutout draw order remains the engine's
+painter sequence. Bounded Phase3 ordering acceptance is in sections26..29.
+
+12. SPECIAL-VIEW / FALLBACK MATRIX
+
+Phase4 SOURCE INVENTORY ONLY unless an explicit TEST/OBSERVED label is given.
+
+View / effect                      Current path and acceptance boundary
+---------------------------------  ------------------------------------------
+Original mode                      Real SOFTWARE; GPU capture/submission disabled.
+Picking / online-help ID views     SOFTWARE; retain primary GPU commands.
+Hack/security camera canvases      SOFTWARE secondary; retain primary state;
+                                   monitor bitmap can be captured later.
+Camera takeover of main view       Existing primary camera is retargeted;
+                                   ordinary GPU eligibility still applies.
+                                   Actual takeover/return accepted, section30.
+Sensaround / rear-view enabled     Entire primary frame SOFTWARE.
+Infrared / alternate CLUT vision   SOFTWARE via palette/curr_clut_table guards.
+LSD / sight drugs                  Whole-view SOFTWARE.
+Cyberspace                         Whole-view SOFTWARE; entry/cyberdeath return
+                                   accepted, section32; portal exit unverified.
+Cutscene palette                   SOFTWARE; GPU composition suppressed.
+Palette cycling                    Palette update/replay; partial TEST logs.
+Fades                              Palette-driven; natural cutscene EOF and
+                                   controlled lit-world black/restore,33/34.
+Static / VHOLD / teleport / shake  Whole-view SOFTWARE via FR_SFX.
+Shield                             Whole-view SOFTWARE via FR_SFX.
+SHODAN overlays                    Whole-view SOFTWARE via FR_OVERLAY.
+Death/rebirth/fakewin               SOFTWARE while secret_render_fx is nonzero.
+Weapon / HUD / cursor              Original software overlays after GPU boundary.
+Touch controls                     Existing final SDL touch pass.
+Framed / fullscreen                Existing destination/view dimensions retained.
+DoubleSize detail                  Whole-view SOFTWARE.
+Menu background snapshots          Complete indexed SOFTWARE world while open;
+                                   refresh on mode change, accepted section30.
+Save/load image thumbnails         No dedicated image writer found in searched
+                                   GameSrc/MacSrc; not a coverage claim.
+Internal screenshots               No dedicated writer found in that search;
+                                   ADB capture is separate external evidence.
+
+Anchors: GpuWorld.c gpu_world_begin/compose; render.c:341-345 main->sensaround->
+hack camera order; view360.c:266-280; frutil.c:142 and olhscan.c:114 picking;
+gamerend.c:437-438 secret effects and :546-707 pixel-effect scope;
+frsetup.c:807-905 stars/overlays/software copy; Shock.c SDLDraw final composition.
+wrapper.c:1670,2199 reads menu backgrounds; :418 redraws the indexed backup;
+gr2ss.c:389-393 reads the software canvas. vmail.c:198 has another conditional
+background reader. No explicit nested GPU view/FBO stack is currently accepted.
+
+Additional SOURCE distinction: render.c:136 gives monitor-rendering canvases
+FR_HACKCAM_FLAG; render.c:171-197 renders them after the primary. In contrast,
+hack_camera_takeover at render.c:208-244 retargets the default primary camera
+and sets hack_takeover without adding FR_HACKCAM_FLAG. The ordinary GPU path
+therefore remains eligible for that primary view, using its actual camera
+transform, while gamerend.c:349-354 suppresses weapon art during takeover.
+This source distinction is confirmed by the actual primary takeover/return in
+section30. It does not certify every possible camera-monitor recursion case.
+
+13. KNOWN RENDERER FALLBACKS / FAILURE HANDLING
+
+Whole-view software is selected for the excluded views/classes above; unsupported
+bitmap format/translucency/dimensions, custom CLUT, unsupported primitive/count,
+non-convex topology, nonpositive clipped depth, singular camera, current command/
+texture working set over budget, allocation failure, initialization/shader/FBO
+failure, failed native submission, and failed GPU composition.
+
+Software traversal/rasterization is still performed during capture. A rejected
+GPU view therefore retains complete software geometry/objects, not a hybrid
+object patchwork. Software world is discarded only after successful submission.
+
+Safety fixes in this campaign:
+- Sequential sensaround formerly invalidated the already-cleared primary view.
+  Primary preflight now forces the entire frame to software while it is active;
+  secondary/picking calls separately preserve primary command ownership.
+- Convexity now checks all boundary half-planes, not only consecutive turns.
+- Any detected submission/upload GL error discards all derived resources and
+  selects Original until an explicit renderer retry. An allocated GL name or
+  advanced palette generation can no longer mask a failed image/VBO upload.
+- gpu_world_compose checks SDL_RenderCopy. On failure, restore_software_world
+  fills the saved world under the existing UI sentinel and selects Original.
+- A replaced EGL context now invalidates GPU metadata and transfers retirement
+  of its SDL world texture to the old SDL renderer owner. Shock.c recreates the
+  presenter before submitting more frames and starts in Original; see section17.
+
+Build5 simulated submit and compose failures were exercised; see section21.
+Build8 controlled replacement-context retirement/Original recovery and explicit
+GPU retry were exercised; this is stronger than same-context name deletion but
+is not a physical EGL_CONTEXT_LOST, resource-exhaustion or Phase4 certification.
+Injected GL_OUT_OF_MEMORY is a control-flow test, not actual driver exhaustion.
+Fallback logs are rate limited with cumulative counts. Aggregate counts include
+different reasons and cannot alone establish a route's fallback rate.
+
+14. ENEMY COVERAGE
+
+INHERITED: GPU-RENDER1B's normal servbot encounter, local colored-light response
+and qualitative readability were accepted by the user in Medical. No additional
+species or whole-game object-order result is inherited from that observation.
+
+OBSERVED during Phase2 route work, as reported by the primary testing agent:
+the player was killed by an invisible mutant during ordinary Maintenance-route
+gameplay. The mutant was not reported killed. That representation uses explicit
+whole-view software fallback, also observed in route logs. This encounter
+does not establish GPU rendering of invisible enemies or a Phase3 pass.
+
+During attempts to reach Flight from an owned Executive checkpoint with HP63,
+the primary agent reported two ordinary deaths involving Robot44 near(34,41).
+No rendering defect was identified in those deaths. The agent then loaded the
+original backed-up slot02 (HP255, normal difficulty2) and used the west/south
+route to avoid that encounter. These observations describe normal route work;
+they do not establish enemy animation/occlusion acceptance or a Phase3 pass.
+
+Other route image/video names are not used as proof of species, animation,
+occlusion, lighting or combat parity. The primary agent must add exact verified
+enemy observations and rendering/fallback context before Phase3 acceptance.
+No artificial enemy spawn or relocation is claimed by this checkpoint.
+
+15. DOOR OPEN / CLOSE RESULT
+
+INHERITED: bounded Medical supply-door OPEN and interaction passed in1B.
+The inherited CLOSE evidence gap is now RESOLVED for the actual Flight
+EXECUTIVE DOOR tested in Phase3, not retroactively for the Medical supply door.
+A continuous normal-USE recording shows closed -> OPEN -> open -> CLOSE ->
+closed, with room contents correctly revealed/hidden and no observed stale
+hole/frame or through-wall object leak. Section27 records exact files and
+intervals. This accepts motion/occlusion for that door, not all door classes,
+all picking cases or the bespoke Medical light-portal behavior.
+
+16. CACHE / LIFETIME DESIGN
+
+MacSrc/GpuTextureCache.c/.h owns tightly packed pixels, keyed by dimensions,
+content hash and byte equality. Resource addresses are not identities. Temporary
+monitor/model bitmaps, unlocked resources and RSD decode buffers cannot dangle
+inside retained commands. Stride padding is excluded from identity.
+
+Limits: 512 slots, 16 MiB CPU index pixels, maximum1024x1024 per bitmap.
+A linked LRU evicts historical unpinned entries, avoiding frame-counter wrap.
+Every current acquisition pins its stable slot. Prior pins are released only
+after primary retained commands are invalidated at the next supported begin.
+Paused/palette replay, picking/secondary views and GL reconstruction do not
+release those pins. An over-budget pinned working set rejects the whole view.
+
+CPU retirement only marks a slot. Native GL deletion is deferred until the
+next guarded submission, before replacement upload. CPU allocation failure may
+retire unpinned historical entries; existing commands remain valid. Resource
+reset forgets or deletes native names appropriately while retaining CPU data.
+On a replaced context, resources_dispose(lost=1) makes no GL calls and leaves
+the SDL world target attached to its old SDL renderer's ownership list. The
+presenter retires that complete owner before allocating a new presenter; owned
+CPU texture pixels survive for an explicit later GPU retry. See section17.
+
+The native command bounds remain4096 draws /32768 vertices, with safe rejection.
+GPU index storage is additional to the CPU16-MiB bound; world RGBA/depth-stencil,
+VBO, metadata, SDL/UI buffers, software backup and driver overhead are separate.
+The cache is not a total process-memory budget.
+
+Content is hashed on acquisition and compared after a matching hash; current
+pixel content implicitly versions animated resources. No unsafe pointer shortcut
+or guessed generation tag was introduced. Palette changes update a separate
+1024-byte palette, not immutable index textures. Remaining hashing/software/UI
+costs are recorded honestly rather than claiming a complete performance port.
+
+17. LIFECYCLE STATE
+
+INHERITED: background/resume observations and injected ES3-unavailable,
+shader/FBO rejection and same-context GL resource deletion/rebuild from1B.
+Current candidate: fresh-build launch, mode retry, simulated submit/compose
+failure recovery and build8 controlled replacement-context recovery observed;
+see section21. Phase4 adds actual Home/background/foreground recovery in
+section30. The earlier bounded presenter fix was necessary for safe Phase2 fallback.
+
+Genuine EGL_CONTEXT_LOST and real low-ES hardware remain UNVERIFIED.
+Bundled SDL Android can create a replacement context before emitting
+SDL_RENDER_DEVICE_RESET (.deps/SDL2/src/video/android/SDL_androidevents.c:73-84).
+Its GLES renderer retains the original context pointer/shader/FBO cache
+(.deps/SDL2/src/render/opengles2/SDL_render_gles2.c:148,289-303,2079). Its texture
+destructor ignores old-context activation failure and then issues GL deletion
+(:1862-1891); command submission fails if activation fails (:1172). Rebuilding
+only GPU-world objects or selecting Original left the shared SDL presenter
+stale. This was a concrete source ownership defect, not merely missing testing.
+
+Implemented SOURCE recovery: MacSrc/Shock.c SDLRequestPresenterReset,
+presenter_recover and SDLPresenterReady; GpuWorld.c gpu_world_presenter_lost.
+- Restore the available software world below existing gameplay UI sentinels,
+  invalidate retained GPU metadata, select Original and preserve CPU state.
+- Leave the old SDL texture linked to its owner. Verify both actual EGL and
+  SDL thread-local detachment before cleanup; SDL's null MakeCurrent branch
+  does not itself propagate EGL failure (.deps/SDL2/src/video/SDL_egl.c:1087).
+- Create a fresh, explicitly unshared empty cleanup context. SDL destructors
+  either activate their original context and delete its own objects, or their
+  unchecked GL calls affect this disposable empty namespace. No production
+  replacement objects exist yet. Do not assume GL calls without a context work.
+- Retire the entire SDL renderer. Guard context-handle equality when deleting
+  cleanup/temporary contexts, then recreate the SDL presenter on the same
+  window and restore the current CPU surface's logical dimensions.
+- If preparation/recreation fails, retain necessary ownership and defer further
+  submissions, retrying once per second. ES2 is an allowed Original presenter
+  fallback; GPU remains unavailable if the recreated presenter lacks ES3.
+- Success starts in Original and requires an explicit GPU-mode retry. Game,
+  save and CPU image/cache state are preserved. Touch drawing retains no SDL
+  textures and uses the global presenter. No new nested view architecture.
+
+SOURCE ordering: this app sets SDL_HINT_ANDROID_BLOCK_ON_PAUSE=1. SDL's blocking
+Android pump detaches, waits, queues foreground events, restores the context,
+then returns to application polling (SDL_androidevents.c:110-153;
+SDL_events.c:1075 onward). The new guard is outside event watchers and does not
+observe normal temporary pause detachment. A preserved context is not rebuilt.
+
+TEST/OBSERVED build8 controlled replacement:14:51:41.399-.417, PID29640,
+Medical save07 camera(30.5,22.625), gamma37. Original context
+0xb4000071332368b0 stayed alive while distinct replacement0xb400007133244020
+and an unshared cleanup context were allocated. The QA hook then invalidated
+the original immediately before SDL owner retirement, preventing intervening
+context-handle reuse. New presenter0xb400007133244770 logged ready1024x768 in
+Original. The primary agent inspected complete Original world plus Video menu
+in context-verified-original.png; success is based on that observation and logs,
+not its filename. Evidence: dist/gpu-render2-3-4/context-verified-build8.log.
+
+The gpu-render1b-fail-context.txt marker was removed. Explicit GPU retry at
+14:52:13.919 produced83 draws/167 triangles,20 uploads/150113 bytes, at the same
+Medical camera. The agent verified look-left/right and pause afterward.
+That retry is recorded in build8-gpu-timing.log, not the earlier reset-only log.
+This test uses a controlled context replacement, not genuine power-management
+EGL loss. Selector handling also redraws software, so it does not isolate paused
+retained-background restoration. Those wider lifecycle claims remain unverified.
+
+Safety basis: supplied SDL2 2.32.10 at pinned commit
+5d249570393f7a37e037abf22cd6012a4cc56a71; EGL1.5 sections3.7.1-3.7.4 define fresh
+context state/sharing, detachment/query and invalid-context error behavior:
+https://registry.khronos.org/EGL/specs/eglspec.1.5.pdf
+
+No repeated lock/unlock testing is claimed. Routine lifecycle work should use
+Home/background/foreground and controlled resource reset first, per the request.
+
+18. ORIGINAL-MODE PRESERVATION / ART SEMANTICS
+
+Original remains the actual indexed software renderer, permanently available.
+QA-only CMake definitions compile the GPU backend into the separate QA package;
+the stable non-QA backend remains unchanged. No simulation, collision, map
+interpretation, picking replacement, save-format change or canonical source-art
+mutation was introduced by the renderer changes.
+
+GPU capture preserves engine geometry, resource selection and painter order.
+Unsupported paths retain full software rasterization. Renderer selection changes
+preferences, not a save-file format; intentional gameplay/QA convenience saves
+must be recorded separately from renderer behavior. Existing audio work remains
+present in the build, so this report does not claim an audio-free source tree.
+
+Original gamma was37 in the timing-session mode-change logs. Current GPU gamma
+uses the same preference. Palette lookup receives canonical RGB before gamma;
+normal display index255 is reserved black. Other Enhanced lighting uses continuous
+scalar/RGB multiplication rather than reproducing each indexed shade-row remap.
+That accepted architectural distinction can change exact hues/shade transitions;
+large material identity/readability differences still need visual acceptance.
+It is not a new PBR/replacement-texture system or a claim of pixel-identical art.
+
+19. PERFORMANCE BEFORE / AFTER
+
+Matched TEST scope: fixed Medical save07, camera(30.5,22.625,2.10214), heading192,
+pitch0, framed857x414 at(89,92), gamma37, same authorized phone. The primary agent
+temporarily installed the original campaign APK backup, measured it, and restored
+build8 afterward. These are two installed APKs, not two names for candidate runs.
+  Baseline: before/installed.apk, original campaign backup.
+    SHA256 409bfd807e0eab3884e60d6e8cea35977d0971147d9650d9eed8930429480d3b
+    PID31094 / render thread31577; measurements14:55-14:56.
+  Candidate: build8, SHA256
+    8855a0e1e2b182b55de8337720587de207c45153b32d1d75dac4fc7323542774
+    PID29640 / render thread29997; measurements14:53-14:54.
+Candidate was restored/verified at15:02 per primary agent. Evidence files under
+dist/gpu-render2-3-4 are baseline-matched-original.log, baseline-matched-gpu.log,
+build8-original-timing.log and build8-gpu-timing.log. Logs retain earlier process
+history: filter the stated PID and exact timestamps, never the whole filename.
+
+Warm generic CPU world-call aggregates, same VIS1 timing instrumentation:
+Each row uses two later300-call windows (600 calls); the first window after
+load/mode transition is excluded. The combined mean is the arithmetic mean of
+the two equally sized window means. Max is the largest reported window maximum.
+
+Build / mode        Window-end timestamps         Means(ms)       Combined / max
+------------------  ---------------------------  --------------  --------------
+Baseline Original   14:55:29.837 /14:55:34.837     2.887 /2.869     2.878 /4.312
+Build8 Original     14:54:20.336 /14:54:25.337     2.984 /2.990     2.987 /3.678
+Baseline GPU        14:56:33.037 /14:56:38.036     6.296 /6.297     6.2965/7.052
+Build8 GPU          14:53:12.154 /14:53:17.155     6.352 /6.326     6.339 /7.942
+
+Observed candidate-minus-baseline mean differences are +0.109ms(+3.8%) in
+Original and +0.0425ms(+0.7%) in GPU. These are short sequential samples, not a
+thermal-controlled/repeated randomized experiment or evidence of a significant
+regression or improvement. They show no speedup claim. Original remains much
+cheaper in this CPU world-call metric because GPU also retains software raster.
+
+Population caveat: horror_visuals_measure counts fr_rend calls, including any
+picking/secondary software views. GPU2 TIMING counts successful GPU primary
+captures only. Do not compare their means as interchangeable per-primary costs.
+The fixed-camera aggregate comparison above uses the same generic metric in both
+APKs; it does not prove every sampled fr_rend call was a primary view.
+
+Build8-only GPU primary aggregates, each300 successful captures:
+End timestamp     Capture mean /p95 /p99(ms)     CPU-submit mean /p95 /p99(ms)
+----------------  --------------------------   ----------------------------
+14:53:11.387       6.275 /6.644 /6.655            0.049 /0.057 /0.060
+14:53:16.386       6.257 /6.643 /6.650            0.047 /0.055 /0.059
+14:53:21.387       6.276 /6.647 /7.005            0.049 /0.057 /0.063
+Combined900-capture mean:6.269ms capture/software and0.048ms CPU submission.
+Percentiles above belong to separate300-sample windows and cannot be combined
+into a900-sample percentile without the raw samples. The earlier14:53:06.386
+window is excluded because the persistent counter can span reset/retry activity.
+The baseline does not expose matching GPU2 percentile aggregates.
+
+GPU1B LIVE is a single-frame point sample, even when printed at frame300/600/900;
+it is not a mean of the preceding300 frames. Baseline frames600/900 show capture
+6.123/5.714ms and CPU submit0.062/0.061ms. Candidate frames600/900/1200 show
+capture6.162/6.149/6.155ms and submit0.065/0.065/0.063ms. They confirm83 draws,
+167 triangles and zero image uploads at those samples, not a separate benchmark.
+Initialization samples (baseline frame1:11.935/1.880ms; candidate retry frame124:
+17.449/1.932ms capture/submit) include startup and must not be mixed into warm
+window comparisons. No average GPU duration can be inferred from those values.
+
+Adjacent warm presentation windows, each row two300-interval windows (600 total):
+Build / mode       End timestamps               Interval mean /max(ms)  >20ms
+-----------------  --------------------------  ---------------------  -----
+Baseline Original  14:55:32.650 /14:55:37.650    16.666 /19.326          0/600
+Build8 Original    14:54:20.067 /14:54:25.067    16.668 /27.683          1/600
+Baseline GPU       14:56:32.748 /14:56:37.748    16.6665/21.958          2/600
+Build8 GPU         14:53:13.914 /14:53:18.914    16.666 /25.436          3/600
+These windows are near, but not sample-aligned with, the world-call aggregates.
+Both APKs are near the16.67ms presentation cadence in this stationary test;
+these short-window outlier counts are not a broad frame-pacing acceptance test.
+
+Corresponding logged conversion_upload means are baseline Original8.839ms,
+candidate Original8.970ms, baseline GPU7.581ms and candidate GPU7.563ms.
+Corresponding SDL present-call means are0.140/0.138/0.099/0.102ms, respectively.
+conversion_upload includes SDLDraw start through conversion, including GPU
+composition, SDL/context/queue work and possible blocking. It is not isolated
+pixel-copy cost. Paused/menu periods can show roughly16ms under this label while
+world counters stop; those periods are excluded rather than called slow world
+rendering. No independent UI optimization gain is claimed.
+
+GPU execution time remains UNKNOWN: no timer-query result exists. These are CPU
+elapsed measurements and presentation intervals. Full software fallback raster
+and full-canvas UI conversion/upload remain. Frame-interval p95/p99, extended
+matched traversal and sustained thermal behavior remain unverified. Earlier
+13:08/13:09 candidate logs are historical diagnostics, not this matched baseline.
+Metric definitions: GameSrc/horror_visuals.c:164-210 and GpuWorld.c measure_view.
+
+20. MEMORY / CACHE OBSERVATIONS
+
+Current build8 matched Medical07 session (PID29640): at14:53:05.104/10.104/
+15.104/20.104, frames300/600/900/1200 have71 resident entries,431425 owned CPU
+index bytes (about421.3KiB), same peak,71 misses,0 evictions and0 rejections.
+Hits advance23262->48162->73062->97962. The cache includes earlier resident images
+from this process; it is not only the currently visible83 draws. This confirms
+reuse in a small working set, not runtime pressure or long-session saturation.
+
+At explicit post-reset retry14:52:13.919 the cache held70 entries/428062 bytes;
+GPU creation uploaded20 images/150113 bytes for the current view. Subsequent
+frame300/600/900/1200 point samples report0 image uploads while palette generation
+advances798->1398->1998->2598. The shader/FBO and index storage are reconstructible
+from CPU data. This evidence does not certify every animation/palette family.
+The matched baseline reports83 draws/167 triangles and zero warm point-sample
+uploads too, but lacks candidate LRU resident/peak counters; no baseline-versus-
+candidate cache-memory delta can be calculated from these logs.
+
+Single Android dumpsys meminfo snapshot, build8-memory.txt, PID29640; units are
+the tool's reported KiB. Uptime135464064ms / realtime269335460ms:
+  Total PSS159235KiB (155.5MiB); RSS281100KiB (274.5MiB); Swap PSS25KiB.
+  Native heap PSS27981KiB; heap allocated30320KiB; heap size43048KiB.
+  Graphics summary PSS98720KiB (96.4MiB), including EGL mtrack70504KiB,
+    GL mtrack18636KiB and Gfx dev9580KiB.
+These are process/driver accounting categories, not a direct measurement of
+GPU-world texture memory. There is no matched baseline meminfo or repeated
+long-session series here, so this snapshot cannot establish a memory delta,
+peak, leak absence, cache-pressure resilience or thermal behavior. The cache's
+16-MiB bound covers owned CPU index pixels only; section16 lists excluded costs.
+
+Production cache fixture separately TESTS10,000 changing images, LRU reuse,
+512-slot saturation,16-MiB pressure, pins, collisions, stride/ownership and
+allocation failure. All pass in cache-test.log. Synthetic pressure is separate
+from real gameplay traversal/memory observations. Early candidate measurements
+of23 entries/160202 bytes remain historical evidence and are not substituted for
+the current matched-session resident count or the process memory snapshot.
+
+21. EXACT HARDWARE ROUTES / TESTS RUN
+
+Hardware in available driver logs: connected Samsung phone; Qualcomm Adreno840,
+OpenGL ES3.2, GLSL ES3.20, EGL1.5 Android META-EGL. A single authorized device was
+used for the helper harness. Exact model/OS and final route record are to be
+filled from the primary agent's verified device evidence, not inferred here.
+
+TEST -- saved direct log evidence:
+- Production cache and geometry fixtures built/running on Android arm64; both
+  PASS, exit0, temporary executable cleanup0. See section3.
+- Build5 APK build and package/alignment verification PASS. See section2.
+- Build7 and build8 BUILD=PASS in their saved logs. Build8 APK_VERIFY and
+  native16-KiB ELF/ZIP alignment PASS against
+  that same8855a0e1... hash in apk-verification8.log, completed15:02.
+- Build9 BUILD=PASS in8s; local APK_VERIFY, native16-KiB ELF and ZIP alignment
+  PASS at16:25:57 against b530bf390250143c18575377329bc46507a316464802ed7b5688246b9f8da836.
+  Evidence: build9.log and apk-verification9.log; exact package/signer insection2.
+- Medical stationary candidate timing windows and GPU draw/cache counters.
+  See sections19-20 for exact camera/time/population limitations.
+
+OBSERVED -- primary device agent supplied these exact current-build outcomes:
+- Build5 simulated submit GL0x505 at13:56:32 selected whole-view software.
+- Explicit GPU retry at13:58:40 restored GPU rendering.
+- Simulated composition failure at13:58:41 restored the full software world;
+  the testing agent verified the resulting software image. Failure markers
+  were removed afterward.
+- Normal elevator travel Executive(level6) -> Maintenance(level3) at13:59:12.
+  This is a real level transition, not proof of moving map floor/ceiling heights.
+- The player was killed by an invisible mutant on the normal Maintenance route;
+  the invisible representation caused whole-view software fallback. See section14.
+- Build7 projection normalization addresses the exact build6 terrain fixture at
+  tile18,19. The14:28 cache/geometry helper rerun passed, including strict
+  over-cap and ambiguous-counterpart rejection. It is not a whole-route PASS.
+- Normal moving-floor saves05 and06 contain raw floor8 then6, respectively.
+  These are ordinary gameplay states, not edited heights. The attempted GPU
+  motion sequence was interrupted by player death and object440 non-convex
+  whole-view fallback. This earlier attempt did not establish accepted motion;
+  the later QA0 route below supplies separate completed moving-floor evidence.
+  Source/fixture/route evidence: qa-savgam05.dat, qa-savgam06.dat,
+  moving-floor-build7.log and floor-descent-east.log under the evidence directory.
+  Object440 rejection appears at14:30:28.675 and during14:33:07-08; those model
+  boundaries remain conservatively rejected rather than widening terrain caps.
+- Build8 controlled context replacement at14:51:41.399-.417 recreated the SDL
+  presenter in Original. Primary agent verified complete world and Video menu.
+  Marker removed; explicit GPU retry14:52:13.919 emitted83 draws/167 triangles,
+  20 uploads/150113 bytes. Look-left/right and pause worked afterward.
+  Reset evidence: context-verified-build8.log; retry: build8-gpu-timing.log.
+  This passes the controlled ownership/recreation exercise only, not genuine
+  EGL-loss, paused-background isolation, Phase2 gate or Phase4 acceptance.
+- Additional Medical route15:03-15:14 crossed tiles(17,20)->(17,29)->(25,30)->
+  (28,27), with GPU terrain on the route. The player died in combat before a
+  complete moving-floor sequence. This adds ordinary terrain traversal evidence,
+  but neither finishes the moving-height test nor changes the Phase2 gate.
+- QA pause investigation found an existing input interaction: Sprint ON holds
+  Shift, so touch Pause emits Shift+Esc rather than the plain menu hotkey.
+  The testing agent used Android physical-key event111 (Escape) and visually
+  checked that the menu was actually paused before further QA. A touch attempt
+  alone is not evidence of pause. No input code was changed in this campaign.
+  Input anchors: Libraries/INPUT/Source/sdl_events.c:531-570; the touch Pause
+  action shares Escape while Sprint controls the held modifier.
+
+Normal terrain-convenience run, OBSERVED / still in progress:
+The primary agent created a new game through the ordinary UI named GPUR2QA,
+using combat difficulty0 (the standard option: enemies are feeble and do not
+attack first), and mission/puzzle/cyberspace difficulties2. The primary agent
+verified those options; qa-terrain-combat0-selected.png is supporting evidence.
+This is a separate normal terrain QA run to reach geometry without repeated
+combat deaths. It is not enemy aggression/combat coverage and does not use
+healing commands, enemy spawning/relocation, resource cheats or save editing.
+Existing backed-up slots00/01/02/03/07 were reported untouched. The campaign-owned
+slot05 now contains a verified ordinary GPUR2QA before-floor checkpoint from
+15:48. The primary testing agent reached it through normal gameplay, retaining
+HP212 and collecting the normal access card and pipe. No heal, teleport, spawn
+or save-edit operation was used. This run remains separate from ordinary-enemy
+acceptance: combat0's standard behavior intentionally avoids repeated attacks.
+
+DATA/OBSERVED -- owned checkpoint qa0-floor-before05.dat was read without
+modification using the existing archive parser and player/map layouts:
+  SHA256 5fb923d236232cbb697867c3d7b0ee4bf7f795535bc84b76d3eb0ecc545b8cf9
+  Medical level1; HP212; save position x30.82421875, y27.64453125,
+  z_raw79, heading65, pitch0, bank0; game_time83011.
+  Current tile(30,27): type1, floor_raw8, ceiling24 in map-height steps.
+  Source position is Player.realspace_loc, the game's save/load position;
+  the inactive map player-object location is not substituted for it.
+The save metadata alone confirms the before-floor state. Later normal reloads
+at15:57:20 and15:58:14 are followed by successful GPU TILE entries at(30,27)
+with floor8 in qa0-floor-descent2.log; completed motion evidence follows below.
+qa0-lift-approach05.dat preserves the earlier approach checkpoint.
+Earlier extracted qa-savgam05.dat/06.dat moving-height evidence refers to the
+earlier normal run and must not be confused with this new-game checkpoint.
+
+Moving-floor route, TEST/OBSERVED -- PASS for the exercised live-height terrain:
+The primary agent viewed qa0-floor-cycle-mid/end.png and
+qa0-floor-descent2-mid/end.png and reported complete geometry without a stale
+floor. The logs independently establish successful GPU capture at every
+discrete descent height for Medical tile(30,28), type8, ceiling_raw4:
+
+Time          GPU frame   floor_raw   draws   camera Z
+------------  ----------  ----------  ------  --------
+15:58:16.654       18910           8      63   1.725006
+15:58:17.057       18934           7     142   1.726761
+15:58:17.388       18954           6     134   1.585129
+15:58:17.737       18975           5     132   1.464645
+15:58:18.071       18995           4     129   1.337082
+15:58:18.421       19016           3     124   1.210052
+15:58:18.754       19036           2     120   1.084183
+15:58:19.104       19057           1     116   0.960358
+15:58:19.455       19078           0     107   0.833466
+
+Evidence: qa0-floor-descent2.log, PID4729/thread4769. X remains approximately
+30.262 and Y advances28.027->28.689, heading64.0703, pitch239.55->239.59.
+GPU2 TILE is emitted only after a successful GPU submission; it is a changed
+state sample, not a complete per-frame trace. The full descent was not
+uninterrupted GPU presentation. Explicit conservative whole-view rejections:
+-15:58:17.319/frame18950: object442, tile31,29, four vertices, signed edge
+  distance-0.005704px; software fallback between floor7 and floor6 samples.
+-15:58:17.969/frame18989: terrain object=-1, tile31,28, six vertices, edge
+  distance0.010306px; software fallback between floor5 and floor4 samples.
+The bounds were not widened to admit these cases. Successful later GPU frames
+demonstrate recovery, while complete software fallback preserves unsupported
+frames. Rate-limited diagnostics do not provide the exact number or duration
+of all intervening software frames.
+
+Earlier ascent evidence in qa0-floor-cycle.log shows floor2 at15:55:43.803,
+then GPU floor3->4->5->6->7->8 at15:56:49.347->51.038. It also records object442
+rejection at15:56:50.134/frame18213; this too is not an uninterrupted GPU claim.
+Renderer switching before ascent is logged15:56:23.781 Original through
+15:56:24.564 GPU. At the bottom the primary agent viewed
+qa0-floor-bottom-original.png and qa0-floor-bottom-gpu.png: complete wall,
+pit and floor silhouettes agreed. Original's discrete CLUT bands versus GPU's
+smooth scalar shading are expected current lighting differences, not a claim
+of pixel equality. No independent moving-ceiling result follows from this route.
+
+The ordinary after-floor owned slot06 was verified by read-only save parsing:
+  qa0-floor-after06.dat
+  SHA256 419c0d954bc6c04dc08e29daa85605273d726e3071574e908e8c3bb680d0a1be
+  Medical level1; HP212; position x30.2578125, y28.6875, z_raw15,
+  heading65, pitch0, bank0; game_time85015.
+  Current tile(30,28): type8, floor_raw0; ceiling map height28 corresponds to
+  ceiling_raw4 in the GPU TILE log. The ceiling stayed fixed during this test.
+This is the same ordinary combat0 terrain run, with no heal/teleport/save edits;
+it adds no ordinary-enemy acceptance and does not pass the whole Phase2 gate.
+
+Normal Executive->Flight route, TEST/OBSERVED -- arrival verified; subsequent
+animated-terrain acceptance is recorded below:
+After the two earlier ordinary Executive combat deaths, the primary agent
+loaded the original HP255 slot02 at normal difficulty2 and traversed the west
+and south route to the elevator, avoiding Robot44. Normal elevator travel
+reached Flight(level5) on build8 at16:23:52.583, PID12867/thread12906.
+flight-executive-travel-build8.log records successful GPU frame8213 in the car:
+  Tile(41,41), type1, floor_raw10, ceiling_raw18;6 draws/14 triangles.
+  Camera41.38298035,41.64060974,3.20697021; heading175, pitch221.03906.
+  Cache191 entries/943062 bytes,0 evictions/rejections at that point.
+These are arrival-state samples, not animation, long-session pressure or timing
+acceptance. The cumulative1012 fallback counter spans prior route work and is
+not the number of failures in the Flight elevator or an isolated error rate.
+
+The campaign-owned slot04 was saved normally at arrival and read-only verified:
+  qa-flight-arrival04.dat
+  SHA256 868bb4dbf81afb7e70b2e44c3472d343433afdbf7c6b984d1253b20241d25cfb
+  Flight level5; HP255; saved position x41.3828125, y41.640625, z_raw87,
+  heading175, pitch0, bank0; game_time853645, detail3.
+This separate original difficulty2 route is not the Medical GPUR2QA combat0
+run. No artificial travel, healing, spawning or save editing is claimed.
+The primary agent installed build9 and resumed from the Flight arrival area
+to reach master237 terrain. Arrival alone was not used as animation acceptance.
+
+Flight animated terrain, TEST/OBSERVED -- PASS on build9:
+Normal movement used the north exit, west corridor and hidden door425 at
+(27.5,35), then the passage at(29,36). Robot419 was defeated with normal
+Magpulse fire; read-only flight-robot-combat04.dat shows inactive/cleared robot
+and playerHP161. Several attempts ended in ordinary combat deaths and were
+reloaded from campaign-owned checkpoints. No healing, teleport, spawn or save
+editing was used. The successful approach crouched behind the two crates via
+the sloped-ceiling strip at y34.49, opened425 normally and turned east.
+
+flight-animation-build9.log, PID18100/thread18170, records composed=1 terrain
+tile29,36, base_slot50/base_master237/group1, four128x128 frames:
+  group0 master237 slot50 index_hash59c1a736936c063c
+  group1 master238 slot51 index_hash6529def73cfe4ace
+  group2 master239 slot52 index_hash116af72af1fdb59e
+  group3 master240 slot53 index_hashf60ab9e8af413658
+At16:54:23.860->24.426 GPU frames7254,7263,7271,7280,7288 select2,3,0,1,2.
+The visible selected polygon occupies approximately x161..305,y334..714 in
+the1024x768 viewport. It is a substantial wall face, not an offscreen marker.
+Root directly viewed flight-anim-gpu-1.png through6.png: the wall fan visibly
+rotates while corridor edges and neighboring material remain coherent.
+These are terrain pixels, not a monitor sprite or palette-only change.
+
+The first attempted15-second warm wait ended in a gameplay death; it is NOT a
+successful long-session or warm-performance test. The normal animation save
+was reloaded and the player moved east around the corner for the comparison.
+flight-animation-final-build9.log records Original selection16:57:04.215,
+then GPU16:57:06.699 and successful composed frame sequence2,3,0,1,2,3 with
+the same four indexed hashes. Root reviewed flight-anim-original-1..3.png and
+flight-anim-gpu-retry.png: animation continues, wall/ceiling/floor silhouettes
+and original texture orientations agree. A thin bright ceiling-edge line is
+also present in Original; it is not a new GPU hole. Camera drift from ordinary
+movement/coasting means this is not a pixel-identical same-pose comparison.
+
+The normally saved safer checkpoint is flight-animation-safe04.dat:
+  SHA2560df710fd951e5104fb04e33eaa7c34844c6207f0bc79d6f0e99b2615eee0fbd3
+  Flight5, HP61, saved position28.61328125,36.30859375, heading65.
+It occupies campaign-owned slot04. Earlier arrival/combat copies are preserved.
+At16:54:58.890 the GPU had23draws/49triangles, zero uploads that sample,
+474cache entries/1,095,463bytes,0evictions/rejections. The cumulative120
+fallbacks cover this process's route/reloads, not an isolated animation error
+rate; logs rate-limit reason lines. Do not infer continuous GPU coverage from
+these samples. Existing exact fallback findings are retained elsewhere.
+
+Times above are retained device-log time labels from the testing session; this
+draft does not infer a different host timezone from them.
+
+Independent direct image review -- OBSERVED, limited to the visible images:
+The reviewing agent opened the following saved pixels, rather than inferring
+results from filenames. These are supporting terrain comparisons, not Phase3
+object acceptance, pixel equality or a complete continuous-motion review.
+All image/log names below are under dist/gpu-render2-3-4/.
+
+- Medical starting suite, build8 matched camera: build8-gpu-timing-end.png and
+  build8-original-timing-end.png show the same near left console wall, tiled
+  ceiling, opposing raised ledges, rear wall and narrow floor/door boundaries.
+  Their silhouettes and texture directions agree; no major missing surface or
+  open crack is visible in the world viewport. GPU retains the accepted cyan
+  illumination and smooth shading; Original retains stepped indexed shading.
+  The world framing is matched by the camera/timing evidence insection19.
+  This pair is used for the world region only: the captured lower HUD/menu
+  areas differ and are not evidence of complete UI snapshot parity.
+
+- Visually different Research materials, early Phase2: research-gpu.png and
+  research-original.png visibly show the GPU Prototype and Original selectors.
+  Both show a close red-braced wall, gray conduit panels, a gridded lit ceiling,
+  and gray floor plates. Wall/ceiling/floor intersections remain closed and
+  the original red/gray material motifs retain direction and identity. Small
+  texel/raster and tonal differences are visible; no gross inversion, missing
+  wall or texture-family substitution is apparent. These are earlier candidate
+  stills, not a fresh build9 replay or evidence that every Research view stayed
+  on GPU. The reviewer did not find a corresponding13:10 GPU success line in
+  the retained logs, so selector presence alone is not counted as native-submit
+  proof for that exact screenshot.
+
+- Executive room/doorway, early Phase2: executive-gpu.png and
+  executive-original.png show the same GAMMA GROVE wall, turquoise chair,
+  patterned red carpet, patterned floor tiles and doorway into a dark corridor.
+  The doorway outline, adjoining wall/ceiling and floor borders agree. GPU
+  shows more continuous detail down the corridor; Original's CLUT turns some
+  distant texels near-black. That difference is shading, not missing geometry.
+  GPU success is independently logged13:13:40.089, frame1, level6 at
+  (4.24979,40.6833),67 draws/122 triangles in build6-device.log's retained
+  earlier-process history, adjacent to the13:13:41 GPU capture.
+
+- Executive close walls and perspective: executive-ramp-route.png actually
+  shows a narrow orange/blue paneled corridor with a low-looking tiled ceiling
+  and patterned floor receding to a closed end wall. executive-ramp-2.png shows
+  a very close wall at an oblique angle. Neither image alone establishes a ramp
+  animation. Both have solid visible boundaries and coherent nearest-textured
+  perspective; no large near-wall hole is visible. Associated earlier GPU
+  samples13:16:30.103 and13:18:08.287 record cameras(5.2981,41.2249) and
+  (7.50172,40.2536),16/18 draws. The camera-height difference is route evidence,
+  not a substitute for the separately accepted moving-floor sequence.
+
+- Executive elevator Original/GPU comparison: executive-elevator-original.png
+  and executive-elevator-gpu.png show the same orange ceiling/light discs,
+  patterned pale walls, yellow door, red control screen and floor grid. The
+  camera/UI states differ slightly, so they are not pixel-aligned. The visible
+  room surfaces meet without a gross hole/inversion and retain their materials.
+  The renderer sequence is logged13:48:30.917 Original ->13:48:32.116 GPU,
+  followed by successful14-draw/35-triangle submission at13:48:32.127 in
+  build6-device.log. A still of a door does not pass OPEN/CLOSE animation.
+
+- Current build8 diagonal/slope/corridor traversal toward Flight:
+  flight-exec-diagonal-south.png shows an angled gold corridor boundary, carpet
+  meeting the walls, and successive ceiling surfaces without a gross gap.
+  flight-exec-finalcorridor.png shows the near right wall occluding the view,
+  a long left paneled wall, receding floor/ceiling and two door boundaries;
+  the uncovered surfaces are complete. flight-executive-travel-build8.log
+  independently records successful GPU samples at tile(30,44), type2
+  TILE_SOLID_NW,16:15:56.820; (32,46), type6 TILE_SLOPEUP_N,16:16:35.243;
+  (33,46), type16 TILE_SLOPECV_SE,16:17:10.853; and (33,47), type9
+  TILE_SLOPEUP_W,16:17:13.570, followed by open tiles34..36,47.
+  The61/29/53-draw slope samples establish that the route crosses supported
+  runtime slope configurations, without assuming the screenshot filename does.
+  This route also logs conservative non-convex fallback16:14:58.634 and the
+  cumulative count later rises1009->1012; it is not uninterrupted GPU coverage.
+
+- Medical slope/ledge and pitched close view, build8: the reviewer also opened
+  qa0-floor-descent2-mid.png and qa0-floor-descent2-end.png. The mid view shows
+  the inclined blue tiled lip above the pit, continuous close vertical faces
+  and adjacent upper floor; the end view shows the lowered position against
+  the close wall with adjoining gray floor and blue lower surface intact.
+  qa0-floor-bottom-original.png versus qa0-floor-bottom-gpu.png preserves the
+  wall edge, floor boundaries and visible tile orientation at that position.
+  Original has discrete dark/light bands; GPU has smooth scalar shading.
+  Section21's exact height/camera log and two transient software fallbacks
+  apply. These images support the completed route result, not an all-GPU claim.
+
+Limits of this image review: no major terrain hole, inverted face or obvious
+texture-orientation reversal was found in the inspected world regions. Sparse
+stills cannot establish absence of texture swimming, one-frame slivers or all
+near-plane seam errors. The strict geometry fixture tests and conservative
+fallback remain the evidence for rejected tiny/problematic boundaries. No
+individual texture-lock/flip combination is declared visually exhausted.
+executive-long-corridor.png is a close wall image, and flight-exec-lowceil.png
+is a close door/object image; neither is used to prove its filename's geometry.
+The short executive-route.mp4 was not decoded or reviewed in this audit.
+
+The same images expose the known menu-background distinction: some Original
+Video-menu captures have an opaque black surround, while GPU captures show
+world pixels between buttons. This belongs to the documented retained-image/
+index255 composition audit in Phase4. It is not a world-geometry hole and is
+not silently counted as UI/background parity or fixed by this Phase2 review.
+
+Before-device backup evidence area contains prefs/touch settings, CurrentGame
+and existing save copies. QA convenience saves were made during normal route
+work; exact slots/names/final preservation verification require primary closeout.
+No source-controlled APK, screenshots, logs, saves or proprietary data are added.
+
+22. DEVICE KEEP-AWAKE HANDLING / RESTORATION
+
+Recorded original global stay_on_while_plugged_in value:15.
+Evidence: dist/gpu-render2-3-4/stay-awake-before.txt.
+Initial power snapshot:Awake, USB plug type2, powered=true, stayOn=true,
+stay-on setting15. Evidence: power-before.txt.
+
+No ADB/system keep-awake setting was changed. At the Phase2 checkpoint and
+the user's continuation prompt, value15 was verified again; phone Awake,
+powered=true, USB plug type2, stayOn=true. No restoration is needed so far.
+Evidence: phase2-preservation-check.json. Original save slots00/01/02/03/07
+were also byte-for-byte unchanged against the initial backups. Only campaign
+slots04/05/06 were written through normal saving or restored from owned QA
+backups. Final19:45:33 verification again finds all five protected hashes
+identical, setting15, Awake, powered=true, USB plug type2 and stayOn=true.
+Evidence: final-preservation-check.json. No setting restoration was necessary.
+Temporary fade/diagnostic markers were removed; no GPU/fault/reset marker remains.
+No PIN, biometric or lockscreen-security alteration is authorized or claimed.
+No repeated intentional screen-off/lock behavior is part of ordinary QA.
+
+23. REMAINING BLOCKERS / UNVERIFIED ITEMS
+
+Phase2 acceptance blockers: NONE remaining in the bounded gate. Medical
+moving-floor and Flight indexed-content animation evidence now pass. This is
+not all-frame GPU, separate moving-ceiling, or enemy-behavior certification.
+
+Phase3 and Phase4 acceptance blockers: NONE remaining in their bounded gates.
+Still UNVERIFIED or deliberately limited:
+- Every species, model pose, material/viewpoint, moving ceiling and rare effect.
+- Shield/endgame SHODAN/invisible representations on device; conservative source
+  exclusions remain. Cyber return is actual cyberdeath, not an exit-portal run.
+- Genuine EGL loss and real low-ES hardware; controlled presenter replacement
+  and normal pause/resume are accepted with their narrower meaning.
+- All UI index255 writers outside the exercised menu/transition paths.
+- Pixel-identical indexed shade-row remapping: Enhanced uses continuous lighting.
+- Device16-MiB cache-byte pressure and long thermal/memory endurance; entry-count
+  eviction and helper pressure are covered, not total-process memory certification.
+- CPU optimization: full software raster, repeated content hashing and indexed
+  UI conversion remain. No speedup or GPU-duration measurement is claimed.
+- Natural original fades retain a small residual endpoint; exact lit-world zero
+  is separately probed without changing production fade semantics.
+
+Local safety defects were corrected. No known fundamental terrain projection,
+object ordering, cache lifetime or transition architecture failure remains in
+the exercised scope. All-frame GPU coverage and GPU-native special views were
+not required and are not claimed.
+
+24. GPU-RENDER5 RECOMMENDATION / ACCEPTANCE ANSWERS
+
+Current answer: Is GLES3 dependable enough for normal-game Enhanced use across
+terrain, ordinary objects/enemies and common transitions with safe fallback?
+YES within the documented normal-game route coverage and explicit whole-view
+software strategy. Terrain, ordinary-object and common-transition gates PASS.
+This is sufficient to continue Enhanced development, not a whole-game or
+every-device release certification. See section23 for the remaining limits.
+
+Current answer: Is it mature enough to begin GPU-RENDER5 profile-driven horror
+lighting/fog/art direction?
+YES, as a separate future phase with the same safe fallback boundaries and
+profile-driven scope. GPU-RENDER5 has not been started. No broad fog, room-light authoring,
+SHODAN styling, normal maps, PBR, replacement textures, MSAA or other remake
+features are part of this campaign.
+
+25. COMPLETED BOUNDED ACCEPTANCE CHECKLIST
+
+[x] Original/GPU comparisons and runtime switching on the recorded routes.
+[x] Normal terrain, Medical moving floor and distinct Flight terrain animation.
+[x] Multiple ordinary enemies, pickups/controls and common flat/textured models.
+[x] Full Flight door OPEN/CLOSE motion and doorway/corner object ordering.
+[x] Actual camera, Sensaround, infrared and software cyberspace/realspace return.
+[x] Natural static/death/movie/EOF fade and selected-GPU re-entry.
+[x] Controlled lit-world original fade plus exact palette-black/restore.
+[x] Complete indexed menus, UI/touch scope and Home/background/foreground.
+[x] Final APK verification, protected saves, keep-awake15 and no push.
+
+The checked rows refer only to the evidence and boundaries recorded here;
+separate moving ceilings, rare effects and actual EGL loss remain unverified.
+
+26. PHASE3 DEVICE EVIDENCE: FLIGHT ASSASSIN / CACHE PRESSURE
+
+Gate status remains Phase3 IN PROGRESS / NOT PASSED; Phase4 NOT ENTERED.
+This bounded review adds evidence, not completion of the ordinary-object gate.
+
+Evidence files (all ignored, under dist/gpu-render2-3-4/):
+- assassin-sheet-0.jpg: sampled motion from 0.000 through 1.875 seconds.
+- assassin-sheet-1.jpg: sampled motion from 2.000 through 3.875 seconds.
+- phase3-assassin-motion.log: renderer/fallback and cache records below.
+
+Normal combat difficulty2 was retained. The player died after approximately
+four seconds; no assassin hit or kill is claimed. The green projectile visible
+at 3.000..3.625 seconds establishes a firing effect only.
+
+The inspected sheets show distinct assassin arm/rifle/leg silhouettes after
+unpausing, including 0.625..1.125 and 2.125..2.625 seconds, plus firing flashes
+around 1.000 and 2.875 seconds. Background remains visible around the cutout
+limbs/rifle; no opaque sprite rectangle, obvious missing torso/limbs or
+persistent sprite disappearance is apparent. The left crate stays solid and
+the adjoining wall/floor boundaries remain coherent. No clear ordering
+inversion was found, but these samples do not establish a complete pass behind
+the crate or certify every animation frame. The 0.125-second sampling also
+cannot rule out defects between samples.
+
+This is mixed GPU/software evidence, not uninterrupted GPU animation:
+- 17:33:56.871/.887: crate object200, six-vertex projected boundaries rejected
+  for non-convex topology; explicit whole-view SOFTWARE at .872
+  (log lines2706..2720).
+- 17:33:57.320: GPU1B LIVE frame10200, 86 draws/174 triangles, uploads0,
+  confirms successful GPU recovery (line2727).
+- 17:33:57.565: explicit excluded-view/effect software fallback (line2729).
+- 17:33:59.466: explicit software framebuffer transition (line2743), followed
+  by cutscene audio opening at 17:34:00.005.
+Sparse success/fallback logs do not identify the renderer for every individual
+sheet frame. No new visible omission/order blocker was found in this review;
+the crate topology fallback and incomplete occlusion coverage remain explicit.
+
+Actual device LRU pressure is now observed, beyond the standalone helper test:
+phase3-assassin-motion.log line2728, 17:33:57.320, records 512 resident entries,
+568 misses, 56 evictions, zero rejections, 1,361,015 resident bytes and
+1,363,348 peak bytes. The adjacent successful GPU frame establishes continued
+submission after cumulative eviction; it does not independently prove every
+eviction/replay path or the full 16MiB byte-budget boundary.
+
+This report append involved no source changes, retesting or device operations.
+
+27. PHASE3 DEVICE EVIDENCE: COMPLETE FLIGHT DOOR OPEN/CLOSE
+
+Bounded result: PASS for the tested Flight EXECUTIVE DOOR's complete motion
+and visible object occlusion. Phase3 remains IN PROGRESS / NOT PASSED;
+Phase4 remains NOT ENTERED.
+
+Evidence, all ignored under dist/gpu-render2-3-4/:
+phase3-door-cycle.mp4, door-sheet-0.jpg through door-sheet-3.jpg (decoded at
+12fps), and phase3-door-cycle.log. The primary reviewer examined the continuous
+recording; independent review of sheets1..3 confirmed the visible sequence.
+Normal USE toggles were used. The final recorded player camera is
+(33.1851,40.6904), heading192.094 on Flight.
+
+The recording contains an earlier CLOSE at 2.417..2.917 seconds, followed by
+the complete measured cycle:
+- Closed: 3.000..3.667 seconds.
+- Opening: 3.750..4.333 seconds.
+- Open: 4.417..5.500 seconds.
+- Closing: 5.583..6.083 seconds.
+- Closed again: 6.167 seconds onward.
+
+The moving curved door boundary progressively reveals and conceals the
+furniture/table and corpse beyond the aperture. Wall/frame alignment remains
+coherent; no stale opening, stale door frame or through-wall object leakage
+was observed. The final closed image stays complete through the later pause.
+These are observed motion/ordering results, not conclusions from filenames.
+
+phase3-door-cycle.log line3172 records GPU1B LIVE at17:45:07.321, frame12900,
+119 draws/190 triangles, uploads0 and cumulative fallbacks434. Earlier route
+topology fallback at17:40:34 had count433, followed by one further fallback
+and recovery before this cycle. The count is already434 at17:43:59.272 and
+remains434 in the cycle's success sample; no fallback report occurs during
+the recorded cycle. This supports successful GPU door motion in this view,
+without claiming every animation pose has an individual GPU log entry.
+
+This Flight doorway is outside the authored Medical lighting region. The
+result does not certify bespoke Medical light-portal gating or leakage.
+The inherited general CLOSE gap is resolved for this tested door; remaining
+Phase3 model, species, transparency and broader occlusion work is unchanged.
+
+28. PHASE3 DEVICE EVIDENCE: WARRIOR CYBORG AND PICKING
+
+OBSERVED, build9: phase3-warrior-motion.mp4 and warrior-sheet-0..2.jpg (8fps)
+show the normally encountered Flight warrior cyborg303, class14/sub2/type1.
+The original campaign arrival save was restored only to campaign-owned slot04;
+combat difficulty remains2. The player opens the Executive Door, enters the
+adjoining furnished room and strafes. The cyborg is partly hidden by the wall
+at0.625..1.625s, disappears behind its edge, then emerges at2.125s and approaches
+with changing leg/arm poses through3.250s before leaving the left screen edge.
+Its solid body and cutout limbs remain coherent beside the table/chairs. No
+obvious wall leakage, detached sprite rectangle or incorrect foreground order
+was observed. No kill/hit claim is made. This supplements the new assassin
+recording and inherited bounded Medical servbot/color-light test.
+phase3-warrior-motion.log has GPU LIVE frame13500 at17:49:07.555,
+108 draws/162 triangles, uploads0, cumulative fallbacks435 (one more than the
+door sample); no claim that every sampled video frame is individually logged.
+The room also provides observed ordinary flat furniture/table geometry and
+textured tabletop, with wall/corpse/furniture order coherent during movement.
+
+OBSERVED, build9: normal cursor tap at the visible Medical supply-door wall
+control operates that door; phase3-control-picked.png captures the hand cursor
+over the control and the moving door. After reopening it and walking in, a tap
+on the displayed green/orange floor card identifies STANDARD ACCESS CARD and
+puts it on the original cursor (phase3-pickup-targets.png / selected.png).
+Dropping it into inventory yields New accesses gained: STD and removes that
+card from the floor (phase3-pickup-stored.png). Other floor items remain drawn.
+This verifies displayed GPU placement against the original software picking
+and normal inventory path. It is ordinary gameplay, not an edited inventory;
+no original user save was overwritten. The full filenames use prefix
+phase3-pickup- under the ignored evidence directory.
+phase3-picking.log records the Medical authored lights, GPU LIVE frame13800 at
+17:51:57.921,19 draws/41 triangles, uploads0 and unchanged fallbacks435.
+
+Phase3 remains IN PROGRESS / NOT PASSED pending the common-model topology
+implementation and focused device confirmation. Phase4 remains NOT ENTERED.
+
+29. PHASE3 MODEL IMPLEMENTATION / FINAL GATE EVIDENCE
+
+SOURCE: Model-only exact boundary validation and bounded ear clipping support
+simple concave3..32-vertex polygons. Existing valid fans preserve their original
+diagonals. Returned indices retain original vertices, UVs, lighting and painter
+order. Terrain keeps its strict convex guard. Crossing/touching/duplicate and
+zero-area models reject before command allocation, preserving whole-view
+software fallback. Gouraud, TLUC/translucent, invisible/special representations
+and alternate CLUT exclusions remain. No game data or gameplay was changed.
+
+TEST: Focused geometry helper PASS (geometry-test.log), covering actual object440,
+alternate diagonal, concave8/32 lists, winding/start changes, area/edge coverage,
+atomic rejection and int32 extremes. GpuWorld syntax PASS; scoped diff PASS.
+Only geometry tests were rerun because this source changed; cache tests remain
+inherited. __int128 is supported by the configured arm64 Android Clang build;
+no generic compiler portability claim is made.
+
+TEST: Build10 PASS in8s. apk-verification10.log confirms QA package
+io.github.raposomiguel50.systemshock.qa, version1.0.0-qa/10000,
+signer6dc6baad4199aaa7637cbbe2af679156eb48731b0eacdeabc0ffaa78adcd9924,
+and16-KiB ELF/ZIP alignment. Installed successfully on the same phone.
+APK: AndroidProject/app/build/outputs/apk/qa/app-qa.apk
+SHA256451f848fb40aa1411a0661ba90efc6231dd09af7c27f66f90f584f9da92814e7
+
+OBSERVED: The normal campaign-owned slot04 model-room checkpoint was saved at
+Medical(30.2617,29.7109),heading255,crouched,combat0. This is geometry evidence,
+not ordinary combat acceptance. Original's gray bent terminal silhouette,
+striped base and other textured console faces remain complete in GPU. The
+parent directly reviewed model-sheet0..2.jpg, from phase3-model-motion.mp4,
+with a short turn/strafe at0.500..4.875s. Models stay solid as their faces move
+across the view; wall edges occlude correctly, with no visible hole, UV jump or
+object omission. This covers the previously rejected common object440 model.
+phase3-model-original10.png and phase3-model-return10.png also confirm stable
+GPU->Original->GPU switching with the same static model shape and complete UI.
+
+TEST/OBSERVED: phase3-model-build10.log and phase3-model-motion.log record:
+18:08:41.577 frame1,44 draws/77 triangles,object440 captured,fallbacks0;
+18:08:46.587 frame300,44/77,uploads0,fallbacks0;
+18:09:29.690 frame600,24/45,uploads0,fallbacks0.
+The movement reaches tile30,30 with85 draws. Short timing windows give capture
+plus software means5.180/5.389ms,p95 up to6.624,p99 up to7.006; CPU submit
+means0.042/0.047ms,p95 up to0.099,p99 up to0.155. No obvious regression is
+apparent; these are a targeted smoke sample, not a new matched benchmark or GPU
+timer measurement. Existing baseline measurements are reused.
+
+Phase3 PASS uses this model result together with sections26..28 and inherited
+servbot/color-light evidence. Historical earlier pending Phase3 statements are
+superseded. Acceptance remains bounded: not every enemy species, model pose,
+transparency type or viewpoint is certified; explicit safe software fallback
+is intentional. Phase4 is still NOT ENTERED until the focused Phase3 commit.
+Phase5 is not implemented or recommended before Phase4 passes.
+
+30. PHASE4 CAMERA, MENU, LIFECYCLE AND INFRARED EVIDENCE
+
+OBSERVED, build10: the normally operated Medical security camera produces a
+live remote primary view, with moving cyborg/animated scene pixels and the
+weapon suppressed. A normal jump and screen click reached the elevated
+control; failed earlier distant clicks are not acceptance evidence.
+phase4-camera-jump.png, phase4-camera-valid.mp4 and camera-valid-sheet.jpg
+were directly reviewed. The video shows remote motion at0.5..5.0s and normal
+movement returning to the complete player view at5.5s, including restored
+weapon/UI. phase4-camera-valid-return.png confirms that return.
+phase4-camera-valid.log records camera41.80859,49.52734,2.640625 at18:26:55.373;
+GPU frame1500 at18:26:55.437 and frame1800 at18:27:32.722 both have100 draws,
+186 triangles, uploads0, fallbacks2. At18:27:33.837 frame1867 returns to
+31.55649,30.37173,0.81625. The two earlier clipped-model fallbacks recovered
+before this recording. The primary takeover is GPU-rendered with its actual
+camera; secondary monitor rendering remains software captured into texture.
+No nested GPU framebuffer ownership was needed.
+
+SOURCE/FIX: The wrapper captured the indexed CPU canvas after GPU composition
+had replaced world pixels with index255 placeholders. That snapshot could
+produce an opaque black surround when switching to Original. GpuWorld now
+supplies a complete software world while wrapper_panel_on is set, after the
+secondary/picking ownership guard. Fullscreen visual-mode changes refresh the
+stored menu bitmap before redrawing the panel. The intended menu background
+is a complete indexed world image. Authored GPU lighting resumes with gameplay.
+
+TEST: Both changed C files pass their actual QA compile-flag syntax checks
+(phase4-menu-syntax.log); scoped diff check PASS. Build11 PASS in11s;
+apk-verification11.log confirms QA package/version1.0.0-qa/10000, signer
+6dc6baad4199aaa7637cbbe2af679156eb48731b0eacdeabc0ffaa78adcd9924 and16-KiB
+ELF/ZIP alignment. Installed build11 SHA256:
+507c52d220b4a798add346ac9b760a2d47f8204daa427bf35329301316e559f5
+APK: AndroidProject/app/build/outputs/apk/qa/app-qa.apk
+
+OBSERVED, build11: all four visual modes were cycled in both framed and full
+screen menus. phase4-menu-gpu11.png, phase4-menu-original-framed11.png,
+phase4-menu-original-full11.png and phase4-menu-gpu-full11.png show complete
+world backgrounds and UI, with no stale black surround/index255 holes.
+phase4-menu-lifecycle11.log records the explicit menu software reason at
+18:28:45.313; GPU resumes at18:29:27.130 frame109 (83 draws/167 triangles),
+18:29:30.305 frame300 (91/182 fullscreen) and18:30:06.499 frame420 (91/182).
+
+OBSERVED/TEST: Home/background/foreground preserves the selected renderer and
+complete world/HUD/touch controls (phase4-home-return11.png). The same log
+records onPause18:30:08.582/nativePause18:30:09.426, onResume18:30:10.829 and
+nativeResume18:30:10.914. GPU frame900 at18:30:14.337 has91 draws/182 triangles,
+uploads0, fallbacks4 unchanged. This is pause/resume, not actual EGL_CONTEXT_LOST;
+the previously accepted controlled context replacement remains inherited.
+
+OBSERVED, build11: normal Executive traversal and pickup of object293 acquire
+IR night sight v1. Activating its actual hardware icon produces Night sight
+active / Energy usage50TPM and the monochrome alternate-CLUT world, while the
+HUD remains colored (phase4-infrared-icon.png). The parent reviewed
+phase4-infrared-motion.mp4 and ir-sheet.jpg: a turn at0.5..1.5s preserves the
+coherent monochrome view; switching IR off at2.0s returns complete normal color
+and0TPM through7s. phase4-infrared-return.png confirms the return.
+The earlier files called infrared-on/active only show the pickup: a keyboard
+attempt did not activate IR and is not counted as successful activation.
+phase4-infrared.log records the intentional whole-view excluded-effect fallback
+at18:38:39.426 and18:39:25.950, then GPU frame3300 at18:39:27.920 and3600 at
+18:39:32.920, both33 draws/65 triangles, uploads0, fallbacks192 unchanged after
+IR is disabled. Per-frame IR fallback increments are expected. No new IR shader
+or color approximation was added.
+The normal pickup/off checkpoint is backed up as phase4-infrared04.dat and
+saved only into campaign slot04. Original user save slots remain untouched.
+
+Phase4 remains IN PROGRESS / NOT PASSED: actual Sensaround, cyberspace roundtrip
+and available fade/cutscene/effect transition checks remain. No Phase4 commit
+has been made and no Phase5 implementation has begun.
+
+31. PHASE4 SENSAROUND REAR VIEW
+
+OBSERVED, build11: ordinary traversal from the existing upper-corridor QA save
+qa0-floor-before05.dat reaches the Medical STD door and hardware179. The card
+opens that door normally; the hardware is picked up normally, with SENSAROUND
+MULTI-VIEW UNIT v1 displayed (phase4-sens-acquired.png). No hardware, object,
+position or save bytes were artificially edited. This checkpoint uses combat0
+and cyber difficulty2; enemy presence here is not aggression acceptance.
+Campaign-only slot04 is backed up as phase4-sens04.dat after the pickup.
+
+OBSERVED: phase4-sens-valid.mp4 and directly reviewed sens-valid-sheet.jpg show
+actual activation via the original hardware icon in CURSOR mode, then LOOK
+mode movement. At0.5..3.5s the bottom rear inset is visible and changes with the
+turn while the primary corridor, original HUD and controls stay complete.
+Deactivation at4.0s removes the inset and returns normal primary rendering;
+this remains coherent through6.5s. No nested framebuffer implementation or
+approximate rear image was added.
+TEST: phase4-sens-valid.log records explicit sensaround requires whole-frame
+software at19:05:08.415 (count294) and19:05:08.513 (count300). After deactivation,
+normal GPU tile17,30 frame9555 appears at19:06:13.755; GPU LIVE frame9600 at
+19:06:14.504 has53 draws/108 triangles, uploads0, fallbacks490. Intentional
+per-frame software increments during Sensaround are expected.
+
+SOURCE/OBSERVED limitation: Opening the existing options wrapper can deactivate
+Sensaround. wrapper_start changes inventory_page before render_run; the original
+view360 code clears its active inventory context and turns hardware off when
+no contexts remain. Those operations already exist in the starting commit;
+the new GPU menu guard does not change this gameplay state. Thus the first
+phase4-sens-motion.mp4 recording, which began after a pause, does not prove
+rear-view movement. The second phase4-sens-live.mp4 attempt clicked the icon
+while in LOOK mode and also does not qualify. Only the valid recording above
+is accepted for moving rear-view evidence. The separate active screenshot
+shows the inset but alone is not motion evidence.
+
+32. PHASE4 CYBERSPACE ENTRY / NORMAL CYBERDEATH RETURN
+
+OBSERVED, build11: normal Medical terminal535 enters cyberspace14 while GPU
+remains selected. phase4-cyber-entry.mp4 / cyber-entry-sheet.jpg show the
+complete realspace terminal changing to the original wireframe cyber world
+with colored objects and cyber HUD by0.5s. The original weapon and normal touch
+overlay are suppressed. Software exclusion is explicit: phase4-cyber-entry.log
+records level14 flags0f000980 at19:09:41.166, camera8.51436,48.1257.
+The preserved normal pre-entry checkpoint is phase4-cyber-before04.dat.
+
+Normal cyber controls were exercised with Android named numeric-keypad events.
+Plain printable key injection did not produce the SDL text input expected by
+this port; keypad events did turn the view. Normal touch movement is disabled
+in cyberspace by the pre-existing bridge. No control rewrite was added.
+The attempted convenience save during cyberspace did not replace slot06;
+phase4-cyber06.dat is merely the unchanged earlier moving-floor save and is
+NOT a cyberspace checkpoint. Do not use it as entry/exit evidence.
+
+OBSERVED: A normal timer-driven cyberspace death supplies actual return evidence,
+not loading a save or artificial ejection. The checkpoint has combat0/cyber2.
+phase4-cyber-expiry.mp4 starts19:19:09.36. The parent directly reviewed the
+entry and expiry contact sheets. At88..90s the timer reaches0; at91..93.5s the
+SHODAN Detection Imminent warning is visible; at94s an actual full-view static
+transition appears. By94.5s the complete Medical terminal/world, weapon, HUD,
+normal touch controls and fatigue warning return and remain coherent through
+101.5s. Later normal turning also works. No stale wireframe, opaque hole or
+palette contamination was observed. The2fps samples do NOT resolve a distinct
+SHODAN avatar/attack animation, so that representation is not claimed as viewed.
+SOURCE: ordinary timer expiry spawns the avatar; cyber death uses the standard
+level return and input restoration, halves real health and adds fatigue.
+The resulting health bar is consistent with212->106; no original save is changed.
+This is cyberdeath recovery, NOT exit-portal acceptance or endgame SHODAN-overlay
+certification. The attempted short portal route was abandoned after flight
+control navigation proved less efficient than the ordinary timer path.
+
+TEST: phase4-cyber-expiry.log records software level14 at19:20:42.850, deck14->1
+at19:20:44.550, and GPU LIVE frame10800 at19:20:44.888:50 draws/70 triangles,
+uploads0, cumulative fallbacks18701. Frame11100 at19:20:49.887 repeats50/70,
+uploads0 and the same fallback count; frame11400 at19:20:54.888 remains clean.
+The large count is intentional per-frame cyberspace software rendering during
+the timer, not thousands of failed GPU submissions. The existing excluded-mode
+architecture required no cyberspace GPU port or gameplay mutation.
+
+33. PHASE4 NATURAL DEATH, CUTSCENE EOF FADE AND GPU RETURN
+
+OBSERVED, build11: phase4-death-valid.mp4 is the accepted90-second recording,
+starting approximately19:29:48. The production renderer is unchanged in the
+subsequent build12/13 QA-probe builds. Normal combat difficulty2 and the owned
+Flight checkpoint with initial HP161 were used. Normal movement past the crate
+to27.1736,32.7355 triggered an assassin attack; no artificial damage, death,
+spawn, relocation or save edit supplied the transition. The earlier
+phase4-death-cutscene.mp4 did not produce an attack and is NOT acceptance.
+
+The parent and route agent directly reviewed death-transition-sheet.jpg and
+death-eof-sheet.jpg. Contact-sheet labels4.0..5.25s show the assassin attack
+and falling health in the complete original HUD/world. At5.5..5.75s the
+original red/static death effect replaces normal presentation; by6.0s the
+original body/cyborg movie is visible with gameplay HUD, weapon and normal
+touch controls suppressed. The movie remains complete through its ending at
+26.0..27.25s, darkens through the original palette fade around27.5..28.0s,
+and reaches the title menu around28.25s. The movie was allowed to finish
+naturally; no Escape, touch skip or other movie-skip action supplied the fade.
+No retained Flight world, HUD or controls leaked over the movie or title.
+
+The legacy fade is not certified as exact zero black. Detailed decoded-frame
+measurements in phase4-death-eof-black-detail.json retain a faint movie
+silhouette: the darkest measured frame at28.278833s has mean0.664771 and
+maximum17, with95.005658% of the measured pixels at or below5. These are the
+captured movie's residual pixels, not proof of a fully zero-valued final frame.
+Flight is outside the authored Medical lighting fixture. Thus this recording
+accepts the actual death effect, movie, natural EOF fade and title transition;
+it does not establish exact black for a directly fading lit Medical GPU world.
+The separate controlled palette probe is documented separately.
+
+TEST: phase4-cutscene-return.log records whole-view SOFTWARE reason=software
+framebuffer transition at19:29:54.418, count18726, level5/Flight. Following the
+title, normal loading of campaign slot06 restores the selected GPU renderer
+in the authored Medical fixture, shown in phase4-cutscene-return.png.
+At19:31:44.258 GPU LIVE frame22750 has91 draws/182 triangles, uploads0,
+fallbacks18758 and lights_z=2.025,1.25; the matching cache sample identifies
+Medical camera30.5,22.625,2.10214, heading192, pitch0. Frames22800 at
+19:31:45.072 and23100 at19:31:50.072 repeat91/182, uploads0 and the unchanged
+fallback count. This establishes selected-GPU re-entry with the complete
+Medical world/UI after an actual effect/movie/title sequence.
+
+Coverage remains bounded. Rare shield, endgame and invisible-object paths
+retain their SOURCE-established safe software exclusions; this work does not
+claim exhaustive on-device certification of those effects or every cutscene.
+
+34. PHASE4 CONTROLLED LIT-WORLD FADE / EXACT BLACK / RESTORE
+
+SOURCE/TEST: Shock.c adds a one-shot QA-only probe, guarded by RP5NP_QA_TOOLS
+and RP5NP_GPU_WORLD and the gpu-render4-test-fade.txt marker. The first eligible
+bright normal-game GPU presentation samples the marker once. It saves all768
+palette bytes, calls the original palfx_fade_down, presents retained commands,
+records the actual legacy endpoint, then separately sets a zero palette through
+gr_set_pal and presents again. Each endpoint holds500ms. Finally the original
+saved palette is restored through the same API and compared byte-for-byte.
+Recursive SDLDraw calls are guarded; composition success is reset before each
+explicit present so an early presenter failure cannot reuse a stale success.
+The hook does not capture new geometry, modify a save or change production fade
+semantics. No fullscreen tint approximation or special light suppression was
+added. It is a controlled palette test, not a naturally triggered Medical death.
+
+Build12 first confirmed the original fade on the lit fixture, including retained
+GPU composition and exact palette restoration, but the endpoint maximum was8.
+phase4-lit-fade.mp4 / lit-fade-sheet0.jpg / lit-fade-sheet1.jpg were reviewed.
+The old build12 log labels that residual endpoint 'black'; that label is not an
+exact-zero claim. Build13 renames it legacy_end and adds the distinct zero test.
+The original palfx implementation remains untouched, including its residual8.
+
+OBSERVED, final build13: normal loading of the owned full-screen Medical slot06
+shows the authored bright cyan/blue fixture. The parent directly reviewed
+phase4-lit-fade13.mp4 contact sheets phase4-lit-fade13-sheet0.jpg and sheet1.jpg,
+the full black frame and phase4-lit-fade13-restored.png. At nominal0.75s the
+complete bright world appears; through1.0..1.75s it darkens to the original dim
+endpoint, held through2.125s. At2.25..2.625s the world and indexed HUD are black,
+with only the independent final RGBA touch overlay visible. By2.75s the full
+bright world/HUD returns and remains coherent through3.875s and the later still.
+There is no residual bright local-light receiver in the zero-palette world.
+
+TEST: The clean world crop(450,150,800,330) in the1170x540 video excludes the
+RGBA touch controls. At2.25,2.375,2.5 and2.625s all63,000 pixels have RGB minima,
+maxima and means exactly0. This measures that crop, not a pixel audit of every
+world surface. Evidence: phase4-lit-fade13-crop-stats.json,
+phase4-lit-fade13-black-detail.png and phase4-lit-fade13-black-frame.png.
+phase4-lit-fade13.log, PID21779/render thread22059:
+ 19:44:12.311 GPU frame1,91 draws/182 triangles,20 uploads/150112 bytes,
+              fallbacks0, lights_z=2.025,1.25, viewport0,0,1024,768.
+ 19:44:12.331 GPU4 QA FADE begin gpu=1 palette_max=255.
+ 19:44:13.367 legacy_end gpu=1 palette_max=8 hold_ms=500.
+ 19:44:13.882 exact_black gpu=1 palette_max=0 hold_ms=500.
+ 19:44:14.396 end gpu=1 palette_restored=1.
+The palette-black result therefore uses successful retained GPU composition,
+not a switch to a black software fallback. The scene is paused after the test.
+
+35. FINAL PHASE4 GATE, ARTIFACT AND HANDOFF
+
+Gate decision: GPU-RENDER2 PASS; GPU-RENDER3 PASS; GPU-RENDER4 PASS.
+No fundamental architecture blocker stopped this campaign. Phase4 acceptance
+combines sections30..34 with the inherited controlled presenter recovery.
+Rare-effect source exclusions are not relabeled as direct device observations.
+Software remains the final strategy for Sensaround, infrared/alternate CLUT,
+cyberspace, cutscene palettes, indexed menu backgrounds, destination-dependent
+transparency, unsupported representations/topology and software framebuffer
+effects. Ordinary primary security-camera takeover can use its actual GPU
+camera; secondary monitor views retain their software ownership. HUD, weapon,
+cursor and touch retain their established composition scopes.
+
+Final build13: BUILD=PASS in7s, APK_VERIFY=PASS. Evidence: build13.log and
+apk-verification13.log. Package io.github.raposomiguel50.systemshock.qa,
+version1.0.0-qa /10000, arm64-v8a. Signer SHA256:
+ 6dc6baad4199aaa7637cbbe2af679156eb48731b0eacdeabc0ffaa78adcd9924
+All three native libraries have16-KiB PT_LOAD alignment; native ZIP alignment
+also PASS. The installed and copied final QA APK SHA256 is:
+ 264bf85d9b91aaf4c9fade70206a4dbb033672928100a443d483db9282649b16
+Final artifact:
+ C:\Dev\system-shock-android\dist\SystemShock-GPU-RENDER4-QA.apk
+Build output:
+ C:\Dev\system-shock-android\AndroidProject\app\build\outputs\apk\qa\app-qa.apk
+The build includes the pre-existing unrelated audio working tree; this campaign
+does not claim to validate or commit those audio changes. Generated artifacts,
+logs, screenshots, saves and proprietary resources remain untracked/ignored.
+
+Production renderer changes after the Phase3 commit are the complete indexed
+menu guard and mode-change snapshot refresh. Build12/13 only add the QA probe;
+therefore earlier Phase4 device results remain applicable. Existing cache,
+geometry, baseline timing, animation, floor and context tests were reused;
+they were not repeated without a relevant code change. Scoped source/report
+diff checks pass, and the final Android build compiles the changed QA code.
+
+At19:45:33 the phone remains Awake, USB powered, stayOn=true, setting15 unchanged.
+The fade and visual-diagnostic markers are removed; no GPU/fault/reset marker
+remains. Original slots00/01/02/03/07 match their initial SHA256 backups exactly.
+Only owned slots04/05/06 were used for convenience saves/restores. The phone is
+left paused in Medical with GPU selected. PIN/biometrics/security were untouched.
+Evidence: final-preservation-check.json. Section22 records the same final check.
+
+GPU-RENDER5 is recommended as a separate profile-driven lighting/atmosphere phase
+with the section23 limits retained. It has NOT been implemented. No push occurred.

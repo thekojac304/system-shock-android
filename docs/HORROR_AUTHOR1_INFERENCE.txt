@@ -1,0 +1,710 @@
+HORROR-AUTHOR1 / GPU-RENDER5A
+VISUAL INFERENCE / AUTO-AUTHORING FEASIBILITY
+2026-10-03
+
+1. VERDICT AND SCOPE
+
+Qualified YES to automatic first pass + selective human overrides as an
+architecture. NOT YET PROVEN that this generator produces a strong horror
+lighting profile for most of Citadel. The Medical holdout exposes a substantial
+placement failure. Do not confuse a populated profile with accepted art direction.
+
+Offline diagnostic/infrastructure gate: PASS, with the limitations below.
+Strong automatic visual-profile gate: NOT PASSED. No new gameplay visual claim.
+
+Built a deterministic two-level generator, neutral JSON schema, separate manual
+overlay application, resource-ID material catalog, whole-level diagnostic maps,
+reference comparison, and focused tests. Ran it on all Medical and Executive
+non-solid tiles from the original owned archive. No per-room authoring was used.
+There is no GLES integration, APK, new mode selector, or in-game debug overlay in
+this phase. The conditional visual prototype was not entered: receiver geometry
+and source placement are not convincing enough yet. In particular, the generated
+Medical Healing Suite would lack both of the accepted proof's local light pools.
+Manually filling that hole would conceal an inference failure.
+
+Authority: GPU_RENDER2_3_4_QA.txt; GPU_RENDER1_FEASIBILITY.txt;
+GPU_RENDER1B_QA.txt; HORROR_VISUAL_FEASIBILITY.txt; HORROR_VIS1_QA.txt;
+HORROR_VIS1B_QA.txt. GPU-RENDER2/3/4 bounded acceptance is inherited unchanged.
+The old indexed reports are historical, not a reason to reopen accepted GPU QA.
+Starting HEAD: 1817b655bc7d7f9c57896f0db812266c84ea2b72.
+
+Evidence labels used here:
+SOURCE: actual implementation/layout inspection.
+DATA: generated measurements on the two original levels.
+TEST: executable diagnostic checks, not rendered gameplay.
+DESIGN: proposed interpretation or future integration.
+No new device gameplay, screenshot A/B, or hardware performance claim is made.
+
+2. ACTUAL INPUTS AND REPRODUCTION
+
+Inputs already owned by the user, retained in ignored dist/:
+  dist/audio2/owned-ARCHIVE.DAT
+    SHA256 2ae59a596acdf9ef04978e38a0b2b59bbed31ea6acdf5d765774e94fea172922
+  dist/gpu-render2-3-4/TEXTPROP.DAT
+    SHA256 5f37ad25ca2aded6950d23e7d6076bd5d5ff758767deff28df1ff0f64deb6278
+  dist/gpu-render2-3-4/owned-objprop.dat
+    SHA256 c233ed42c4b7db9343d3d5a8d7de32b37bf6467e5e1b3be86026f5c7ad70b816
+
+Read TEXTURE.RES through the connected QA application's read-only run-as access
+to inspect the 92 unique texture IDs used by these levels. Saved the owned bytes
+at dist/horror-author1/owned-TEXTURE.RES, and resource contact sheets at
+dist/horror-author1/textures-0.png and textures-1.png, using the existing owned
+dist/vis1/palette.bin. No device settings, saves, APK or running view changed.
+Resource images were visually classified once; the generator uses ID rules,
+not image recognition. No original resource bytes are added to tracked files.
+
+Run from repository root with Python 3:
+  python scripts/test-horror-author.py
+    --archive dist/audio2/owned-ARCHIVE.DAT
+    --textprop dist/gpu-render2-3-4/TEXTPROP.DAT
+    --objprop dist/gpu-render2-3-4/owned-objprop.dat
+    --output dist/horror-author1
+Join those lines into one command. The generator and tests use the standard
+library. The gate also executes the unittest suite and produces the two profiles.
+
+For PNG overview/review output, use Python with Pillow:
+  python scripts/review-horror-profile.py
+    "dist/horror-author1/generated/*.generated.json"
+    --output dist/horror-author1/review
+The Codex bundled Python has Pillow; the default system Python here does not.
+SVG output from the generator needs no Pillow. It includes hoverable tile data.
+
+Individual generation:
+  python scripts/horror_author.py --archive <path> --textprop <path>
+    --objprop <path> --levels 1 6 --output <directory>
+Only levels 1 and 6 are enabled. No other level profiles were generated or shipped.
+Omitting --objprop is supported but explicitly warns that generic display/unlit
+detection is unavailable. This run included it.
+
+3. SIGNAL INVENTORY AND CONFIDENCE
+
+Confidence concerns visual intent, not merely whether a field can be read.
+STRONG means a direct semantic or spatial fact within its stated scope.
+MODERATE means a useful reusable heuristic. WEAK means review-only evidence.
+UNSAFE means do not turn that fact alone into atmosphere or an emitting light.
+
+Signal                           Class / actual meaning and restriction
+-------------------------------- -----------------------------------------------
+Floor darkness                   STRONG original authored brightness, 0..15.
+Ceiling darkness                 STRONG independent authored channel, 0..15.
+Transient floor/ceiling light    STRONG live scalar contribution; not RGB intent.
+Lighting traps/events            STRONG spatial/state scalar changes; color unknown.
+Texture resource ID              STRONG identity; MODERATE material semantics after
+                                 one-time catalog review. Resolve level-local slots.
+Texture family byte              WEAK/UNSAFE as semantic taxonomy. See section 6.
+Wall/floor/ceiling assignments   STRONG assignment; WEAK proof of exposed surface.
+Animated texture group/position STRONG animation linkage; WEAK luminous intent.
+Luminous texture IDs             MODERATE overall; HIGH candidate confidence only
+                                 for reviewed fixtures on supported surfaces.
+Monitors/displays                STRONG render exemption where source says display;
+                                 MODERATE visible-emission candidate, not a lamp.
+Light-looking fixtures           STRONG for named lamp object class; MODERATE for
+                                 reviewed texture; bulb position still approximate.
+Object type/location             STRONG identity and location; not emotional role.
+Door object/location/other_half  STRONG portal candidate; orientation/extent and
+                                 partial opening need renderer/geometry validation.
+Door connectivity                MODERATE from nearby spaces, not a reachability
+                                 guarantee. Access/lock state is gameplay data.
+Elevator class/music zone7       STRONG elevator-related hint; not necessarily the
+                                 full elevator car or an interlevel light portal.
+Tile connectivity/walls          STRONG when aperture is proven; uncertain shapes
+                                 must not become transmitting edges by adjacency.
+Room adjacency                  MODERATE derived graph; no semantic room table found.
+Floor/ceiling heights/slopes     STRONG geometry; MODERATE region boundary hint.
+Room/corridor dimensions         MODERATE; a bounding box can mislabel a bent room.
+Radiation/biohazard flags        STRONG hazard type/presence; WEAK airborne haze.
+Peril flag                      MODERATE gameplay/music danger hint, not radiation.
+Quest bits/variables             STRONG exact state storage; UNSAFE arbitrary story
+                                 labels or interpreting every bit as power/alarm.
+Trigger locations               STRONG location; WEAK affected region until its
+                                 parameters and chained events are resolved.
+Scripted lighting transitions   STRONG live scalar control; color transition manual.
+SHODAN-related state            STRONG known shodometer/event definitions; visual
+                                 corruption RGB/extent requires art direction.
+Music zone                      MODERATE coarse theme; WEAK room segmentation.
+Level index                     STRONG identity; archetype is an explicit design.
+Local texture composition       MODERATE support for clinical/industrial/organic;
+                                 not a reliable room name or plot purpose.
+Damaged texture family          MODERATE static damage appearance, not a timeline.
+Object HP/active/frame           STRONG instance values; UNSAFE universal inference
+                                 that HP0 means destroyed (many fixtures have HP0).
+Security/control panels         STRONG typed control; WEAK light or alert color.
+Recovery/healing/beta/gamma      MODERATE object/level identity when source names it;
+                                 do not infer a full semantic area from green art.
+Existing semantic map regions   No general named visual region registry found.
+                                 Existing VIS1 mask is a human reference only.
+Unlit / fullbright flags        STRONG shading policy, UNSAFE light-casting evidence.
+Bright paint/signs/white pixels  UNSAFE automatic physical emitters.
+
+The static generator records original darkness and transient values separately.
+It does not bake the transient snapshot into ambient or alter gameplay lighting.
+Original flags, source IDs, confidence and candidate rejection reasons are
+included in the JSON for inspection.
+
+4. SOURCE CONTRACTS THAT MATTER
+
+Paths below are under SourceSnapshot/src/GameSrc unless otherwise stated.
+archiveformat.c: FullMapLayout (58 bytes), MapElemLayout (16 bytes), ObjV11Layout
+(27 bytes), ObjV12Layout (28 bytes), FixtureLayout (30), DoorLayout (14), and
+TrapLayout (28) are the on-disk authority. Map resources are 4000+100*level:
+  +2 version; +4 FullMap; +5 tiles; +7 texture-ID table; +8 objects;
+  +19 fixtures; +20 doors; +22 traps; +42 texture animation state.
+
+Headers/map.h, mapflags.h: t[10]&15 floor darkness, t[11]&15 ceiling darkness;
+t[15] packs low-nibble floor/high-nibble ceiling transient light. Floor/ceiling
+height bytes each have a distinct high hazard bit: bio and radiation. flag2 bit4
+is PERIL, not radiation. Its upper three bits are the music zone. Debug render
+and seen flags are not material or atmosphere labels.
+
+Map Z = map-height step / 2^z_shift; object Z = raw byte / 2^(3+z_shift).
+Both validation maps have z_shift=3. X/Y object positions are 8.8 map units.
+The profile uses one common positive-Z map coordinate system, not meters.
+
+frterr.c: edge_get_fandc/map_get_edge, face_obstruct and mmask_facelet are the
+correct next source of precise edge apertures. A generic four-neighbor flood fill
+is not equivalent. _fr_do_light_val and current transient/lamp/global behavior
+must remain authoritative for live scalar light during later integration.
+
+textmaps.c/Headers/textmaps.h: version9 TEXTPROP has 363 packed 11-byte records.
+There is no authored RGB, luminous flag, physical radius or material-name field.
+objprop.c numtypes_array defines 476 object triples; objsim.c:1856 loads their
+27-byte common property records at EOF. The diagnostic accepts the inspected
+original v45/17951-byte layout only. Render_type and LIGHT_TYPE are read exactly;
+other layouts fail closed. It does not guess class-property sizes.
+
+objsim.c:obj_is_display recognizes TEXTPOLY plus named screen triples.
+gameobj.c and Headers/objbit.h define LIGHT_TYPE and conditional UNLIT behavior.
+Headers/otrip.h names desk lamp, floor lamp, glow bulb and chandelier triples.
+Not all things previously described informally as displays use obj_is_display.
+
+5. REGION GRAPH AND SEGMENTATION
+
+Implemented, deterministic, conservative:
+  1. Enumerate all non-solid tiles. Doors become blocked portal-cell candidates.
+  2. Rectangular open tiles and slope types6..21 may connect only when their
+     conservative vertical slabs overlap. Diagonal footprints are quarantined.
+     Slope slab uses the maximum possible floor and minimum possible ceiling,
+     honoring MAP_FFLAT/MAP_CFLAT. A closed slab is unresolved, not a solid fact.
+  3. Grow regions with matching hazard tuple and music category. Relative to
+     each deterministic seed, require darkness-channel differences <=4,
+     floor difference <=.75 tile, ceiling difference <=1 tile and X/Y offsets
+     <=12 tiles. These are heuristics, explicitly not semantic room definitions.
+  4. Name IDs from level + minimum seed tile. Label portal/elevator/hazard/
+     uncertain transition first, then corridor/alcove/hall/room candidates by
+     size and bounding shape. Class labels remain hypotheses.
+  5. Emit adjacency edges labelled door, heuristic split or unverified geometry.
+     Every emitted inter-region edge has light_transmission=false in this version.
+
+This avoids treating an entire connected deck as one visual region. It still
+over-segments: Medical 592 regions (413 singletons), Executive 405 (271 singletons).
+They are conservative authoring cells, not 592/405 recovered semantic rooms.
+Medical has only 2 hall candidates; Executive 3. See exact class counts in review.
+The largest regions contain 31 and 48 tiles. 65.12% and 77.91% of tiles belong
+to multi-tile regions. Those percentages measure grouping, NOT correct room labels.
+
+Reliable now: separating solid gaps, conservative door cells, hazard categories,
+elevator hints, supported rectangular spaces. Ambiguous: slopes whose narrow
+open edges exceed the common slab, diagonal edges, intentional alcoves, thin
+doors on cell boundaries, long/bent rooms, partial walls and multiple stories.
+Doors at x/y just below an integer are particularly poor whole-cell separators.
+The graph is optical/authoring evidence, not pathfinding or proof of accessibility.
+
+No texture-change hard cuts: repeated panels otherwise produce one region per
+material change. Composition, fixture count and lighting statistics are region
+features for review. No claimed architecture interprets every change as a room.
+
+Later overrides can replace masks/names, split or merge regions using a complete
+transaction of exact-ID replacements and updated light references. Current
+validator requires a disjoint complete base partition. Priority is reserved for
+future overlay volumes; overlapping base region masks are rejected today.
+New semantic names and arbitrary manual light insertion are future extensions,
+not silently supported by the present replace/delete patch format.
+
+6. MATERIAL CLASSIFICATION
+
+profiles/horror-author1/rules.json is a shared catalog, not renderer logic.
+Reviewed once across both levels: luminous fixture, monitor/display, clinical
+panel, industrial wall, decorative, damaged surface, organic/grove, machinery,
+unknown. Reserved conceptual classes (grating, corrosion, warning stripe,
+hazard, glass/translucent) should be added only with stronger evidence. Do not
+force every texture into a precise taxonomy to make the catalog look complete.
+
+Examples: 35/36 cyan luminous panels; 215/216 blue-violet luminous panels;
+20/82 warm-looking fixtures; 101/144/185/217 pale ceiling fixtures. Clinical
+37/38/51/108; damaged 34/46/47/49/50 and corresponding Executive damage IDs;
+202 organic appearance. Monitor-like subpanels remain local-light-disabled.
+Some IDs have mixed paint, metal and luminous regions. Whole-texture emission
+is only a proposal: special_handling=pixel_mask_review blocks a faithful runtime
+implementation until a reusable per-material mask is reviewed. No bright-pixel
+threshold or new texture replacement was generated.
+
+Medical: 54 unique assigned resource IDs, 52 classified, unknown205/267.
+Executive: 49 unique IDs, 44 classified, unknown13/148/150/205/232.
+Classification coverage is not accuracy; visually mixed resources need exceptions.
+
+Important negative finding: the inspected family_texture values mostly equal the
+resource ID modulo256. E.g.267 reports11, 270 reports14. The source field is one
+char and initialization writes i into it. It is NOT an industrial/clinical family
+ontology and would create false families if treated as a semantic parent ID.
+Both selected levels' loaded texture IDs report animation group0. Thus this pass
+does not demonstrate generalization to animated warning fixtures. The previously
+accepted Flight237 animation evidence remains inherited, not a new authoring rule.
+Animation membership alone should never auto-create lights.
+
+7. FIXTURE CONFIDENCE AND LOCAL-LIGHT GENERATION
+
+Candidate record keeps source texture/object ID, tile, surface, approximate XYZ,
+RGB seed, classification, confidence, rejection reason and generation policy.
+
+HIGH .90: reviewed luminous resource on an ordinary flat ceiling, not sky.
+HIGH .85: named class7/subclass3 lamp, valid location inside an ordinary flat cell.
+MODERATE .55: wall/floor luminous assignment, display, or unsupported placement.
+LOW/UNKNOWN: arbitrary bright signs/paint/unknown IDs; no automatic local light.
+These scores are rule tiers, not calibrated probabilities. Parameter confidence
+for every generated light is only .45, regardless of source detection confidence.
+
+Ceiling position = tile center, ceiling Z-.08. Named objects use their stored
+location; this is NOT yet a verified bulb center. Generic lamp RGB=(1,.85,.65).
+Texture light RGB is a reusable material-catalog seed estimated from original art.
+Ceiling radius2.5, object radius2.0 map units; base intensity1.5/1.0.
+Intensity is multiplied by .35+.65*(1-(floorDark+ceilingDark)/32), preserving a
+monotone response to original authored darkness. These are design seeds, not
+recovered photometry or gameplay lighting values. Falloff=max(0,1-distance/r)^2.
+
+Suppress nearby fixture candidates within1.75 units inside one receiver region;
+do not stack a new full-strength light for every adjacent ceiling panel. Cap at
+four selected local lights per receiver tile; cap violations suppress the entire
+candidate so selection remains deterministic. This produces184/130 whole-level
+records, not a184/130-light shader loop. Future runtime loads per-region small lists.
+Detection and suppression remain visible in diagnostics rather than disappearing.
+
+8. RECEIVERS AND LEAKAGE
+
+Radius alone is never sufficient. Current generated receiver mask is constrained
+to the source's own region and to flat cells with a clear conservative line to the
+receiver cell center at its mid-height. A grid-boundary line test checks both
+adjacent cells at corner ties, rejecting blocked cells and height intersections.
+It rejects a U-shaped same-region shortcut through a wall. Door portal cells do
+not generate/receive local lights. Cross-door spill is disabled even if open.
+
+TEST: walls, closed-door cells, corner ties, height occlusion and bent same-region
+spaces are covered. Every actual emitted receiver center passed the same rule.
+This proves a bounded static CENTER mask, not fragment-level absence of leaks.
+A partially occluded tile may contain both visible and hidden fragments. Object
+occluders, moving floors, changed terrain and exact portal apertures require
+dynamic invalidation and finer masks before integration. Do not load these masks
+as a claim of complete wall-leak prevention. Runtime light propagation is absent.
+
+Next: derive exact floor/ceiling edge apertures from the existing terrain tables;
+generate subcell/face receiver masks or conservatively split affected draws;
+gate confirmed door portals on live door state. A single connected-region bit
+cannot solve light around corners. No shadow maps are needed for this next step.
+
+9. LEVEL ARCHETYPES AND AMBIENT
+
+Hand-author a small number of level archetypes, then infer local variation. Do not
+algorithmically invent a deck's emotional identity from average texture hue.
+Only Medical and Executive archetypes are instantiated here:
+  Medical cold_clinical: ambient RGB(.72,.88,1), intensity.16.
+  Executive warm_neutral: RGB(1,.88,.76), intensity.16.
+They are deliberately marked as design seeds. No uniform final color grade is
+applied. Original material color remains the source albedo; grading defaults to
+saturation1/exposure0. Catalog-local RGB fixtures supply contrasting accents.
+
+Recommended later archetype family, DESIGN only:
+  Medical cold clinical; Research cold machinery; Maintenance olive/ochre service;
+  Storage sparse industrial; Reactor warm danger; Executive warmer neutral;
+  Engineering harsh machinery; Security/Bridge hostile alert;
+  Groves separate vegetation/organic treatment. Recovery is not a universal
+  named room class; infer its fixtures, then name important locations manually.
+
+Proposed diffuse illumination:
+  A = ambientRGB * ambientIntensity * pow(clamp(1-Dlive/16,0,1), exponent)
+  L = sum(receiverAllowed * RGB * intensity * squaredLinearFalloff)
+  worldLinear = originalLinearRGB * (A + L)
+  apply reviewed emissive policy, then optional region distance haze;
+  encode display gamma once through the existing GLES presentation contract.
+Exponent2, ambient floor0 here. There is no new blanket darkness offset and no
+16-row lookup requirement. Original floor/ceiling spatial variation remains data;
+runtime Dlive includes the original transient, lamp, muzzle and global effects.
+Do not apply this curve twice to already-converted scalar lighting. Reuse the
+GPU-RENDER1B contract rather than transplanting indexed bank IDs or HvLightPool.
+Navigation/readability with these new seeds has NOT been visually tested.
+
+10. FOG / COLORED HAZE
+
+Geometry can suggest depth opportunities, not the presence of particles. Long
+corridors, large spaces and high ceilings are MODERATE compositional hints;
+hazards, damage, low light, industrial textures and organic textures are WEAK
+evidence for actual haze. Radiation is not necessarily visible gas. Music-zone
+PARK is also used in access corridors. Do not apply green fog because a tile is
+flagged hazardous or green-colored.
+
+Generator emits disabled review suggestions for hall/corridor/hazard regions.
+Default fog and every regional suggestion are enabled=false, density0. No fog
+appears automatically on either deck. Proposed Medical RGB(.12,.20,.24), Executive
+(.18,.16,.14), start4/end16; these are optional design seeds, not observed mist.
+
+Schema carries enabled, RGB, model(exp/linear), density, start/end, optional
+height base/falloff and state channel. First runtime implementation should use
+simple truecolor distance haze, with exp alpha=1-exp(-density*max(0,d-start)),
+or a linear interval. Integrate along the relevant region segment, not by tinting
+the entire view based on the camera's current room. Height influence is reserved;
+no volumetrics. Keep emissive readability and UI separation explicit.
+
+Verdict: automatic fog CANDIDATES are useful; actual fog should mostly be
+archetype/manual-approved, sparse and reviewed across portals.
+
+11. DYNAMIC-STATE INVENTORY
+
+EASY existing hooks, no new saved state:
+  - Live map permanent/transient scalar fields: already include authored changes.
+  - Active/source object identity and runtime transform; disappearance can remove
+    an explicitly associated lamp. HP alone cannot establish lamp destruction.
+  - Door current_frame/instance blocking state for an explicit confirmed portal;
+    locked/access level is not the same as closed/open or power off/on.
+  - Known trap lighting state: trigger.c trap_functions index7 calls
+    trap_main_light_func and trap_lighting_func. p1 packs two qdata operands;
+    normal modes resolve endpoint objects, radial mode uses a radius.
+    p2 low16 transition type, bits16..27 transition step, high nibble state;
+    p3 selects mode0 plain,1 east/west,2 north/south,3 radial and floor/ceiling
+    channel bits0x10000/0x20000. p4 contains four lighting target bytes.
+    Eight scheduled steps implement existing transitions. Observe them; never
+    create an independent contradictory atmosphere save-state machine.
+
+DATA: Medical16 lighting events, all16 direct bounds resolved offline;
+Executive21,20 bounds resolved,1 retained unresolved rather than guessed.
+Decoded params/bounds/state appear in review/review.json. Bounds are affected
+scalar areas, not automatic physical emitter locations. Arbitrary comparators
+and chained activation conditions are preserved as raw known data for resolution.
+
+POSSIBLE hooks, require explicit effect mappings:
+  - Quest trap index4; comparator_check/qdata_get use actual bit/variable IDs.
+    qdata0x1000 selects a variable,0x2000 a bit; untagged low12 is a constant.
+    Do not evaluate quest references using the generator's host-side guesses.
+  - SHODAN_QV=0x10+level (Headers/shodan.h), normalized by qdata_get using
+    initial_shodan_vals and mission difficulty. This is security/shodometer state,
+    not a universal alarm boolean or automatically increasing visual corruption.
+  - REACTOR_BOOM_QB0x14 in trigger.c/gamesys.c; BRIDGE_SEPARATED_QB0x98 in
+    gamesys.c; plotware.c REACTOR_QDATA0x1002 compared with REACTOR_DESTRUCT1.
+    Known meanings allow authored predicates; desired red tint/extent is manual.
+  - Terrain/height/texture traps, object transmogrification/destruction and
+    instance/frame changes: invalidate affected sources/receivers after the
+    original game performs the operation. Do not replay the trap for visuals.
+  - tpolys.h SHODAN_STATIC_MAGIC_COOKIE0x76 and existing SHODAN render effects:
+    preserve special-view precedence; not a new universal region label.
+
+MANUAL mapping required: generic power restored/disabled, alarm, named plot-room
+transitions, local reactor glow, authored corruption progression, damaged area
+cooling. There is no validated single global power/alarm field to invent.
+
+Medical also inventories17 height,10 questbit and12 transmogrify events;
+Executive5 height,16 questbit and6 transmogrify events. These are event records,
+not a claim that all were activated or reached during this phase.
+
+The schema supports explicit object_active, questbit_equals, questvar_equals and
+trap_p2_mask_equals predicates, plus target IDs/values and step/linear/smoothstep
+transition times. Generated dynamic_overrides is EMPTY: no invented story maps.
+Load/save restoration must re-evaluate existing state, cancel stale transitions,
+and rebuild affected caches. No changes to Player, FullMap or serialized saves.
+
+12. NEUTRAL PROFILE CONTRACT
+
+Machine-readable contract: profiles/horror-author1/profile.schema.json.
+LevelProfile: version, generator provenance, level ID, baseline/rules/texture/
+object-property signatures, coordinate/color units, archetype, ambient, darkness
+response, fog and grading, region/light/material/dynamic collections.
+Region: stable ID/name, origin, explicit tile mask, height bounds, priority,
+classification/confidence, ambient/fog/grading overrides and diagnostic statistics.
+Light: stable source ID, XYZ, RGB, intensity, radius/falloff, receiver region IDs
+AND receiver tile mask, state predicate, source resource/object ID, source
+confidence, separate parameter confidence, generated/manual provenance.
+MaterialRule: resource ID, raw family/animation references, classification,
+emissive proposal/gain, original-art grading policy, local-light policy,
+special handling and generated/manual provenance.
+DynamicOverride: known-state predicate, target IDs, presentation values,
+transition duration/curve and provenance. Its existence does not imply a hook
+has been connected to runtime yet.
+
+No palette-bank number, 16-row output index, CLUT pointer, GPU handle, packed
+receiver uniform index, or shader implementation detail is an art-direction field.
+Diagnostics are an explicitly separate non-runtime section. A future runtime
+compiler should strip them, build tile-to-region arrays and bounded light lists,
+and reject unresolved special_handling rather than silently treating it as done.
+
+Validation: strict v1 shape/ranges, unknown fields/enums rejected, finite numbers,
+unique IDs, complete disjoint tile coverage, valid receiver references/membership,
+four-light receiver budget, valid dynamic targets and fog intervals. A small
+dependency-free checker implements exactly the keywords in the shipped standard
+JSON Schema; adding an unsupported validation keyword fails closed. It does not
+accept external schemas or claim to be a general-purpose JSON Schema engine.
+
+Signatures bind to baseline archive resource blocks + texture/object properties
++ generator rules. Baseline signature includes the ORIGINAL resource snapshot,
+not current mutable save bytes. At runtime validate the installed baseline data
+once, identify its compatible level, then observe live state separately. Hashing
+a live save including seen bits/transients would incorrectly reject legitimate
+play. Object IDs are level-and-baseline-qualified, not global permanent identities.
+
+Unknown profile version, missing resource, stale overlay, invalid mask or unsupported
+geometry => reject profile application. Proposed runtime fallback is the accepted
+neutral GLES scalar behavior and existing whole-view software fallback when its
+renderer guard requires it. Never use partial unchecked profile data or alter
+gameplay because a cosmetic profile fails validation. Runtime loader remains design.
+
+13. GENERATED / MANUAL LAYERS
+
+Generator owns level-N.generated.json only. Human overrides live in a different
+file containing schema_version, baseline_signature and patches. Each patch has
+collection, exact stable id, and a complete replacement record, or null to delete.
+Replacement origin becomes manual. Stale/missing/ambiguous IDs and incompatible
+baseline signatures produce an error; never silently drop or retarget art direction.
+Use --overlay <path> with exactly one --levels value to emit a separate merged
+file. The original generated file remains unchanged by override application.
+Generator refuses output paths that would overwrite its inputs or overlay.
+
+Regeneration recomputes generated data only. Rule changes that split/merge seed
+regions require explicit override rebase/review. It cannot guarantee an old mask's
+meaning survives an algorithm change simply because its seed ID remains present.
+The input override file survives; semantic compatibility must be reviewed.
+
+Current merge: generated collection -> validated manual replacement. Planned
+runtime presentation precedence: defaults -> selected region -> resource/draw
+exception -> matching dynamic override -> special-view/fallback policy. Explicit
+emissive/material protection and original HUD remain authoritative. No conflicting
+overlapping masks or ambiguous priority tie are accepted in this base format.
+
+14. TOOL ARCHITECTURE AND DEBUG OUTPUT
+
+Read-only binary decode -> source inventory -> conservative adjacency -> heuristic
+regions -> shared material/fixture rules -> source confidence -> receiver-center
+constraints -> light spacing/budget -> neutral profile -> validation -> diagnostics.
+It imports the existing resource decompressor and texture-property reader instead
+of changing archive/save formats. Source data and input hashes are preserved.
+
+Each level produces JSON plus six SVG maps: inferred regions, independent floor
+and ceiling original-light heatmaps, fixture candidates/radius hints, wall material
+classification, hazard/state locations. JSON contains all three surface classes,
+light source/receiver lists, graph edges, raw event params, unlit/render metadata,
+confidence warnings and suppression policies. PNG overviews and the Medical
+holdout are generated from those same outputs. Gold radius rings are explicitly
+NOT the actual receiving area. Receiver tile masks are in the light records.
+
+No need to open each room in gameplay to inspect inference. Source texture
+contact sheets and the whole-level maps were visually inspected in this phase.
+They reveal fragmentation, sparse coverage and material contrast, not gameplay
+lighting quality, navigation readability, or screen-space light leakage.
+
+Future QA-only GLES overlay design: opt-in build flag + off-by-default marker;
+draw tile/region IDs, source confidence colors, receiver masks, source spheres,
+disabled fog suggestions and selected material IDs using captured world geometry.
+Do not draw radius rings as an occlusion claim. Keep it out of normal touch/HUD
+and preserve runtime mode switching. No such mode was implemented here.
+
+15. MEDICAL RESULTS / HELD-OUT MANUAL PROOF
+
+DATA, level1, whole original level:
+  Non-solid tiles1184; flat802; regions592, singletons413, largest31 tiles.
+  Door objects63. Music zone1 on1182 tiles; zone0 and elevator7 one each.
+  Bio42, radiation33, peril246 tiles. These are separate flags, not fog volumes.
+  Candidates1003: local lights184, cluster-suppressed129, emissive-review690.
+  Local-light receiver tiles359/1184 =30.32%; maximum4 lights per receiver.
+  Source catalog:54 texture IDs. Named class7/subclass3 lamps:0.
+  Both original darkness channels>=10 on319 tiles;210 have no generated local
+  light. All original darkness values remain in diagnostics/profile response.
+  Fog enabled0. Lighting events16. No custom Medical room input.
+
+Independent holdout: the old17-tile Healing Suite mask is read ONLY by the review
+script AFTER generation. Neither the mask, its HV_WARM/HV_COOL labels, old pool
+positions nor its two GPU light records enter the generator.
+
+Observed in the diagnostic comparison:
+  - Detected9 luminous face assignments: four ceiling216, five floor35.
+  - Clinical wall classes are recognized through shared IDs, not suite coordinates.
+  - Those17 tiles split across10 inferred regions. This is too fragmented.
+  - Generated local lights reaching those17 tiles: ZERO. Ceiling216 is on slopes;
+    floor35 is deliberately not auto-cast. This conservative policy misses the
+    accepted illumination islands. Treat it as a meaningful false negative.
+  - Objects699/718, previously described as displays, are WORDS_TRIPLE0x70203
+    with TEXBITMAP render_type8, not the generic TEXTPOLY display property.
+    Both are missed as candidates. Decode text-bitmap/tpoly instance payloads
+    before adding a broad rule; arbitrary wall words must not become lamps.
+  - Door5 and327 are found. Their whole-cell blockers are conservative and do
+    not reproduce the proof's exact landing/alcove receiver arrangement.
+  - The warm supply alcove cannot be inferred from its blue fixture art. That
+    contrast was human direction. The generator correctly does not copy it.
+
+The old proof demonstrates what the GLES renderer can do, not what this inference
+pass has achieved. No screenshot comparisons of generated gameplay exist. It
+would be misleading to assert reasonable placement, readability, preserved final
+darkness, absence of over-lighting or fog appearance based on these maps alone.
+Potential over-lighting remains in fixture-dense flat areas despite spacing/budget.
+
+16. EXECUTIVE RESULTS / GENERALIZATION
+
+Chosen over Maintenance/Reactor because prior GPU campaign has Executive saves,
+an ordinary elevator/corridor route and Original/GPU captures; its texture/material
+composition contrasts strongly with Medical. Existing save overview identifies
+level6 in before/savgam02.dat; no save was loaded or modified for this phase.
+
+DATA, level6, same rules with only its once-per-level archetype:
+  Non-solid tiles1227; flat894; regions405, singletons271, largest48 tiles.
+  Door objects58. Zones: executive2 on1156, park5 on62, elevator7 on7, zone0 on2.
+  Bio0, radiation0, peril58. A park label here does not prove a grove fog volume.
+  Candidates639: local lights130, cluster-suppressed91, aperture/budget-suppressed3,
+  emissive-review415. Receiver tiles371/1227=30.24%; maximum4 lights per receiver.
+  Named chandeliers: objects62,63,69,70,180,181. Source presence is known; bulb
+  location/color remains approximate. Catalog49 resource IDs;5 unknown.
+  Both darkness channels>=10 on506 tiles;394 receive no generated local light.
+  Fog enabled0. Lighting events21,20 direct bounds resolved,1 unresolved.
+  Multi-tile region membership77.91%, versus65.12% in Medical.
+
+The shared catalog and generator transfer without a per-room map. Warm/neutral
+decorative materials, cold/pale light panels, damage and park composition differ
+in the diagnostics. This is useful structural generalization, not aesthetic
+acceptance. Only30% local-light receiver coverage and405 regions are insufficient
+to claim a strong authored Executive deck. No hidden Executive override was used.
+
+17. FALSE POSITIVES, FALSE NEGATIVES AND HUMAN WORK
+
+False positives / risks:
+  - Bright signs, controls and TEXTPOLY content can look luminous without casting.
+    They remain review-only. A resource assignment can describe an invisible face.
+  - Reviewed texture RGB is contaminated by baked illumination/art palette;
+    light color is a reasonable seed, not measured emission.
+  - Large/corridor/alcove classifications use footprint heuristics, not room names.
+    Door cells and lighting boundaries can generate many artificial tiny regions.
+  - Whole-texture emissive=true needs a pixel mask; dark material around a bulb
+    must not become an unshaded rectangle. Mixed material IDs need reviewed masks.
+  - A capped light list limits work, not energy/readability. Four intense nearby
+    lights can still flatten contrast; no final-image over-lighting pass is claimed.
+
+False negatives:
+  - Sloped luminous ceilings and luminous floors, including the Medical proof.
+  - Wall lamp orientation, partial wall exposure and text-bitmap displays.
+  - Narrow/diagonal apertures and open-door spill rejected conservatively.
+  - Damaged machinery power state, animated warning families, and semantic story
+    locations that need source-specific mapping rather than a texture guess.
+
+Human art direction still needed: level identity; signature spaces/reveals;
+warm/cold opposition such as the supply alcove; sparse haze placement/density;
+important navigation anchors; critical enemy/pickup/control readability;
+material emissive masks; unknown/damaged/mixed fixtures; specific plot-state
+color changes. One reusable rule or aperture fix should solve repeated cases;
+do not answer generator limitations by hand-authoring hundreds of rooms.
+
+18. AUTOMATIC VS MANUAL ESTIMATE
+
+Planning estimate, NOT measured station-wide coverage:
+  After exact aperture/placement work, perhaps60-75% of ordinary-area profile
+  SETUP can be generated for review, with25-40% needing substantive overrides
+  or unresolved semantic choices. Every area still requires visual review.
+  This is a low-confidence engineering estimate from two levels, not a forecast
+  that60-75% of rooms are already artistically finished or a measured time saving.
+
+Measured today: 100% of non-solid tiles inventoried;65/78% in multi-tile groups;
+30/30% receive proposed local lights. These are different denominators. None
+measures aesthetic success. Baseline ambient fields are generated everywhere,
+but that alone does not count as useful horror lighting. Given the zero-light
+Medical holdout result, this pass cannot certify a strong majority automatically.
+
+Likely workflow remains generate -> review -> improve reusable rule -> regenerate
+-> targeted human override. The alternative of manually defining every room is
+unnecessary, but engineering the reusable spatial inference is still required.
+
+19. VALIDATION, COST AND RECOMMENDED NEXT PHASE
+
+TEST:11 focused standard-library unittest cases pass. They cover version11/12
+packed map/object offsets; independent darkness/transient channels; object
+property layout; wall/door/corner/height/U-shaped visibility exclusions;
+unsupported shape isolation; darkness monotonicity; no casting from unknown/
+wall materials; deterministic budget/spacing; strict schema rejection; manual
+override survival, stale IDs, bad signatures, invalid receivers and NaN.
+
+TEST: scripts/test-horror-author.py on both real levels passes repeated byte-for-
+byte generation, two CLI regenerations per manual test overlay, unchanged overlay
+bytes, preserved merged values, all generated receiver-center checks, and unchanged
+input hashes. Saved at dist/horror-author1/diagnostic-gate.json, unit-tests.log,
+generation.log. Manual-test overlays are test fixtures only, not authored profiles.
+
+No runtime cost added. A sample host generation took roughly0.1s per loaded level,
+excluding archive decompression and writing/debug maps. Actual current timings
+are in diagnostic-gate.json; no Android frame-time or battery claim follows.
+The profiles are verbose diagnostic JSON; ship neither them nor raw diagnostics
+as-is. A runtime compiler should use a fixed tile table and at most4 selected
+lights per receiver; geometry/state updates should invalidate only affected data.
+No giant performance campaign and no GPU-RENDER2/3/4 route reruns were performed.
+
+Recommended next phase: HORROR-AUTHOR1B, still bounded Medical + Executive.
+  1. Derive exact edge apertures/door extents from engine terrain tables; improve
+     region merging and generate fragment-safe receiver masks.
+  2. Reusable ceiling/slope/floor/wall fixture placement and TEXBITMAP payload
+     classification; use the same held-out Medical suite to verify improvement.
+  3. Review emissive pixel policies, source heights and light energy budgets.
+  4. Only after that gate, connect the neutral external loader/compiler to GLES,
+     add an off-by-default QA overlay, and capture bounded Original/generated/
+     existing-proof comparisons at the established Medical and Executive routes.
+  5. Exercise one already-identified lighting trap and a door receiver change;
+     measure only enough frame time to detect obvious regression.
+
+This is a recommendation, not started work. No full station authoring, all-level
+profile shipment, GPU-RENDER6, PBR, replacement materials, geometry upgrade,
+shadow maps, SSAO, ray tracing, or volumetric fog was begun.
+
+20. CENTRAL QUESTIONS, EXPLICIT ANSWERS
+
+1. Region boundaries reliably inferred? Partly. Useful conservative cells and
+   topology candidates, but not reliable semantic rooms;592/405 regions and the
+   ten-region Medical holdout show further automatic aperture/merge work needed.
+2. Probable fixtures inferred? Yes, from reviewed resource IDs and real object
+   properties. Mixed surfaces and text-bitmap displays expose important misses.
+3. RGB/intensity/radius generated? Yes as low-confidence reusable seeds. No proof
+   of artistically reasonable or physically recovered values yet.
+4. Receiver regions prevent leakage? Region + grid/height tests prevent tested
+   static center-path failures. A region bit alone does not; fragment/dynamic
+   prevention remains unverified and blocks runtime use.
+5. Fog inference useful? Useful for review suggestions; mostly archetype/manual
+   approval for actual haze. No automatic fog enabled.
+6. Original darkness retained? Yes, independently and monotonically; live scalar
+   lighting remains the proposed runtime authority, with truecolor output freedom.
+7. Existing state drives dynamics? Yes.37 actual lighting events and named quest/
+   object/door state provide hooks. Specific atmosphere interpretations are manual.
+8. Station percentage? No measured station-wide figure. Planning estimate60-75%
+   automatic setup after reusable fixes;25-40% substantive overrides; all reviewed.
+9. Exceptions? Hero/story rooms, warm/cold staging, mixed/damaged fixtures,
+   apertures/diagonals, haze, navigation/readability anchors and plot transitions.
+10. Generate/review/tweak? Yes, infrastructure proves repeatability and preservation
+    of overrides. Strong whole-level visual output is the next bounded gate.
+
+21. EXACT FILES / ARTIFACTS / NO-PUSH STATE
+
+New reusable files:
+  scripts/horror_author.py
+  scripts/review-horror-profile.py
+  scripts/test-horror-author.py
+  profiles/horror-author1/rules.json
+  profiles/horror-author1/profile.schema.json
+  tests/visuals/test_horror_author.py
+  docs/HORROR_AUTHOR1_INFERENCE.txt
+
+Local ignored generated results:
+  dist/horror-author1/generated/level-1.generated.json
+  dist/horror-author1/generated/level-6.generated.json
+  dist/horror-author1/generated/level-{1,6}.{regions,floor-darkness,
+    ceiling-darkness,fixtures,materials,hazards-state}.svg
+  dist/horror-author1/review/level-1.overview.png
+  dist/horror-author1/review/level-6.overview.png
+  dist/horror-author1/review/medical-holdout.png
+  dist/horror-author1/review/review.json
+  dist/horror-author1/diagnostic-gate.json
+  dist/horror-author1/unit-tests.log, generation.log, review.log
+  dist/horror-author1/level-{1,6}.manual-test.json and regenerated/ test outputs
+  dist/horror-author1/textures-{0,1}.png and owned-TEXTURE.RES
+
+No generated gameplay screenshots or new QA APK: no renderer prototype was
+implemented. Existing modes and the installed accepted renderer are unchanged.
+Generated data is diagnostic-only and is not consumed by any current selector.
+
+No commit created in this task. Nothing pushed. All new reusable files remain
+available for review in the working tree. The pre-existing AUDIO modifications
+and reports were preserved; no audio source/test/report was edited or staged.

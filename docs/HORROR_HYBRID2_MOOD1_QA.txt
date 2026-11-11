@@ -1,0 +1,220 @@
+HORROR-HYBRID2 / MOOD1 -- LOW-COST GLOBAL ATMOSPHERE QA
+Date: 2026-10-04 (America/New_York)
+Phone: Samsung SM-S948U1, authorized ADB serial <device serial redacted>
+
+1. STARTING COMMIT / TREE
+Started at b3ad41fe286f7814c0da319dafa8bec2371d81b8 on touch-controls.
+The checkout had pre-existing, unrelated AUDIO source/scripts/tests/docs and
+ignored Python caches. These were preserved and excluded from the focused
+commit. No receiver inference, room segmentation, animated-door propagation,
+or renderer architecture campaign was resumed.
+
+2. HAZE IMPLEMENTATION
+The generated world fragment shader packs camera-to-fragment world distance
+into the existing RGBA world target's unused alpha channel, normalized over
+24 world units. The world clear alpha is zero. The existing post source copy
+preserves alpha, so the post shader obtains distance per pixel without an
+additional render target, draw, depth readback, or world/UI composition change.
+The post shader uses smoothstep(start,end,distance) and a bounded colored mix.
+Clear/background pixels have no haze. GPU GENERATED lighting remains the RGB
+source; the post output is still composed before HUD, menus, and touch controls.
+The 8-bit packed distance has about 0.094 world-unit quantization; the broad
+smooth curve hides it in the reviewed views. This is atmospheric perspective,
+not volumetric scattering or a fog wall.
+
+3. DISTANCE DESATURATION
+The same distance factor blends a small fraction of the graded color toward
+its luminance. Medical far maximum is 7%; Executive far maximum is 5%.
+Near pixels retain the existing archetype's saturation. FX BASE and HAZE
+exclude this term; FX DIST and FULL include it.
+
+4. DISTANCE CONTRAST
+After tone shaping, a far-only contrast reduction uses a 0.25 pivot. Medical
+maximum is 3%; Executive maximum is 2.5%. It gently lifts far dark values
+without changing nearby black detail. It was tuned together with haze and
+desaturation; the three are intentionally modest and share one distance curve.
+
+5. SHADOW / BLACK TINT
+A separate archetype shadow-bias RGB term is multiplied by luminance and a
+shadow weight (1-smoothstep(.12,.62,luminance)). Pure black therefore stays
+black, near-black texture structure remains, and highlights/fixture colors
+receive little or no bias. The original MED A and EXEC A shadow/highlight
+grades are retained. FX FULL alone adds the new shadow bias.
+
+6. BLOOM DECISION
+SKIPPED. Reviewed emissive masks are available inside the world shader, but
+the composed world target holds RGB plus the newly packed distance in alpha.
+It has no separate emissive-only image for blur. A correct bloom path would
+require another attachment or selective draw, a low-resolution source, blur,
+composite, and matching resource/fallback handling. A brightness threshold
+would incorrectly glow ordinary bright palette art. This optional work was
+not worth expanding the renderer in this phase. No bloom toggle is exposed.
+
+7. ANIMATED GRADE DRIFT
+FX FULL applies a sinusoidal shadow-only multiplier bounded by each preset's
+strength. Its time comes from saved game_time / CIT_CYCLE, which stops on pause
+and is capped by the game's existing simulation delta handling after resume.
+There is no wall-clock catch-up flash. The shader still grades only the world.
+Medical period 18 s, amplitude +/-0.004; Executive 26 s, +/-0.003. It is not
+a fixture event or gameplay light.
+
+8. FINAL MEDICAL AUTO VALUES
+Existing MED A grade is unchanged: exposure 1.02, contrast 1.13, toe .035,
+shoulder .12, saturation .94; shadow (.78,.90,1.05) at .10; highlight
+(1.02,1.02,1.00) at .025; vignette .10/.72/.25, grain .007.
+New cold haze RGB (.53,.63,.68), start 2, end 9, strength .070;
+far desaturation .070; far contrast reduction .030;
+shadow bias (-.020,.004,.025); drift 18 s at .004.
+
+9. FINAL EXECUTIVE AUTO VALUES
+Existing EXEC A grade is unchanged: exposure 1.02, contrast 1.17, toe .04,
+shoulder .17, saturation .94; shadow (.85,.91,1.02) at .10; highlight
+(1.07,1.01,.89) at .08; vignette .11/.74/.25, grain .006.
+New muted warm-neutral haze RGB (.47,.42,.38), start 3, end 12,
+strength .080; far desaturation .050; far contrast reduction .025;
+shadow bias (.015,-.010,.012); drift 26 s at .003.
+All other presets/decks keep their previous safe behavior: the new fields
+default to zero, and unsupported decks still resolve to neutral.
+
+10. MEDICAL VISUAL REVIEW
+Final phone captures in ignored dist/horror-hybrid2 include med-final-iter2.png
+(fresh-start slot07), med-door-tuned.png (Healing Suite/supply doorway slot03),
+med-slot06-full.png (brighter fixture view), and med-slot00-depth.png. Earlier
+BASE/FULL comparisons are med-a-base.png / med-a-full-iter1.png and
+med-door-base-stable.png / med-door-full.png. The first parameters were too
+faint at the reviewed distances; one tuning pass moved start/end from 2.5/13
+to 2/9, haze strength .055 to .070, and slightly adjusted distance grade and
+shadow bias. The final Scene A keeps its cyan beds, violet fixtures, dark
+ceiling, visible central button, and near-wall texture. Doorway shadows and
+gold control remain readable; no blanket blue wash or hard fog wall appears.
+Matched Scene A sample pixels changed about 0-1 channel values on a nearby
+wall and about 3-4 values on distant dark geometry. The visual gain is modest
+and more apparent as near/far separation than as a visible fog layer. A true
+long Medical corridor was not conveniently reached within the bounded review.
+
+11. EXECUTIVE VISUAL REVIEW
+The existing slot02 Gamma Grove fixture/depth view was compared in
+exec-base-stable.png, exec-full-iter1.png, and exec-full-tuned.png. The first
+values were nearly invisible; one tuning pass moved haze start/end from
+3.5/16 to 3/12, adjusted strength .070 to .080, darkened the haze color, and
+refined distance/shadow terms. The far corridor sample moved from RGB
+(11,8,8) BASE to (16,13,12) tuned FULL; a nearby dark wall remained
+(21,20,19). Red signage, warm trim, cyan kiosk, bright ceiling, and corridor
+floor remain distinct. The room is still dark and navigable, without a golden
+screen tint. The six-chandelier whole-room view was not conveniently reached.
+
+12. PERFORMANCE SMOKE
+Final APK, fixed Medical fresh-start camera, 300-frame windows after warm-up:
+FX BASE post CPU submission mean .019 ms, p95 .020; GPU2 submission about
+.068 ms. FX DIST (haze + distance) post .019 ms, p95 .029; GPU2 .070 ms.
+FX FULL post .019 ms, p95 .020; GPU2 .066-.068 ms. Windows progressed at
+roughly five seconds per 300 frames; no visible hitch or presentation failure.
+Executive final FULL post was about .015 ms mean, p95 .016; GPU2 submission
+.047-.051 ms in the fixed view. These counters measure CPU submission, not
+GPU execution or a long thermal run. No reliable GPU timer is available.
+Bloom has no cost because it was skipped.
+
+13. RETAINED / DISABLED EFFECTS
+Default Auto FX FULL retains restrained haze, far desaturation, far contrast,
+luminance-aware shadow bias, and very low grade drift for Medical and
+Executive. Existing vignette and low grain remain On with their Off controls.
+Bloom is disabled/absent. QA FX cycles BASE -> HAZE -> DIST -> FULL in the
+Post menu; DIST means haze plus distance desaturation/contrast. Existing live
+MODE/POST QA touch buttons remain available during gameplay. FX uses a small
+persisted preference field (world-post-fx, 0..3; default 3).
+
+14. KNOWN LIMITATIONS
+The Medical long-corridor view and Executive six-chandelier whole-room view
+remain unreviewed. The individual artistic value of desaturation, contrast,
+shadow bias, and drift is less certain than their bounded function and the
+combined result; the short still captures cannot prove an animation helps.
+No GPU shader execution timer or large thermal benchmark was run. The pause
+menu's existing indexed software background is not a live post preview.
+Post remains only for GPU GENERATED on Medical/Executive. Emissive-only bloom
+requires the additional clean source path described above.
+
+15. RECOMMENDED MEDICAL AUTO RESULT
+GPU GENERATED + MED A + FX FULL, vignette On, grain On. It keeps the accepted
+"darker and more moody without being too dark" baseline and adds a small
+depth cue. This is a modest improvement, pending a longer corridor review.
+
+16. RECOMMENDED EXECUTIVE AUTO RESULT
+GPU GENERATED + EXEC A + FX FULL, vignette On, grain On. Warm highlights and
+cool/neutral dark structure survive; far corridor depth is slightly clearer.
+Recommendation remains provisional until a chandelier whole-room view.
+
+17. APK / HASH / IDENTITY
+dist/horror-hybrid2/SystemShock-HORROR-HYBRID2-MOOD1-qa-arm64-v8a.apk
+SHA256 1a082cebd772fe819fd796488b3a52823588b59addfde0b44587786ea12f65a2
+Package io.github.raposomiguel50.systemshock.qa, version 10000 / 1.0.0-qa.
+Signer SHA256 6dc6baad4199aaa7637cbbe2af679156eb48731b0eacdeabc0ffaa78adcd9924.
+verify-apk.ps1 passed all native ELF PT_LOAD 0x4000 alignment checks and
+16-KiB native ZIP alignment. The pulled installed APK hashes identically.
+
+18. AUTOMATIC INSTALL RESULT
+adb install -r returned Success; the final QA app launched. No data clear was
+used. All savgam00-07.dat and touch-settings.cfg contents match the preinstall
+backup byte-for-byte. Preferences read back as world-visuals=gpu-generated,
+world-post=yes, preset=0/Auto, vignette=yes, grain=yes, fx=3/FULL.
+
+19. FINAL PHONE STATE
+Awake, Medical fresh-start slot07 loaded, normal gameplay view visible,
+GPU GENERATED and Post Auto with enhanced MED A FULL active. The QA MODE/POST
+touch controls remain visible in the side bar. No menu covers the scene.
+Final capture: ignored dist/horror-hybrid2/final-handoff-confirmed.png.
+
+20. EXACT FILES CHANGED
+SourceSnapshot/src/GameSrc/wrapper.c
+SourceSnapshot/src/MacSrc/GpuPost.h
+SourceSnapshot/src/MacSrc/GpuWorld.c
+SourceSnapshot/src/MacSrc/Prefs.c
+SourceSnapshot/src/MacSrc/Prefs.h
+scripts/test-horror-hybrid.py
+tests/visuals/horror_hybrid_test.c
+tests/visuals/preferences_checks.c
+docs/HORROR_HYBRID2_MOOD1_QA.txt
+No APK, capture, log, save, proprietary asset, generated dist file, or
+unrelated AUDIO change was included in the implementation commit.
+
+21. COMMIT HASH(ES)
+Implementation and focused tests: 1a947c4b50b039737172c02758047636aaa24456.
+This report is a separate documentation-only local commit; its hash is HEAD
+at the final handoff.
+
+22. NO-PUSH CONFIRMATION
+All commits are local. Nothing was pushed.
+
+FOCUSED VALIDATION
+python scripts/test-vis1.py: production preference roundtrip including FX
+default, modes 0/2, invalid value, and save/reload PASS; existing VIS1 tests PASS.
+python scripts/test-horror-hybrid.py: distance bounds, shadow luminance weight,
+pure-black safety, drift bounds/time behavior, flicker and preset mapping PASS.
+python -m unittest tests/visuals/test_horror_generated.py: 2 passed.
+Final device GLES3 world/post shaders and 1024x768 world/post targets: PASS.
+Controlled post-submit failure marker produced "POST1 fallback to ungraded GPU
+world: fullscreen pass" on device. The marker was removed, the app restarted,
+and full Medical Auto resumed. Existing whole-view software fallback remained
+downstream. No crash was observed.
+
+CENTRAL QUESTIONS
+1. Haze improves depth without obvious fog? YES, modestly in reviewed views.
+2. Distance desaturation helps? PASS technically; slight combined depth gain,
+   its independent artistic contribution is not established.
+3. Distance contrast helps? PASS technically; far geometry recedes slightly
+   without a bright/dusty black lift in the reviewed corridor.
+4. Shadow tint improves identity? Subtly; no global screen tint or loss of
+   near-black structure was seen. Its independent value remains provisional.
+5. Clean emissive-only bloom feasible within modest scope? NO; skipped.
+6. Is bloom worth keeping? Not applicable; no threshold fallback was accepted.
+7. Drift subtle enough? YES: no visible pulse observed; benefit is provisional.
+8. New Medical Auto better? Modestly, pending a true long-corridor review.
+9. New Executive Auto better? Modestly in the saved corridor, pending chandeliers.
+10. Readable/navigable? YES in the reviewed scenes; no full route certification.
+11. Cheap enough? YES by CPU submission smoke; GPU execution unmeasured.
+12. Default enhanced effects? Haze, far desaturation/contrast, shadow bias,
+    low drift, existing vignette and low grain; no bloom.
+
+NEXT VISUAL STEP
+Use one deliberately framed long Medical corridor and the reachable Executive
+six-chandelier whole-room view to decide whether the modest depth lift is worth
+further per-level tuning. Keep that review bounded; no new inference campaign.

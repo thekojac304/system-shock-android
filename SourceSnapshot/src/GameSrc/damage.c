@@ -520,6 +520,10 @@ void player_dies() {
 #define DAMAGE_DIFFICULTY ((global_fullmap->cyber) ? 3 : 0)
 
 ubyte damage_player(int damage, ubyte dtype, ubyte flags) {
+#ifdef RP5NP_QA_TOOLS
+    extern bool qa_tools_god(void);
+    if (qa_tools_god()) return 0;
+#endif
     ubyte *cur_hp;
     short rawval;
     uchar dead = 0, damage_dealt = FALSE;

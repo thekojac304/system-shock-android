@@ -1,0 +1,124 @@
+HORROR-QA-TOUCH1 -- LIVE VISUAL COMPARISON TOUCH CONTROLS
+2026-10-04 (America/New_York)
+
+1. STARTING COMMIT / TREE
+Started at 7ae4a078040e098a06f54ca0b2f9d3b317d5a8c3 on touch-controls.
+The checkout already contained unrelated AUDIO source, scripts, tests and docs,
+plus ignored Python caches. Those changes were preserved and excluded from the
+focused commit. No visual algorithm or lighting profile was changed.
+
+2. OVERLAY DESIGN
+The QA application (RP5NP_QA_TOOLS build) shows two translucent MODE and POST
+buttons in the left 4:3 side bar during unpaused gameplay. Bounds use fractions
+of the actual Android output surface and scale with orientation/resolution.
+The ordinary release build never enables the comparison overlay. Buttons are
+fixed QA controls, independent of the touch layout editor and preference file.
+The existing touch bitmap font, colors, alpha blending and render-state restore
+are reused. The gameplay world and black bars retain their existing layout.
+
+3. MODE CYCLE
+ORIGINAL -> VIS1B HORROR -> GPU PROOF -> GPU GENERATED -> ORIGINAL.
+If the Video menu leaves VIS1 CONSERVATIVE selected, the next QA tap enters
+VIS1B HORROR. The button calls horror_visuals_set_mode, the Video menu's
+existing setter; this saves the same world-visuals preference and invokes the
+existing GPU mode-change hook. No menu redraw or pause path is called.
+
+4. POST CYCLE
+Medical: OFF -> AUTO -> MED A -> MED B -> MED C -> OFF.
+Executive: OFF -> AUTO -> EXEC A -> EXEC B -> EXEC C -> OFF.
+Other levels: OFF -> AUTO -> OFF (neutral/default behavior).
+The button reads and updates the same gShockPrefs.postEnabled/postChoice fields
+used by Video -> Hybrid Post and calls SavePrefs. It does not introduce another
+post state or preference key. Cross-deck choices enter the current deck's first
+preset on the next tap. Vignette and grain preferences remain untouched.
+
+5. TOUCH OWNERSHIP AND STATUS
+QA button hit testing occurs on raw output-surface coordinates before gameplay
+role selection. A claimed finger never becomes move/look/fire/use/cursor/ammo;
+release outside its button or movement beyond tap slop cancels the action.
+The bridge also skips its pre-touch mouselook request for these buttons.
+Commands are applied after input polling, only while normal gameplay remains
+available. The visible label derives from current preference values and the
+current deck on every sync, including after menu changes. It lasts 1.6 seconds
+and fades over the last 350 ms without pausing or a center-screen panel.
+
+6. FOCUSED TESTS
+scripts/test-touch.ps1 passed all existing suites with the project's retcomm
+Clang/gcc toolchain. New assertions cover the four-mode order/wrap, Medical and
+Executive post order/wrap, neutral decks, labels, claimed taps, canceled drags,
+cursor mode, and absence of gameplay output edges. Android QA build passed.
+
+7. MEDICAL HARDWARE RESULT
+Samsung SM-S948U1, authorized serial <device serial redacted>. Loaded existing Medical
+Scene A slot 07. Direct MODE taps changed the persisted world-visuals setting
+through original, horror, gpu-prototype, gpu-generated and wrap to original;
+then returned to gpu-generated. Direct POST taps changed world-post/preset
+through OFF, AUTO/0, MED A/1, MED B/2, MED C/3, OFF/0. Captured each Medical
+post state in ignored dist/horror-qa-touch1. The world remained visible at the
+same view, with no scene reload. The existing GPU log retained camera
+30.5,22.625,2.10214, heading 192, pitch 0 through the selected GPU states.
+The preset differences were visible but subtle; this was an interaction check,
+not a new art approval.
+
+8. EXECUTIVE HARDWARE RESULT
+Loaded existing Executive slot 02 at Gamma Grove. Direct POST taps changed the
+same persisted setting through AUTO/0, EXEC A/4, EXEC B/5, EXEC C/6, OFF/0.
+MODE advanced from GPU GENERATED to ORIGINAL in the live view. No detailed
+Executive art review was performed. Returned to Medical slot 07 afterward.
+
+9. NO-MENU / FULLBRIGHT AND INPUT-LEAK RESULT
+Phone captures show the world and HUD continuously present with MODE/POST
+buttons, not the Pause/Video background. The taps did not open either menu.
+Camera composition stayed fixed in the Medical captures; there was no observed
+fire, USE, wheel, cursor click or movement from the QA taps. The focused input
+test verifies these actions emit no gameplay edges. This does not claim an
+exhaustive physical multi-touch campaign.
+
+10. STATUS LABEL RESULT
+Phone captures showed ORIGINAL, MED B, MED C, POST AUTO, POST OFF and MED A
+at their corresponding saved state. Label text is read from the same current
+state used by rendering, so a Video-menu change is picked up at next sync.
+
+11. PERFORMANCE SMOKE
+The overlay uses a few SDL rectangles and glyphs per frame with no GPU resource
+allocation. On Medical GPU GENERATED with MED A, after warmup the existing
+GPU2 submission CPU window was mean 0.066 ms / p95 0.076 ms; POST1 CPU was
+mean 0.018 ms / p95 0.020 ms. These are existing renderer/post submission
+counters, not an isolated overlay cost or GPU execution measurement. Cache
+entries remained at 23 and misses at 23 across later 300-frame windows;
+POST1 target creation logged once. No observed hitch, crash or QA UI log spam.
+
+12. APK / VERIFICATION
+dist/horror-qa-touch1/SystemShock-HORROR-QA-TOUCH1-qa-arm64-v8a.apk
+SHA256 9d5f93bb2ec7af30f2b35b7269c644f034028db3f7aafff29f5e3f7e68c26bf1
+Package io.github.raposomiguel50.systemshock.qa, version 10000 / 1.0.0-qa.
+Signer SHA256 6dc6baad4199aaa7637cbbe2af679156eb48731b0eacdeabc0ffaa78adcd9924.
+scripts/verify-apk.ps1 passed 16-KiB ELF PT_LOAD and native ZIP alignment.
+
+13. INSTALL / DATA PRESERVATION
+adb install -r returned Success on the authorized connected phone and the QA
+app launched. All eight savgam00-07.dat hashes and touch-settings.cfg matched
+their preinstall values after testing. No data clear or save write was used.
+The renderer/post preference file changed intentionally through QA taps.
+
+14. FINAL PHONE STATE
+Awake (mScreenOn=true), Medical Scene A slot 07 loaded, normal gameplay view
+visible, GPU GENERATED and MED A selected, MODE/POST buttons visible. Pause and
+Video are closed. Final screenshot is ignored dist/horror-qa-touch1/handoff.png.
+
+15. FILES CHANGED
+AndroidProject/app/jni/touch/touch_visual_compare.h
+AndroidProject/app/jni/touch/touch_controls.h
+AndroidProject/app/jni/touch/touch_controls.c
+AndroidProject/app/jni/touch/touch_shock_bridge.c
+AndroidProject/app/jni/touch/touch_render.c
+AndroidProject/app/jni/touch/tests/touch_qa_test.c
+AndroidProject/app/jni/touch/tests/touch_render_test.c
+docs/HORROR_QA_TOUCH1.txt
+No APK, screenshot, log, save, dist data, proprietary asset or unrelated AUDIO
+change was staged.
+
+16. COMMIT / PUSH
+Implementation, tests and this QA report were committed locally as
+767d38661796e83e5b71d4d9f7251248ce019995. This documentation-only
+follow-up records that hash. Nothing was pushed.

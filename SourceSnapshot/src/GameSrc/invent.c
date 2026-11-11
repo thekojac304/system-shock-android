@@ -768,6 +768,12 @@ out:
     return retval;
 }
 
+uchar touch_select_weapon_slot(int slot) {
+    if (slot<0 || slot>=NUM_WEAPON_SLOTS ||
+        player_struct.weapons[slot].type==EMPTY_WEAPON_SLOT) return FALSE;
+    return inventory_select_weapon(NULL,slot);
+}
+
 uchar weapon_use_func(inv_display *dp, int w) {
     if (player_struct.weapons[w].type == EMPTY_WEAPON_SLOT)
         return FALSE;
@@ -2143,6 +2149,18 @@ uchar inventory_handle_rightbutton(uiEvent *ev, LGRegion *reg, inv_display *dp, 
 }
 
 #define SEARCH_MARGIN 2
+
+bool touch_inventory_object_at(int x, int y) {
+    int relx = x - INVENTORY_PANEL_X;
+    int i = 0;
+    inv_display *dp = NULL;
+    for (; gen_inv_page(inventory_page, &i, &dp); i++) {
+        if (relx < dp->left || relx > dp->right) continue;
+        int row = get_item_at_pixrow(dp, y);
+        return row >= 0 && row < dp->listlen && dp->use != NULL;
+    }
+    return false;
+}
 
 uchar inventory_mouse_handler(uiEvent *ev, LGRegion *r, intptr_t data) {
     uchar retval = FALSE;

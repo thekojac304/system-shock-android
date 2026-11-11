@@ -18,13 +18,14 @@ android {
     ndkVersion "29.0.14206865"
 
     defaultConfig {
+        buildConfigField 'boolean', 'AUDIO_DIAGNOSTICS', 'false'
         // Stable v1 starts a clean Android application identity so it can coexist
         // with the historical pre-release package com.rp5np.systemshock.
-        applicationId "io.github.raposomiguel50.systemshock"
+        applicationId "io.github.thekojac304.systemshock"
         minSdkVersion 33
         targetSdkVersion 33
-        versionCode 10000
-        versionName "1.0.0"
+        versionCode 10101
+        versionName "1.1.0-beta.2"
 
         externalNativeBuild {
             cmake {
@@ -57,6 +58,15 @@ android {
             debuggable true
             minifyEnabled false
             signingConfig signingConfigs.debug
+            // TEMPORARY AUDLIFE, opt in with -Prp5npAudioDiagnostics=true.
+            def audioDiagnostics = project.findProperty('rp5npAudioDiagnostics') == 'true'
+            buildConfigField 'boolean', 'AUDIO_DIAGNOSTICS', audioDiagnostics.toString()
+            externalNativeBuild {
+                cmake {
+                    arguments "-DRP5NP_AUDIO_DIAGNOSTICS=${audioDiagnostics ? 'ON' : 'OFF'}"
+                    arguments "-DRP5NP_QA_TOOLS=ON"
+                }
+            }
         }
 
         release {
@@ -89,6 +99,7 @@ android {
     lint {
         abortOnError false
     }
+    buildFeatures { buildConfig true }
 }
 
 dependencies {
