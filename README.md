@@ -11,8 +11,14 @@ own app identity and the fixes needed to run it on a phone.
 
 ## Download
 
-**[Download 1.1.0-beta.2 (beta)](https://github.com/thekojac304/system-shock-android/releases/tag/v1.1.0-beta.2)**:
-`SystemShock-TouchEdition-1.1.0-beta.2-arm64-v8a.apk` (3.7 MB) and `SHA256SUMS.txt`.
+**This repository's [Releases](https://github.com/thekojac304/system-shock-android/releases) are the official download location
+for System Shock Touch Edition.** Current version: [1.1.0-beta.2 (beta)](https://github.com/thekojac304/system-shock-android/releases/tag/v1.1.0-beta.2).
+
+- Direct download: [`SystemShock-TouchEdition-1.1.0-beta.2-arm64-v8a.apk`](https://github.com/thekojac304/system-shock-android/releases/download/v1.1.0-beta.2/SystemShock-TouchEdition-1.1.0-beta.2-arm64-v8a.apk) (3.7 MB)
+- Checksum: [`SHA256SUMS.txt`](https://github.com/thekojac304/system-shock-android/releases/download/v1.1.0-beta.2/SHA256SUMS.txt) (SHA-256 `d142fb5a…39ad`)
+
+The development history lives in [system-shock-android-dev](https://github.com/thekojac304/system-shock-android-dev); its
+releases are archived copies of these files.
 
 The APK contains no game data. You need the `res` folder (with `data` and `sound`) from your own copy of System Shock.
 
